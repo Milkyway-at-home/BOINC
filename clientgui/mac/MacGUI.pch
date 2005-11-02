@@ -1,0 +1,60 @@
+// Berkeley Open Infrastructure for Network Computing
+// http://boinc.berkeley.edu
+// Copyright (C) 2005 University of California
+//
+// This is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public
+// License as published by the Free Software Foundation;
+// either version 2.1 of the License, or (at your option) any later version.
+//
+// This software is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Lesser General Public License for more details.
+//
+// To view the GNU Lesser General Public License visit
+// http://www.gnu.org/copyleft/lesser.html
+// or write to the Free Software Foundation, Inc.,
+// 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+// HTTP_OP represents an HTTP operation.
+// There are variants for GET and POST,
+// and for the data source/sink (see below).
+
+#ifndef _MACGUI_H_
+#define _MACGUI_H_
+/*
+ *  MacGUI.pch
+ *  BOINCManager precompiled headers file for Mac
+ */
+ 
+#define WX_PRECOMP
+
+#include "stdwx.h"
+
+#include "config.h"
+
+// We want to define __WXDEBUG__ to enable certain test code within our project, 
+// but only for Development builds.  Unfortunately, XCode allows us to modify 
+// compiler or linker flags by build style only on a project-wide basis.  If we 
+// do that, then the compiler & linker flags override these settings for all 
+// targets in the project.  But our different targets need different settings.
+// XCode  does not provide any way to do this on a per-target basis. 
+// This means that we can neither add -D__WXDEBUG to the compiler flags for only 
+// Development Builds of the BOINC Manager, but we also cannot link in the debug 
+// build of wxWidgets for only Development Builds of the BOINC Manager.
+// So we use a couple of ugly hacks here:
+// (1) We take advantage that __OPTIMIZE__ is defined only for Deployment builds.
+// (2) We define __WXDEBUG__ AFTER including stdwx.h, so as not to require the 
+//     debug build of the wxWidgets  library.
+
+// __OPTIMIZE__ is defined in Deployment builds, not in Development builds
+#ifndef __OPTIMIZE__
+// Define this AFTER including stdwx.h so we don't have to link wih debug Wx libs
+#define __WXDEBUG__
+#endif
+
+// Prototypes for Mac_GUI.cpp
+Boolean Mac_Authorize(void);
+
+#endif
