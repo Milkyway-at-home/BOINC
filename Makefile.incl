@@ -1,0 +1,40 @@
+## -*-Makefile -*-
+## $Id$
+
+# Note: MYSQL_CFLAGS and MYSQL_LIBS set by configure from mysql_config
+
+MYSQL_LIBS = @MYSQL_LIBS@
+MYSQL_CFLAGS = @MYSQL_CFLAGS@
+PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
+PTHREAD_LIBS = @PTHREAD_LIBS@
+
+RSA_LIBS = -lcrypto
+SCHED_LIB = -L$(top_builddir)/sched -lsched
+BOINC_LIB = -L$(top_builddir)/lib -lboinc
+
+AM_CPPFLAGS =					\
+        @PICFLAGS@				\
+        -I$(top_srcdir)/lib			\
+        -I$(top_srcdir)/api			\
+        -I$(top_srcdir)/db			\
+        -I$(top_srcdir)/client			\
+        -I$(top_srcdir)/tools			\
+        -I$(top_srcdir)/sched			\
+        $(MYSQL_CFLAGS)				\
+        $(PTHREAD_CFLAGS)		        
+
+AM_CFLAGS = $(AM_CPPFLAGS)
+AM_CXXFLAGS = $(AM_CPPFLAGS)
+AM_LDFLAGS =
+
+# dependencies to make sure libs gets compiled before
+# programs linking to them:
+
+LIBSCHED = $(top_builddir)/libsched.a
+$(LIBSCHED):
+	cd $(top_builddir)/sched; ${MAKE} libsched.a
+
+LIBBOINC = $(top_builddir)/libboinc.a
+$(LIBBOINC):
+	cd $(top_builddir)/lib; ${MAKE} libboinc.a
+

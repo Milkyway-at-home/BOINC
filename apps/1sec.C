@@ -1,0 +1,40 @@
+// Berkeley Open Infrastructure for Network Computing
+// http://boinc.berkeley.edu
+// Copyright (C) 2005 University of California
+//
+// This is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public
+// License as published by the Free Software Foundation;
+// either version 2.1 of the License, or (at your option) any later version.
+//
+// This software is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Lesser General Public License for more details.
+//
+// To view the GNU Lesser General Public License visit
+// http://www.gnu.org/copyleft/lesser.html
+// or write to the Free Software Foundation, Inc.,
+// 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+// burn up to one CPU second
+
+#include "config.h"
+#include <cstdio>
+#include <ctime>
+
+int main() {
+    int now = time(0), i;
+    double x=0;
+
+    while (1) {
+        for (i=0; i<1000000; i++) x += 1;
+        if (time(0) != now) break;
+    }
+
+    FILE* f = fopen("out", "w");
+    fprintf(f, "done\n");
+    fclose(f);
+}
+
+const char *BOINC_RCSID_afc4016a8b = "$Id$";

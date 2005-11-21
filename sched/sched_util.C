@@ -1,0 +1,237 @@
+// Berkeley Open Infrastructure for Network Computing
+// http://boinc.berkeley.edu
+// Copyright (C) 2005 University of California
+//
+// This is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public
+// License as published by the Free Software Foundation;
+// either version 2.1 of the License, or (at your option) any later version.
+//
+// This software is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU Lesser General Public License for more details.
+//
+// To view the GNU Lesser General Public License visit
+// http://www.gnu.org/copyleft/lesser.html
+// or write to the Free Software Foundation, Inc.,
+// 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+using namespace std;
+
+#include "config.h"
+#include <cstdlib>
+#include <csignal>
+#include <cerrno>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
+
+#include "filesys.h"
+#include "md5_file.h"
+#include "error_numbers.h"
+
+#include "sched_msgs.h"
+#include "sched_util.h"
+#include "util.h"
+
+#ifdef _USING_FCGI_
+#include "fcgi_stdio.h"
+#endif
+
+const char* STOP_DAEMONS_FILENAME = "../stop_daemons";
+    // NOTE: this must be same as in the "start" script
+const char* STOP_SCHED_FILENAME = "../stop_sched";
+    // NOTE: this must be same as in the "start" script
+const int STOP_SIGNAL = SIGHUP;
+    // NOTE: this must be same as in the "start" script
+
+void write_pid_file(const char* filename) {
+    FILE* fpid = fopen(filename, "w");
+    if (!fpid) {
+        log_messages.printf(SCHED_MSG_LOG::MSG_NORMAL, "Couldn't write pid\n");
+        return;
+    }
+    fprintf(fpid, "%d\n", (int)getpid());
+    fclose(fpid);
+}
+
+// caught_sig_int will be set to true if STOP_SIGNAL (normally SIGHUP)
+//  is caught.
+bool caught_stop_signal = false;
+static void stop_signal_handler(int) {
+    fprintf(stderr, "GOT STOP SIGNAL\n");
+    caught_stop_signal = true;
+}
+
+void install_stop_signal_handler() {
+    signal(STOP_SIGNAL, stop_signal_handler);
+    // handler is now default again so hitting ^C again will kill the program.
+}
+
+void check_stop_daemons() {
+    if (caught_stop_signal) {
+        log_messages.printf(SCHED_MSG_LOG::MSG_CRITICAL, "Quitting due to SIGHUP\n");
+        exit(0);
+    }
+    if (boinc_file_exists(STOP_DAEMONS_FILENAME)) {
+        log_messages.printf(SCHED_MSG_LOG::MSG_NORMAL, "Quitting because trigger file '%s' is present\n", STOP_DAEMONS_FILENAME);
+        exit(0);
+    }
+}
+
+bool check_stop_sched() {
+    return boinc_file_exists(STOP_SCHED_FILENAME);
+}
+
+// try to open a file.
+// On failure:
+//   return ERR_FOPEN if the dir is there but not file
+//     (this is generally a nonrecoverable failure)
+//   return ERR_OPENDIR if dir is not there.
+//     (this is generally a recoverable error,
+//     like NFS mount failure, that may go away later)
+//
+int try_fopen(const char* path, FILE*& f, const char* mode) {
+    char* p;
+    DIR* d;
+    char dirpath[256];
+
+    f = fopen(path, mode);
+    if (!f) {
+        memset(dirpath, '\0', sizeof(dirpath));
+        p = strrchr(path, '/');
+        if (p) {
+            strncpy(dirpath, path, (int)(p-path));
+        } else {
+            strcpy(dirpath, ".");
+        }
+        if ((d = opendir(dirpath)) == NULL) {
+            return ERR_OPENDIR;
+        } else {
+            closedir(d);
+            return ERR_FOPEN;
+        }
+    }
+    return 0;
+}
+
+void get_log_path(char* p, const char* filename) {
+    char host[256];
+    char dir[256];
+    gethostname(host, 256);
+    char* q = strchr(host, '.');
+    if (q) *q=0;
+    sprintf(dir, "../log_%s", host);
+    sprintf(p, "%s/%s", dir, filename);
+    mkdir(dir, 0777);
+}
+
+static void filename_hash(const char* filename, int fanout, char* dir) {
+	std::string s = md5_string((const unsigned char*)filename, strlen(filename));
+	int x = strtol(s.substr(1, 7).c_str(), 0, 16);
+    sprintf(dir, "%x", x % fanout);
+}
+
+// given a filename, compute its path in a directory hierarchy
+// If create is true, create the directory if needed
+//
+int dir_hier_path(
+    const char* filename, const char* root, int fanout,
+	char* path, bool create
+) {
+    char dir[256], dirpath[256];
+    int retval;
+
+    if (fanout==0) {
+        sprintf(path, "%s/%s", root, filename);
+        return 0;
+    }
+
+    filename_hash(filename, fanout, dir);
+
+    sprintf(dirpath, "%s/%s", root, dir);
+    if (create) {
+        retval = boinc_mkdir(dirpath);
+        if (retval && (retval != EEXIST)) {
+            return ERR_MKDIR;
+        }
+    }
+    sprintf(path, "%s/%s", dirpath, filename);
+    return 0;
+}
+
+int dir_hier_url(
+    const char* filename, const char* root, int fanout,
+	char* result
+) {
+    char dir[256];
+
+    if (fanout==0) {
+        sprintf(result, "%s/%s", root, filename);
+        return 0;
+    }
+
+    filename_hash(filename, fanout, dir);
+    sprintf(result, "%s/%s/%s", root, dir, filename);
+    return 0;
+}
+
+// Locality scheduling: get filename from result name
+//
+
+int extract_filename(char* in, char* out) {
+    strcpy(out, in);
+    char* p = strstr(out, "__");
+    if (!p) return -1;
+    *p = 0;
+    return 0;
+}
+
+void compute_avg_turnaround(HOST& host, double turnaround) {
+    double new_avg;
+    if (host.avg_turnaround == 0) {
+        new_avg = turnaround;
+    } else {
+        new_avg = .7*host.avg_turnaround + .3*turnaround;
+    }
+    log_messages.printf(SCHED_MSG_LOG::MSG_NORMAL,
+        "turnaround %f; old %f; new %f\n",
+        turnaround, host.avg_turnaround, new_avg
+    );
+    host.avg_turnaround = new_avg;
+}
+
+double elapsed_wallclock_time() {
+    static double wallclock_execution_time=0.0;
+
+    if (wallclock_execution_time == 0.0) {
+        wallclock_execution_time=dtime();
+        return 0.0;
+    }
+
+    return dtime()-wallclock_execution_time;
+}
+
+// Request lock on the given file with given fd.  Returns:
+// 0 if we get lock
+// PID (>0) if another process has lock
+// -1 if error
+//
+int mylockf(int fd) {
+    struct flock fl;
+    fl.l_type=F_WRLCK;
+    fl.l_whence=SEEK_SET;
+    fl.l_start=0;
+    fl.l_len=0;
+    if (-1 != fcntl(fd, F_SETLK, &fl)) return 0;
+
+    // if lock failed, find out why
+    errno=0;
+    fcntl(fd, F_GETLK, &fl);
+    if (fl.l_pid>0) return fl.l_pid;
+    return -1;
+}
+
+const char *BOINC_RCSID_affa6ef1e4 = "$Id$";
