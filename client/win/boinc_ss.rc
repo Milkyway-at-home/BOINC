@@ -1,0 +1,197 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "boinc_ss.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winresrc.h"
+#include "version.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "boinc_ss.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winresrc.h""\r\n"
+    "#include ""version.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Visual Studio 2005 Compatibility
+//
+#ifndef IDC_STATIC
+#define IDC_STATIC              (-1)     // all static controls
+#endif
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION BOINC_MAJOR_VERSION,BOINC_MINOR_VERSION,BOINC_RELEASE,0
+ PRODUCTVERSION BOINC_MAJOR_VERSION,BOINC_MINOR_VERSION,BOINC_RELEASE,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", "Space Sciences Laboratory"
+            VALUE "FileDescription", "BOINC Screensaver"
+            VALUE "FileVersion", BOINC_VERSION_STRING "\0"
+            VALUE "InternalName", "boinc_ss"
+            VALUE "LegalCopyright", "Copyright © 2003-2005 University of California"
+            VALUE "OriginalFilename", "boinc.scr"
+            VALUE "ProductName", "BOINC Core Client"
+            VALUE "ProductVersion", BOINC_VERSION_STRING "\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+DLG_CONFIG DIALOGEX 50, 50, 186, 76
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Config dialog"
+FONT 8, "MS Sans Serif", 0, 0, 0x0
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,7,55,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,129,55,50,14
+    CONTROL         "Go to blank screen",IDC_BLANK,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,7,7,76,10
+    LTEXT           "Minutes until blank:",IDC_STATIC,7,31,62,8
+    EDITTEXT        IDC_BLANK_TIME,77,28,40,14,ES_AUTOHSCROLL
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_MAIN_ICON           ICON                    "res\\Scricon3.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_BOINCSPLAT          BITMAP                  "res\\boinc.bmp"
+IDB_GRIDREPUBLICLOGO    BITMAP                  "res\\gridrepublic.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE 
+BEGIN
+    IDS_ERR_GENERIC         "There was an unspecified problem\nwith the BOINC screensaver."
+    IDS_ERR_BOINCNOTDETECTED 
+                            "BOINC is not running.\n\nPlease launch BOINC to display graphics."
+    IDS_ERR_BOINCNOTDETECTEDSTARTUP 
+                            "BOINC is not running.\n(Automatic Startup not detected)\n\nWe recommend running BOINC at startup;\nplease reinstall BOINC and select this option."
+    IDS_ERR_BOINCSUSPENDED  "BOINC is currently suspended."
+    IDS_ERR_BOINCNOAPPSEXECUTING
+                            "BOINC is currently idle."
+    IDS_ERR_BOINCNOAPPSEXECUTINGNOPROJECTSDETECTED
+                            "BOINC is not attached to any projects.\nYou can attach to projects using\nthe BOINC Manager."
+    IDS_ERR_BOINCNOGRAPHICSAPPSEXECUTING
+                            "BOINC system status:\n\n"
+    IDS_ERR_BOINCSCREENSAVERLOADING
+                            "BOINC screensaver loading"
+    IDS_ERR_GRIDREPUBLICNOTDETECTED 
+                            "Grid Republic is not running.\n\nPlease launch Grid Republic to display graphics."
+    IDS_ERR_GRIDREPUBLICNOTDETECTEDSTARTUP 
+                            "Grid Republic is not running.\n(Automatic Startup not detected)\n\nWe recommend running Grid Republic at startup;\nplease reinstall Grid Republic and select this option."
+    IDS_ERR_GRIDREPUBLICSUSPENDED  "Grid Republic is currently suspended."
+    IDS_ERR_GRIDREPUBLICNOAPPSEXECUTING
+                            "Grid Republic is currently idle."
+    IDS_ERR_GRIDREPUBLICNOAPPSEXECUTINGNOPROJECTSDETECTED
+                            "Grid Republic is not attached to any projects.\nYou can attach to projects using\nthe Grid Republic website."
+    IDS_ERR_GRIDREPUBLICNOGRAPHICSAPPSEXECUTING
+                            "Grid Republic system status:\n\n"
+    IDS_ERR_GRIDREPUBLICSCREENSAVERLOADING
+                            "Grid Republic screensaver loading"
+    IDS_ERR_OUTOFMEMORY     "Not enough memory."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_ERR_NOPREVIEW       "No preview available"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_DESCRIPTION         "BOINC"
+END
+
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
