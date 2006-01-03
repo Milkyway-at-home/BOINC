@@ -1,0 +1,289 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: v1.22\n"
+"POT-Creation-Date: \n"
+"PO-Revision-Date: 2005-12-22 16:33+0800\n"
+"Last-Translator: Yin Gang <zenith.yin@gmail.com>\n"
+"Language-Team:  <zenith.yin@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Chinese\n"
+"X-Poedit-Country: CHINA\n"
+
+##########################################
+# Language: English (International)
+# FileID  : $Id$
+# Author  : Janus Kristensen
+# Email   : jbk@visualgroup.dk
+##########################################
+# For more information please see:
+# http://boinc.berkeley.edu/web_translation.php
+##########################################
+# The charset used for the text in this file (please try to use UTF-8 if possible)
+msgid "CHARSET"
+msgstr "UTF-8"
+
+# The name of this language in this language
+msgid "LANG_NAME_NATIVE"
+msgstr "简体中文"
+
+# The name of this language in an international language (English)
+msgid "LANG_NAME_INTERNATIONAL"
+msgstr "Simplified Chinese"
+
+#########################################
+# Apps page (apps.php)
+#########################################
+msgid "APPS_TITLE"
+msgstr "计算程序"
+
+msgid "APPS_DESCRIPTION"
+msgstr "$PROJECT 目前有如下几个计算程序。当您参与 $PROJECT 项目时， 适用于这些计算程序的任务包将会分发给您的计算机。 当前版本的计算程序也会下载到您的计算机上。这一切都是自动的，您不需要做任何操作。"
+
+msgid "APPS_PLATFORM"
+msgstr "平台"
+
+msgid "APPS_VERSION"
+msgstr "当前版本"
+
+msgid "APPS_INSTALLTIME"
+msgstr "发布日期"
+
+#########################################
+# Rules and Policies page (info.php)
+#########################################
+msgid "RULES_TITLE"
+msgstr "规定与政策"
+
+msgid "RULES_ONLY_AUTH"
+msgstr "仅在已授权的计算机上运行 $PROJECT"
+
+msgid "RULES_ONLY_AUTH_TEXT"
+msgstr "仅在您自己的或者已获得别人许可的计算机上运行 $PROJECT。某些企业和学校是禁止在他们的计算机上运行 $PROJECT 之类的程序的。"
+
+msgid "RULES_COMPUTER_USE"
+msgstr "$PROJECT 如何使用您的计算机"
+
+msgid "RULES_COMPUTER_USE_TEXT_A"
+msgstr "当您在计算机上运行 $PROJECT 时，他会使用您计算机上部分的处理器资源、磁盘空间以及网络带宽。您也可以控制 $PROJECT 的资源使用量。"
+
+msgid "RULES_COMPUTER_USE_TEXT_B"
+msgstr "您的计算机所完成的任务仅用来帮助 $PROJECT 实现其网站上所说明的目标。有时计算程序的版本可能会改变。"
+
+msgid "RULES_PRIVACY"
+msgstr "隐私政策"
+
+msgid "RULES_PRIVACY_TEXT_A"
+msgstr "$PROJECT 通过您选择的名称来区分您的帐号。这个名称以及您已经为 $PROJECT 完成的任务摘要将显示在 $PROJECT的网站上。如果您想匿名，那请选择一个不会泄漏您身份的名称。"
+
+msgid "RULES_PRIVACY_TEXT_B"
+msgstr "如果您参加了 $PROJECT ，您计算机的相关信息比如处理器的型号、内存的大小等会被 $PROJECT 记录下来，以用来决定什么样的任务最适合您的计算机。 这些信息也会被显示在 $PROJECT 的网站上，但是请不要担心，我们绝对不会泄漏出您的计算机的位置比如域名、网络地址等。"
+
+msgid "RULES_PRIVACY_TEXT_C"
+msgstr "为了参加 $PROJECT ，您必须提供一个能够接收到邮件的电子邮箱地址。这个地址不会被显示在 $PROJECT 的网站上。$PROJECT 会定期的向您发送项目新闻； 当然，您随时可以选择退订。"
+
+msgid "RULES_SAFE"
+msgstr "运行 $PROJECT 安全吗？"
+
+msgid "RULES_SAFE_TEXT_A"
+msgstr "只要您从互联网下载程序就有可能碰到下载的程序有严重错误或者下载服务器被黑客攻击的情况。$PROJECT 已经尽力降低了这方面的风险。我们已经仔细测试了我们的程序。我们在服务器上安装了防火墙，并且设置了最高的安全级别。为了保证程序下载的完整性，全部的可执行文件会被放置在一台没有连接网络的安全的计算机中进行数字签名。"
+
+msgid "RULES_SAFE_TEXT_B"
+msgstr "$PROJECT 的计算程序可能会导致某些计算机温度过高。如果您碰到了这种情形，请停止运行 $PROJECT 或使用 %s 来限制计算程序对处理器的使用率。"
+
+msgid "RULES_UTILITY_PROGRAM"
+msgstr "辅助程序"
+
+msgid "RULES_SAFE_TEXT_C"
+msgstr "$PROJECT 由 %s 开发。BOINC 由加州大学开发。"
+
+msgid "RULES_LIABILITY"
+msgstr "免责申明"
+
+msgid "RULES_LIABILITY_TEXT"
+msgstr "$PROJECT 和 %s 对于您的计算机损坏、数据丢失或其他任意可能由于参与 $PROJECT 所造成的事件没有赔偿责任。"
+
+msgid "RULES_OTHER"
+msgstr "其它BOINC项目"
+
+msgid "RULES_OTHER_TEXT_A"
+msgstr "除了 $PROJECT，还有其它项目同样使用BOINC平台。您可以考虑参与一个或多个项目，当您无法从 $PROJECT 获取新任务时，运行其他的项目能提高您的计算机的利用率。"
+
+msgid "RULES_OTHER_TEXT_B"
+msgstr "其它项目同 $PROJECT 没有关系，所以我们也不能保证他们的安全性及研究内容的实质，请您自行决定是否参与其他项目。"
+
+#########################################
+# Create account form (create_account_form.php)
+#########################################
+msgid "CREATE_AC_TITLE"
+msgstr "创建账号"
+
+msgid "CREATE_AC_READ_RULES"
+msgstr "在创建帐号前请阅读 %s。"
+
+msgid "CREATE_AC_ALREADY_GOT"
+msgstr "如果您已经收到了帐号密钥，请不要提交这个表单。您应该%s。"
+
+msgid "CREATE_AC_NAME"
+msgstr "用户名"
+
+msgid "CREATE_AC_NAME_DESC"
+msgstr "您在我们网站上的标识，可以使用您的真实姓名或是昵称。"
+
+msgid "CREATE_AC_EMAIL"
+msgstr "电子邮箱地址"
+
+msgid "CREATE_AC_EMAIL_DESC"
+msgstr "必须是有效的地址，形式如 '用户名@域名'。"
+
+msgid "CREATE_AC_COUNTRY"
+msgstr "国家或地区"
+
+msgid "CREATE_AC_COUNTRY_DESC"
+msgstr "选择您所在的国家或地区"
+
+msgid "CREATE_AC_ZIP"
+msgstr "邮编"
+
+msgid "CREATE_AC_CREATE"
+msgstr "创建帐号"
+
+msgid "CREATE_AC_DISABLED"
+msgstr "新账号创建已被禁用"
+
+msgid "CREATE_AC_DISABLED_TEXT"
+msgstr "$PROJECT 当前已经暂停了新帐号的注册，请以后再试。"
+
+msgid "CREATE_AC_TEAM"
+msgstr "此帐户将属于 %s 团队并且项目参数的默认值是由团队创建人设置的。"
+
+msgid "CREATE_AC_USE_CLIENT"
+msgstr "注意：如果您正在使用版本5.2之后的客户端，请不要使用这个表单。运行BOINC，选择其菜单的“加入项目”，然后输入电子邮箱地址及密码。"
+
+msgid "CREATE_AC_PASSWORD"
+msgstr "密码"
+
+msgid "CREATE_AC_PASSWORD_DESC"
+msgstr "必须至少包含%s个字符"
+
+msgid "CREATE_AC_CONFIRM_PASSWORD"
+msgstr "密码确认"
+
+#########################################
+# Forum sample index page
+#########################################
+msgid "FORUM_TITLE"
+msgstr "$PROJECT 留言板"
+
+#########################################
+# General stuff (create_account_form.php and others)
+#########################################
+msgid "OPTIONAL"
+msgstr "可选的"
+
+#########################################
+# Various top table pages (top users, computers, teams)
+#########################################
+msgid "TOP_PARTICIPANT_TITLE"
+msgstr "用户排名"
+
+msgid "USER_TABLE_RANK"
+msgstr "名次"
+
+msgid "USER_TABLE_NAME"
+msgstr "用户名"
+
+msgid "TOTAL_CREDIT"
+msgstr "总积分"
+
+msgid "EXPAVG_CREDIT"
+msgstr "近期平均积分"
+
+msgid "USER_TABLE_COUNTRY"
+msgstr "国家或地区"
+
+msgid "USER_TABLE_PTIME"
+msgstr "参与时间"
+
+msgid "TOP_TEAMS_TITLE"
+msgstr "%s 团队排名"
+
+msgid "TEAM_TABLE_MEMBERS"
+msgstr "成员"
+
+#########################################
+# Forum
+#########################################
+msgid "FORUM_ERR_NOT_FOUND"
+msgstr "无此论坛"
+
+msgid "FORUM_ERR_EXPAVG"
+msgstr "您必须在已经获得了一定的积分后才能在 %s 发表一个新主题。这是为了防止对留言系统的滥用。"
+
+msgid "FORUM_ERR_INTERVAL"
+msgstr "你现在不能发表任何新主题，请稍后再试，这是为了防止对留言系统的滥用而使用的延时。"
+
+msgid "FORUM_QA_POST_MESSAGE"
+msgstr "如果您有任何疑问，可以在 %s 向其它用户求助："
+
+msgid "FORUM_QA_POST_MESSAGE2"
+msgstr "请阅读现有的问题列表。如果您的问题已存在，请点击 %s 按钮。如果有人回答了您的问题，请仔细阅读。如果找不到您的问题，请点击 %s 按钮。"
+
+msgid "FORUM_QA_POST_MESSAGE3"
+msgstr "如果您的疑问从未被其他人询问过，请填写这个表单。"
+
+msgid "FORUM_QA_POST_MESSAGE4"
+msgstr "这样可以防止同样的问题被反复的询问。"
+
+msgid "FORUM_QA_SUBMIT_NEW"
+msgstr "提交一个新的问题"
+
+msgid "FORUM_SUBMIT_NEW"
+msgstr "发表一个新主题"
+
+msgid "FORUM_SUBMIT_NEW_TITLE"
+msgstr "标题"
+
+msgid "FORUM_QA_SUBMIT_NEW_HELP"
+msgstr "请用少量的话描述您的问题，简短而清楚的说明可以让其他有同样疑问的用户更容易找到它。"
+
+msgid "FORUM_QA_SUBMIT_NEW_BODY_HELP"
+msgstr "如果你碰到了软件上的问题，请注明您使用的软件版本号、您的计算机类型及操作系统种类。"
+
+msgid "FORUM_ADD_MY_SIG"
+msgstr "在帖子后加上我的个性签名"
+
+msgid "FORUM_MESSAGE"
+msgstr "消息"
+
+msgid "FORUM_QA_GOT_PROBLEM_TOO"
+msgstr "我也有同样的问题"
+
+msgid "FORUM_QA_QUESTION_ANSWERED"
+msgstr "他解答了我的问题。"
+
+msgid "FORUM_HTML_INFO"
+msgstr "使用BBCode标记来格式化您的正文"
+
+#########################################
+# Forum search features
+#########################################
+msgid "FORUM_SEARCH_TITLES"
+msgstr "包含 '%s' 的标题"
+
+msgid "FORUM_SEARCH_BODIES"
+msgstr "包含 '%s' 的正文"
+
+msgid "FORUM_SEARCH_TITLES_NO"
+msgstr "没有找到标题中包含 '%s' 的帖子"
+
+msgid "FORUM_SEARCH_BODIES_NO"
+msgstr "没有找到正文中包含 '%s' 的帖子"
+
+#########################################
+# Links from the main page
+#########################################
+msgid "LINKS_QA"
+msgstr "疑难解答"
+
