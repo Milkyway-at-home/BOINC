@@ -1,0 +1,11 @@
+#!/bin/csh
+
+##
+# post-Install Script for Macintosh BOINC Manager for OS X revised 1/21/06
+##
+
+cd "$1"
+# Run the Postinstall Application
+Contents/Resources/PostInstall.app/Contents/MacOS/PostInstall &
+
+exit 0
