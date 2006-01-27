@@ -17,27 +17,27 @@
 // or write to the Free Software Foundation, Inc.,
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-#ifndef _WIZ_COMPLETIONREMOVEPAGE_H_
-#define _WIZ_COMPLETIONREMOVEPAGE_H_
+#ifndef _WIZ_COMPLETIONERRORPAGE_H_
+#define _WIZ_COMPLETIONERRORPAGE_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "CompletionRemovePage.cpp"
+#pragma interface "CompletionErrorPage.cpp"
 #endif
 
 /*!
- * CCompletionRemovePage class declaration
+ * CCompletionErrorPage class declaration
  */
 
-class CCompletionRemovePage: public wxWizardPageEx
+class CCompletionErrorPage: public wxWizardPageEx
 {    
-    DECLARE_DYNAMIC_CLASS( CCompletionRemovePage )
+    DECLARE_DYNAMIC_CLASS( CCompletionErrorPage )
     DECLARE_EVENT_TABLE()
 
 public:
     /// Constructors
-    CCompletionRemovePage( );
+    CCompletionErrorPage( );
 
-    CCompletionRemovePage( CBOINCBaseWizard* parent );
+    CCompletionErrorPage( CBOINCBaseWizard* parent );
 
     /// Creation
     bool Create( CBOINCBaseWizard* parent );
@@ -45,20 +45,17 @@ public:
     /// Creates the controls and sizers
     void CreateControls();
 
-////@begin CCompletionRemovePage event handler declarations
+////@begin CCompletionErrorPage event handler declarations
 
-    /// wxEVT_WIZARD_PAGE_CHANGED event handler for ID_CompletionRemovePage
+    /// wxEVT_WIZARD_PAGE_CHANGED event handler for ID_COMPLETIONERRORPAGE
     void OnPageChanged( wxWizardExEvent& event );
 
-    /// wxEVT_WIZARD_CANCEL event handler for ID_CompletionRemovePage
+    /// wxEVT_WIZARD_CANCEL event handler for ID_COMPLETIONERRORPAGE
     void OnCancel( wxWizardExEvent& event );
 
-    /// wxEVT_WIZARD_FINISHED event handler for ID_CompletionRemovePage
-    void OnFinished( wxWizardExEvent& event );
+////@end CCompletionErrorPage event handler declarations
 
-////@end CCompletionRemovePage event handler declarations
-
-////@begin CCompletionRemovePage member function declarations
+////@begin CCompletionErrorPage member function declarations
 
     /// Gets the previous page.
     virtual wxWizardPageEx* GetPrev() const;
@@ -71,15 +68,18 @@ public:
 
     /// Retrieves icon resources
     wxIcon GetIconResource( const wxString& name );
-////@end CCompletionRemovePage member function declarations
+////@end CCompletionErrorPage member function declarations
 
     /// Should we show tooltips?
     static bool ShowToolTips();
 
-////@begin CCompletionRemovePage member variables
-    wxStaticText* m_pCompletionTitle;
-    wxStaticText* m_pCompletionMessage;
-////@end CCompletionRemovePage member variables
+////@begin CCompletionErrorPage member variables
+    wxStaticText* m_pTitleStaticCtrl;
+    wxStaticText* m_pDirectionsStaticCtrl;
+    wxStaticBox* m_pServerMessagesDescriptionCtrl;
+    wxStaticBoxSizer* m_pServerMessagesStaticBoxSizerCtrl;
+    wxStaticText* m_pServerMessagesCtrl;
+////@end CCompletionErrorPage member variables
 };
 
-#endif // _WIZ_COMPLETIONREMOVEPAGE_H_
+#endif // _WIZ_COMPLETIONERRORPAGE_H_

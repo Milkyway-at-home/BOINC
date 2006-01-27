@@ -17,27 +17,27 @@
 // or write to the Free Software Foundation, Inc.,
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-#ifndef _WIZ_COMPLETIONREMOVEPAGE_H_
-#define _WIZ_COMPLETIONREMOVEPAGE_H_
+#ifndef _WIZ_PROJECTINFOPAGE_H_
+#define _WIZ_PROJECTINFOPAGE_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "CompletionRemovePage.cpp"
+#pragma interface "ProjectInfoPage.cpp"
 #endif
 
 /*!
- * CCompletionRemovePage class declaration
+ * CProjectInfoPage class declaration
  */
 
-class CCompletionRemovePage: public wxWizardPageEx
+class CProjectInfoPage: public wxWizardPageEx
 {    
-    DECLARE_DYNAMIC_CLASS( CCompletionRemovePage )
+    DECLARE_DYNAMIC_CLASS( CProjectInfoPage )
     DECLARE_EVENT_TABLE()
 
 public:
     /// Constructors
-    CCompletionRemovePage( );
+    CProjectInfoPage( );
 
-    CCompletionRemovePage( CBOINCBaseWizard* parent );
+    CProjectInfoPage( CBOINCBaseWizard* parent );
 
     /// Creation
     bool Create( CBOINCBaseWizard* parent );
@@ -45,20 +45,20 @@ public:
     /// Creates the controls and sizers
     void CreateControls();
 
-////@begin CCompletionRemovePage event handler declarations
+////@begin CProjectInfoPage event handler declarations
 
-    /// wxEVT_WIZARD_PAGE_CHANGED event handler for ID_CompletionRemovePage
+    /// wxEVT_WIZARD_PAGE_CHANGED event handler for ID_PROJECTINFOPAGE
     void OnPageChanged( wxWizardExEvent& event );
 
-    /// wxEVT_WIZARD_CANCEL event handler for ID_CompletionRemovePage
+    /// wxEVT_WIZARD_PAGE_CHANGING event handler for ID_PROJECTINFOPAGE
+    void OnPageChanging( wxWizardExEvent& event );
+
+    /// wxEVT_WIZARD_CANCEL event handler for ID_PROJECTINFOPAGE
     void OnCancel( wxWizardExEvent& event );
 
-    /// wxEVT_WIZARD_FINISHED event handler for ID_CompletionRemovePage
-    void OnFinished( wxWizardExEvent& event );
+////@end CProjectInfoPage event handler declarations
 
-////@end CCompletionRemovePage event handler declarations
-
-////@begin CCompletionRemovePage member function declarations
+////@begin CProjectInfoPage member function declarations
 
     /// Gets the previous page.
     virtual wxWizardPageEx* GetPrev() const;
@@ -66,20 +66,29 @@ public:
     /// Gets the next page.
     virtual wxWizardPageEx* GetNext() const;
 
+    wxString GetProjectURL() const { return m_strProjectURL ; }
+    void SetProjectURL(wxString value) { m_strProjectURL = value ; }
+
     /// Retrieves bitmap resources
     wxBitmap GetBitmapResource( const wxString& name );
 
     /// Retrieves icon resources
     wxIcon GetIconResource( const wxString& name );
-////@end CCompletionRemovePage member function declarations
+////@end CProjectInfoPage member function declarations
 
     /// Should we show tooltips?
     static bool ShowToolTips();
 
-////@begin CCompletionRemovePage member variables
-    wxStaticText* m_pCompletionTitle;
-    wxStaticText* m_pCompletionMessage;
-////@end CCompletionRemovePage member variables
+////@begin CProjectInfoPage member variables
+    wxStaticText* m_pTitleStaticCtrl;
+    wxStaticText* m_pDescriptionStaticCtrl;
+    wxStaticText* m_pDescription2StaticCtrl;
+    wxStaticText* m_pProjectUrlStaticCtrl;
+    wxTextCtrl* m_pProjectUrlCtrl;
+    wxStaticText* m_pBOINCPromoStaticCtrl;
+    wxHyperLink* m_pBOINCPromoUrlCtrl;
+    wxString m_strProjectURL;
+////@end CProjectInfoPage member variables
 };
 
-#endif // _WIZ_COMPLETIONREMOVEPAGE_H_
+#endif // _WIZ_PROJECTINFOPAGE_H_

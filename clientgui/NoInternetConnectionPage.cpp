@@ -18,7 +18,7 @@
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "UnavailablePage.h"
+#pragma implementation "NoInternetConnectionPage.h"
 #endif
 
 #include "stdwx.h"
@@ -27,72 +27,71 @@
 #include "BOINCGUIApp.h"
 #include "BOINCWizards.h"
 #include "BOINCBaseWizard.h"
-#include "UnavailablePage.h"
+#include "NoInternetConnectionPage.h"
 
 
 /*!
- * CErrUnavailablePage type definition
+ * CErrNoInternetConnectionPage type definition
  */
- 
-IMPLEMENT_DYNAMIC_CLASS( CErrUnavailablePage, wxWizardPageEx )
- 
-/*!
- * CErrUnavailablePage event table definition
- */
- 
-BEGIN_EVENT_TABLE( CErrUnavailablePage, wxWizardPageEx )
- 
-////@begin CErrUnavailablePage event table entries
-    EVT_WIZARDEX_PAGE_CHANGED( -1, CErrUnavailablePage::OnPageChanged )
-    EVT_WIZARDEX_CANCEL( -1, CErrUnavailablePage::OnCancel )
 
-////@end CErrUnavailablePage event table entries
- 
+IMPLEMENT_DYNAMIC_CLASS( CErrNoInternetConnectionPage, wxWizardPageEx )
+
+/*!
+ * CErrNoInternetConnectionPage event table definition
+ */
+
+BEGIN_EVENT_TABLE( CErrNoInternetConnectionPage, wxWizardPageEx )
+
+////@begin CErrNoInternetConnectionPage event table entries
+    EVT_WIZARDEX_PAGE_CHANGED( -1, CErrNoInternetConnectionPage::OnPageChanged )
+    EVT_WIZARDEX_CANCEL( -1, CErrNoInternetConnectionPage::OnCancel )
+
+////@end CErrNoInternetConnectionPage event table entries
+
 END_EVENT_TABLE()
-  
+
 /*!
- * CErrUnavailablePage constructors
+ * CErrNoInternetConnectionPage constructors
  */
- 
-CErrUnavailablePage::CErrUnavailablePage( )
+
+CErrNoInternetConnectionPage::CErrNoInternetConnectionPage( )
 {
 }
-  
-CErrUnavailablePage::CErrUnavailablePage( CBOINCBaseWizard* parent )
+
+CErrNoInternetConnectionPage::CErrNoInternetConnectionPage( CBOINCBaseWizard* parent )
 {
     Create( parent );
 }
- 
+
 /*!
- * CErrUnavailablePage creator
+ * CErrNoInternetConnectionPage creator
  */
- 
-bool CErrUnavailablePage::Create( CBOINCBaseWizard* parent )
+
+bool CErrNoInternetConnectionPage::Create( CBOINCBaseWizard* parent )
 {
-////@begin CErrUnavailablePage member initialisation
+////@begin CErrNoInternetConnectionPage member initialisation
     m_pTitleStaticCtrl = NULL;
     m_pDirectionsStaticCtrl = NULL;
-////@end CErrUnavailablePage member initialisation
- 
-////@begin CErrUnavailablePage creation
+////@end CErrNoInternetConnectionPage member initialisation
+
+////@begin CErrNoInternetConnectionPage creation
     wxBitmap wizardBitmap(wxNullBitmap);
     wxWizardPageEx::Create( parent, wizardBitmap );
 
     CreateControls();
     GetSizer()->Fit(this);
-////@end CErrUnavailablePage creation
- 
+////@end CErrNoInternetConnectionPage creation
     return TRUE;
 }
-  
+
 /*!
- * Control creation for CErrUnavailablePage
+ * Control creation for CErrNoInternetConnectionPage
  */
- 
-void CErrUnavailablePage::CreateControls()
+
+void CErrNoInternetConnectionPage::CreateControls()
 {    
-////@begin CErrUnavailablePage content construction
-    CErrUnavailablePage* itemWizardPage96 = this;
+////@begin CErrNoInternetConnectionPage content construction
+    CErrNoInternetConnectionPage* itemWizardPage96 = this;
 
     wxBoxSizer* itemBoxSizer97 = new wxBoxSizer(wxVERTICAL);
     itemWizardPage96->SetSizer(itemBoxSizer97);
@@ -107,98 +106,85 @@ void CErrUnavailablePage::CreateControls()
     m_pDirectionsStaticCtrl = new wxStaticText;
     m_pDirectionsStaticCtrl->Create( itemWizardPage96, wxID_STATIC, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer97->Add(m_pDirectionsStaticCtrl, 0, wxALIGN_LEFT|wxALL, 5);
-////@end CErrUnavailablePage content construction
+////@end CErrNoInternetConnectionPage content construction
 }
-  
+
 /*!
  * Gets the previous page.
  */
- 
-wxWizardPageEx* CErrUnavailablePage::GetPrev() const
+
+wxWizardPageEx* CErrNoInternetConnectionPage::GetPrev() const
 {
     return PAGE_TRANSITION_BACK;
 }
- 
+
 /*!
  * Gets the next page.
  */
- 
-wxWizardPageEx* CErrUnavailablePage::GetNext() const
+
+wxWizardPageEx* CErrNoInternetConnectionPage::GetNext() const
 {
     return NULL;
 }
- 
+
 /*!
  * Should we show tooltips?
  */
 
-bool CErrUnavailablePage::ShowToolTips()
+bool CErrNoInternetConnectionPage::ShowToolTips()
 {
     return TRUE;
 }
-  
+
 /*!
  * Get bitmap resources
  */
- 
-wxBitmap CErrUnavailablePage::GetBitmapResource( const wxString& name )
+
+wxBitmap CErrNoInternetConnectionPage::GetBitmapResource( const wxString& name )
 {
     // Bitmap retrieval
- 
-////@begin CErrUnavailablePage bitmap retrieval
+////@begin CErrNoInternetConnectionPage bitmap retrieval
     return wxNullBitmap;
-////@end CErrUnavailablePage bitmap retrieval
+////@end CErrNoInternetConnectionPage bitmap retrieval
 }
-  
+
 /*!
  * Get icon resources
  */
 
-wxIcon CErrUnavailablePage::GetIconResource( const wxString& name )
+wxIcon CErrNoInternetConnectionPage::GetIconResource( const wxString& name )
 {
     // Icon retrieval
-
-////@begin CErrUnavailablePage icon retrieval
+////@begin CErrNoInternetConnectionPage icon retrieval
     return wxNullIcon;
-////@end CErrUnavailablePage icon retrieval
+////@end CErrNoInternetConnectionPage icon retrieval
 }
-   
+
 /*!
- * wxEVT_WIZARD_PAGE_CHANGED event handler for ID_ERRPROJECTUNAVAILABLEPAGE
+ * wxEVT_WIZARD_PAGE_CHANGED event handler for ID_ERRNOINTERNETCONNECTIONPAGE
  */
 
-void CErrUnavailablePage::OnPageChanged( wxWizardExEvent& event ) {
+void CErrNoInternetConnectionPage::OnPageChanged( wxWizardExEvent& event ) {
     if (event.GetDirection() == false) return;
 
     wxASSERT(m_pTitleStaticCtrl);
     wxASSERT(m_pDirectionsStaticCtrl);
 
-    if (IS_ATTACHTOPROJECTWIZARD()) {
-        m_pTitleStaticCtrl->SetLabel(
-            _("Project temporarily unavailable")
-        );
-        m_pDirectionsStaticCtrl->SetLabel(
-            _("The project is temporarily unavailable.\n\nPlease try again later.")
-        );
-    } else if (IS_ACCOUNTMANAGERWIZARD()) {
-        m_pTitleStaticCtrl->SetLabel(
-            _("Account manager temporarily unavailable")
-        );
-        m_pDirectionsStaticCtrl->SetLabel(
-            _("The account manager is temporarily unavailable.\n\nPlease try again later.")
-        );
-    } else {
-        wxASSERT(FALSE);
-    }
+    m_pTitleStaticCtrl->SetLabel(
+        _("No Internet connection")
+    );
+    m_pDirectionsStaticCtrl->SetLabel(
+        _("Please connect to the Internet and try again.")
+    );
 
     Fit();
 }
- 
+  
 /*!
- * wxEVT_WIZARD_CANCEL event handler for ID_ERRPROJECTUNAVAILABLEPAGE
+ * wxEVT_WIZARD_CANCEL event handler for ID_ERRNOINTERNETCONNECTIONPAGE
  */
-
-void CErrUnavailablePage::OnCancel( wxWizardExEvent& event ) {
+ 
+void CErrNoInternetConnectionPage::OnCancel( wxWizardExEvent& event ) {
     PROCESS_CANCELEVENT(event);
 }
 

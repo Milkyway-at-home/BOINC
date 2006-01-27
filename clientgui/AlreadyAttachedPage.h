@@ -17,27 +17,27 @@
 // or write to the Free Software Foundation, Inc.,
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-#ifndef _WIZ_COMPLETIONREMOVEPAGE_H_
-#define _WIZ_COMPLETIONREMOVEPAGE_H_
+#ifndef _WIZ_ALREADYATTACHEDPAGE_H_
+#define _WIZ_ALREADYATTACHEDPAGE_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "CompletionRemovePage.cpp"
+#pragma interface "AlreadyAttachedPage.cpp"
 #endif
 
 /*!
- * CCompletionRemovePage class declaration
+ * CErrAlreadyAttachedPage class declaration
  */
 
-class CCompletionRemovePage: public wxWizardPageEx
+class CErrAlreadyAttachedPage: public wxWizardPageEx
 {    
-    DECLARE_DYNAMIC_CLASS( CCompletionRemovePage )
+    DECLARE_DYNAMIC_CLASS( CErrAlreadyAttachedPage )
     DECLARE_EVENT_TABLE()
 
 public:
     /// Constructors
-    CCompletionRemovePage( );
+    CErrAlreadyAttachedPage( );
 
-    CCompletionRemovePage( CBOINCBaseWizard* parent );
+    CErrAlreadyAttachedPage( CBOINCBaseWizard* parent );
 
     /// Creation
     bool Create( CBOINCBaseWizard* parent );
@@ -45,20 +45,17 @@ public:
     /// Creates the controls and sizers
     void CreateControls();
 
-////@begin CCompletionRemovePage event handler declarations
+////@begin CErrAlreadyAttachedPage event handler declarations
 
-    /// wxEVT_WIZARD_PAGE_CHANGED event handler for ID_CompletionRemovePage
+    /// wxEVT_WIZARD_PAGE_CHANGED event handler for ID_ERRPROJECTALREADYATTACHEDPAGE
     void OnPageChanged( wxWizardExEvent& event );
 
-    /// wxEVT_WIZARD_CANCEL event handler for ID_CompletionRemovePage
+    /// wxEVT_WIZARD_CANCEL event handler for ID_ERRPROJECTALREADYATTACHEDPAGE
     void OnCancel( wxWizardExEvent& event );
 
-    /// wxEVT_WIZARD_FINISHED event handler for ID_CompletionRemovePage
-    void OnFinished( wxWizardExEvent& event );
+////@end CErrAlreadyAttachedPage event handler declarations
 
-////@end CCompletionRemovePage event handler declarations
-
-////@begin CCompletionRemovePage member function declarations
+////@begin CErrAlreadyAttachedPage member function declarations
 
     /// Gets the previous page.
     virtual wxWizardPageEx* GetPrev() const;
@@ -71,15 +68,15 @@ public:
 
     /// Retrieves icon resources
     wxIcon GetIconResource( const wxString& name );
-////@end CCompletionRemovePage member function declarations
+////@end CErrAlreadyAttachedPage member function declarations
 
     /// Should we show tooltips?
     static bool ShowToolTips();
 
-////@begin CCompletionRemovePage member variables
-    wxStaticText* m_pCompletionTitle;
-    wxStaticText* m_pCompletionMessage;
-////@end CCompletionRemovePage member variables
+////@begin CErrAlreadyAttachedPage member variables
+    wxStaticText* m_pTitleStaticCtrl;
+    wxStaticText* m_pDirectionsStaticCtrl;
+////@end CErrAlreadyAttachedPage member variables
 };
 
-#endif // _WIZ_COMPLETIONREMOVEPAGE_H_
+#endif // _WIZ_ALREADYATTACHEDPAGE_H_

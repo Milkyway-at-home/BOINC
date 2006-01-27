@@ -18,7 +18,7 @@
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "UnavailablePage.h"
+#pragma implementation "AlreadyExistsPage.h"
 #endif
 
 #include "stdwx.h"
@@ -27,72 +27,72 @@
 #include "BOINCGUIApp.h"
 #include "BOINCWizards.h"
 #include "BOINCBaseWizard.h"
-#include "UnavailablePage.h"
+#include "AlreadyExistsPage.h"
 
 
 /*!
- * CErrUnavailablePage type definition
+ * CErrAlreadyExistsPage type definition
  */
  
-IMPLEMENT_DYNAMIC_CLASS( CErrUnavailablePage, wxWizardPageEx )
+IMPLEMENT_DYNAMIC_CLASS( CErrAlreadyExistsPage, wxWizardPageEx )
  
 /*!
- * CErrUnavailablePage event table definition
+ * CErrAlreadyExistsPage event table definition
  */
  
-BEGIN_EVENT_TABLE( CErrUnavailablePage, wxWizardPageEx )
+BEGIN_EVENT_TABLE( CErrAlreadyExistsPage, wxWizardPageEx )
  
-////@begin CErrUnavailablePage event table entries
-    EVT_WIZARDEX_PAGE_CHANGED( -1, CErrUnavailablePage::OnPageChanged )
-    EVT_WIZARDEX_CANCEL( -1, CErrUnavailablePage::OnCancel )
+////@begin CErrAlreadyExistsPage event table entries
+    EVT_WIZARDEX_PAGE_CHANGED( -1, CErrAlreadyExistsPage::OnPageChanged )
+    EVT_WIZARDEX_CANCEL( -1, CErrAlreadyExistsPage::OnCancel )
 
-////@end CErrUnavailablePage event table entries
+////@end CErrAlreadyExistsPage event table entries
  
 END_EVENT_TABLE()
-  
+ 
 /*!
- * CErrUnavailablePage constructors
+ * CErrAlreadyExistsPage constructors
  */
  
-CErrUnavailablePage::CErrUnavailablePage( )
+CErrAlreadyExistsPage::CErrAlreadyExistsPage( )
 {
 }
-  
-CErrUnavailablePage::CErrUnavailablePage( CBOINCBaseWizard* parent )
+ 
+CErrAlreadyExistsPage::CErrAlreadyExistsPage( CBOINCBaseWizard* parent )
 {
     Create( parent );
 }
  
 /*!
- * CErrUnavailablePage creator
+ * CErrAccountAlreadyExists creator
  */
  
-bool CErrUnavailablePage::Create( CBOINCBaseWizard* parent )
+bool CErrAlreadyExistsPage::Create( CBOINCBaseWizard* parent )
 {
-////@begin CErrUnavailablePage member initialisation
+////@begin CErrAlreadyExistsPage member initialisation
     m_pTitleStaticCtrl = NULL;
     m_pDirectionsStaticCtrl = NULL;
-////@end CErrUnavailablePage member initialisation
+////@end CErrAlreadyExistsPage member initialisation
  
-////@begin CErrUnavailablePage creation
+////@begin CErrAlreadyExistsPage creation
     wxBitmap wizardBitmap(wxNullBitmap);
     wxWizardPageEx::Create( parent, wizardBitmap );
 
     CreateControls();
     GetSizer()->Fit(this);
-////@end CErrUnavailablePage creation
- 
+////@end CErrAlreadyExistsPage creation
+
     return TRUE;
 }
-  
+ 
 /*!
- * Control creation for CErrUnavailablePage
+ * Control creation for CErrAccountAlreadyExists
  */
  
-void CErrUnavailablePage::CreateControls()
+void CErrAlreadyExistsPage::CreateControls()
 {    
-////@begin CErrUnavailablePage content construction
-    CErrUnavailablePage* itemWizardPage96 = this;
+////@begin CErrAlreadyExistsPage content construction
+    CErrAlreadyExistsPage* itemWizardPage96 = this;
 
     wxBoxSizer* itemBoxSizer97 = new wxBoxSizer(wxVERTICAL);
     itemWizardPage96->SetSizer(itemBoxSizer97);
@@ -107,14 +107,14 @@ void CErrUnavailablePage::CreateControls()
     m_pDirectionsStaticCtrl = new wxStaticText;
     m_pDirectionsStaticCtrl->Create( itemWizardPage96, wxID_STATIC, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer97->Add(m_pDirectionsStaticCtrl, 0, wxALIGN_LEFT|wxALL, 5);
-////@end CErrUnavailablePage content construction
+////@end CErrAlreadyExistsPage content construction
 }
-  
+ 
 /*!
  * Gets the previous page.
  */
  
-wxWizardPageEx* CErrUnavailablePage::GetPrev() const
+wxWizardPageEx* CErrAlreadyExistsPage::GetPrev() const
 {
     return PAGE_TRANSITION_BACK;
 }
@@ -123,7 +123,7 @@ wxWizardPageEx* CErrUnavailablePage::GetPrev() const
  * Gets the next page.
  */
  
-wxWizardPageEx* CErrUnavailablePage::GetNext() const
+wxWizardPageEx* CErrAlreadyExistsPage::GetNext() const
 {
     return NULL;
 }
@@ -131,74 +131,77 @@ wxWizardPageEx* CErrUnavailablePage::GetNext() const
 /*!
  * Should we show tooltips?
  */
-
-bool CErrUnavailablePage::ShowToolTips()
+ 
+bool CErrAlreadyExistsPage::ShowToolTips()
 {
     return TRUE;
 }
-  
+ 
 /*!
  * Get bitmap resources
  */
  
-wxBitmap CErrUnavailablePage::GetBitmapResource( const wxString& name )
+wxBitmap CErrAlreadyExistsPage::GetBitmapResource( const wxString& name )
 {
     // Bitmap retrieval
- 
-////@begin CErrUnavailablePage bitmap retrieval
+////@begin CErrAlreadyExistsPage bitmap retrieval
     return wxNullBitmap;
-////@end CErrUnavailablePage bitmap retrieval
+////@end CErrAlreadyExistsPage bitmap retrieval
 }
-  
+ 
 /*!
  * Get icon resources
  */
-
-wxIcon CErrUnavailablePage::GetIconResource( const wxString& name )
+ 
+wxIcon CErrAlreadyExistsPage::GetIconResource( const wxString& name )
 {
     // Icon retrieval
 
-////@begin CErrUnavailablePage icon retrieval
+////@begin CErrAlreadyExistsPage icon retrieval
     return wxNullIcon;
-////@end CErrUnavailablePage icon retrieval
+////@end CErrAlreadyExistsPage icon retrieval
 }
-   
+  
 /*!
- * wxEVT_WIZARD_PAGE_CHANGED event handler for ID_ERRPROJECTUNAVAILABLEPAGE
+ * wxEVT_WIZARD_PAGE_CHANGED event handler for ID_ERRACCOUNTALREADYEXISTSPAGE
  */
-
-void CErrUnavailablePage::OnPageChanged( wxWizardExEvent& event ) {
+ 
+void CErrAlreadyExistsPage::OnPageChanged( wxWizardExEvent& event ) {
     if (event.GetDirection() == false) return;
 
     wxASSERT(m_pTitleStaticCtrl);
     wxASSERT(m_pDirectionsStaticCtrl);
 
-    if (IS_ATTACHTOPROJECTWIZARD()) {
+    if (((CBOINCBaseWizard*)GetParent())->project_config.uses_username) {
         m_pTitleStaticCtrl->SetLabel(
-            _("Project temporarily unavailable")
+            _("Username already in use")
         );
         m_pDirectionsStaticCtrl->SetLabel(
-            _("The project is temporarily unavailable.\n\nPlease try again later.")
-        );
-    } else if (IS_ACCOUNTMANAGERWIZARD()) {
-        m_pTitleStaticCtrl->SetLabel(
-            _("Account manager temporarily unavailable")
-        );
-        m_pDirectionsStaticCtrl->SetLabel(
-            _("The account manager is temporarily unavailable.\n\nPlease try again later.")
+            _("An account with that username already exists and has a\n"
+              "different password than the one you entered.\n"
+              "\n"
+              "Please visit the project's web site and follow the instructions there.")
         );
     } else {
-        wxASSERT(FALSE);
+        m_pTitleStaticCtrl->SetLabel(
+            _("Email address already in use")
+        );
+        m_pDirectionsStaticCtrl->SetLabel(
+            _("An account with that email address already exists and has a\n"
+              "different password than the one you entered.\n"
+              "\n"
+              "Please visit the project's web site and follow the instructions there.")
+        );
     }
 
     Fit();
 }
- 
+  
 /*!
- * wxEVT_WIZARD_CANCEL event handler for ID_ERRPROJECTUNAVAILABLEPAGE
+ * wxEVT_WIZARD_CANCEL event handler for ID_ERRACCOUNTALREADYEXISTSPAGE
  */
-
-void CErrUnavailablePage::OnCancel( wxWizardExEvent& event ) {
+ 
+void CErrAlreadyExistsPage::OnCancel( wxWizardExEvent& event ) {
     PROCESS_CANCELEVENT(event);
 }
 

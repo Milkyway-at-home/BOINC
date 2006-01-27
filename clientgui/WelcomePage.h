@@ -17,27 +17,27 @@
 // or write to the Free Software Foundation, Inc.,
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-#ifndef _WIZ_PROXYINFOPAGE_H_
-#define _WIZ_PROXYINFOPAGE_H_
+#ifndef _WIZ_WELCOMEPAGE_H_
+#define _WIZ_WELCOMEPAGE_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "ProxyInfoPage.cpp"
+#pragma interface "WelcomePage.cpp"
 #endif
 
 /*!
- * CErrProxyInfoPage class declaration
+ * CWelcomePage class declaration
  */
 
-class CErrProxyInfoPage: public wxWizardPageEx
+class CWelcomePage: public wxWizardPageEx
 {    
-    DECLARE_DYNAMIC_CLASS( CErrProxyInfoPage )
+    DECLARE_DYNAMIC_CLASS( CWelcomePage )
     DECLARE_EVENT_TABLE()
 
 public:
     /// Constructors
-    CErrProxyInfoPage( );
+    CWelcomePage( );
 
-    CErrProxyInfoPage( CBOINCBaseWizard* parent );
+    CWelcomePage( CBOINCBaseWizard* parent );
 
     /// Creation
     bool Create( CBOINCBaseWizard* parent );
@@ -45,17 +45,20 @@ public:
     /// Creates the controls and sizers
     void CreateControls();
 
-////@begin CErrProxyInfoPage event handler declarations
+////@begin CWelcomePage event handler declarations
 
-    /// wxEVT_WIZARD_PAGE_CHANGED event handler for ID_ERRPROXYINFOPAGE
+    /// wxEVT_WIZARD_PAGE_CHANGED event handler for ID_WELCOMEPAGE
     void OnPageChanged( wxWizardExEvent& event );
 
-    /// wxEVT_WIZARD_CANCEL event handler for ID_ERRPROXYINFOPAGE
+    /// wxEVT_WIZARD_PAGE_CHANGING event handler for ID_WELCOMEPAGE
+    void OnPageChanging( wxWizardExEvent& event );
+
+    /// wxEVT_WIZARD_CANCEL event handler for ID_WELCOMEPAGE
     void OnCancel( wxWizardExEvent& event );
 
-////@end CErrProxyInfoPage event handler declarations
+////@end CWelcomePage event handler declarations
 
-////@begin CErrProxyInfoPage member function declarations
+////@begin CWelcomePage member function declarations
 
     /// Gets the previous page.
     virtual wxWizardPageEx* GetPrev() const;
@@ -68,17 +71,30 @@ public:
 
     /// Retrieves icon resources
     wxIcon GetIconResource( const wxString& name );
-////@end CErrProxyInfoPage member function declarations
+////@end CWelcomePage member function declarations
 
     /// Should we show tooltips?
     static bool ShowToolTips();
 
-////@begin CErrProxyInfoPage member variables
+////@begin CWelcomePage member variables
     wxStaticText* m_pTitleStaticCtrl;
     wxStaticText* m_pDescriptionStaticCtrl;
     wxStaticText* m_pDirectionsStaticCtrl;
-////@end CErrProxyInfoPage member variables
+#if defined(__WXDEBUG__)
+    wxStaticBox* m_pErrDescriptionCtrl; 
+    wxCheckBox* m_pErrProjectPropertiesCtrl;
+    wxCheckBox* m_pErrProjectCommCtrl;
+    wxCheckBox* m_pErrProjectPropertiesURLCtrl;
+    wxCheckBox* m_pErrAccountCreationDisabledCtrl;
+    wxCheckBox* m_pErrClientAccountCreationDisabledCtrl;
+    wxCheckBox* m_pErrAccountAlreadyExistsCtrl;
+    wxCheckBox* m_pErrProjectAlreadyAttachedCtrl;
+    wxCheckBox* m_pErrProjectAttachFailureCtrl;
+    wxCheckBox* m_pErrGoogleCommCtrl;
+    wxCheckBox* m_pErrYahooCommCtrl;
+    wxCheckBox* m_pErrNetDetectionCtrl;
+#endif
+////@end CWelcomePage member variables
 };
 
-
-#endif // _WIZ_PROXYINFOPAGE_H_
+#endif // _WIZ_WELCOMEPAGE_H_

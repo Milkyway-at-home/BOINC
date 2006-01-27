@@ -18,7 +18,7 @@
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma implementation "UnavailablePage.h"
+#pragma implementation "AlreadyAttachedPage.h"
 #endif
 
 #include "stdwx.h"
@@ -27,72 +27,71 @@
 #include "BOINCGUIApp.h"
 #include "BOINCWizards.h"
 #include "BOINCBaseWizard.h"
-#include "UnavailablePage.h"
+#include "AlreadyAttachedPage.h"
 
 
 /*!
- * CErrUnavailablePage type definition
+ * CErrAlreadyAttachedPage type definition
  */
- 
-IMPLEMENT_DYNAMIC_CLASS( CErrUnavailablePage, wxWizardPageEx )
- 
-/*!
- * CErrUnavailablePage event table definition
- */
- 
-BEGIN_EVENT_TABLE( CErrUnavailablePage, wxWizardPageEx )
- 
-////@begin CErrUnavailablePage event table entries
-    EVT_WIZARDEX_PAGE_CHANGED( -1, CErrUnavailablePage::OnPageChanged )
-    EVT_WIZARDEX_CANCEL( -1, CErrUnavailablePage::OnCancel )
 
-////@end CErrUnavailablePage event table entries
- 
+IMPLEMENT_DYNAMIC_CLASS( CErrAlreadyAttachedPage, wxWizardPageEx )
+
+/*!
+ * CErrAlreadyAttachedPage event table definition
+ */
+
+BEGIN_EVENT_TABLE( CErrAlreadyAttachedPage, wxWizardPageEx )
+
+////@begin CErrAlreadyAttachedPage event table entries
+    EVT_WIZARDEX_PAGE_CHANGED( -1, CErrAlreadyAttachedPage::OnPageChanged )
+    EVT_WIZARDEX_CANCEL( -1, CErrAlreadyAttachedPage::OnCancel )
+
+////@end CErrAlreadyAttachedPage event table entries
+
 END_EVENT_TABLE()
-  
+
 /*!
- * CErrUnavailablePage constructors
+ * CErrAlreadyAttachedPage constructors
  */
- 
-CErrUnavailablePage::CErrUnavailablePage( )
+
+CErrAlreadyAttachedPage::CErrAlreadyAttachedPage( )
 {
 }
-  
-CErrUnavailablePage::CErrUnavailablePage( CBOINCBaseWizard* parent )
+
+CErrAlreadyAttachedPage::CErrAlreadyAttachedPage( CBOINCBaseWizard* parent )
 {
     Create( parent );
 }
- 
+
 /*!
- * CErrUnavailablePage creator
+ * WizardPage creator
  */
- 
-bool CErrUnavailablePage::Create( CBOINCBaseWizard* parent )
+
+bool CErrAlreadyAttachedPage::Create( CBOINCBaseWizard* parent )
 {
-////@begin CErrUnavailablePage member initialisation
+////@begin CErrAlreadyAttachedPage member initialisation
     m_pTitleStaticCtrl = NULL;
     m_pDirectionsStaticCtrl = NULL;
-////@end CErrUnavailablePage member initialisation
- 
-////@begin CErrUnavailablePage creation
+////@end CErrAlreadyAttachedPage member initialisation
+
+////@begin CErrAlreadyAttachedPage creation
     wxBitmap wizardBitmap(wxNullBitmap);
     wxWizardPageEx::Create( parent, wizardBitmap );
 
     CreateControls();
     GetSizer()->Fit(this);
-////@end CErrUnavailablePage creation
- 
+////@end CErrAlreadyAttachedPage creation
     return TRUE;
 }
-  
+
 /*!
- * Control creation for CErrUnavailablePage
+ * Control creation for WizardPage
  */
- 
-void CErrUnavailablePage::CreateControls()
+
+void CErrAlreadyAttachedPage::CreateControls()
 {    
-////@begin CErrUnavailablePage content construction
-    CErrUnavailablePage* itemWizardPage96 = this;
+////@begin CErrAlreadyAttachedPage content construction
+    CErrAlreadyAttachedPage* itemWizardPage96 = this;
 
     wxBoxSizer* itemBoxSizer97 = new wxBoxSizer(wxVERTICAL);
     itemWizardPage96->SetSizer(itemBoxSizer97);
@@ -107,98 +106,85 @@ void CErrUnavailablePage::CreateControls()
     m_pDirectionsStaticCtrl = new wxStaticText;
     m_pDirectionsStaticCtrl->Create( itemWizardPage96, wxID_STATIC, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer97->Add(m_pDirectionsStaticCtrl, 0, wxALIGN_LEFT|wxALL, 5);
-////@end CErrUnavailablePage content construction
+////@end CErrAlreadyAttachedPage content construction
 }
-  
+
 /*!
  * Gets the previous page.
  */
- 
-wxWizardPageEx* CErrUnavailablePage::GetPrev() const
+
+wxWizardPageEx* CErrAlreadyAttachedPage::GetPrev() const
 {
     return PAGE_TRANSITION_BACK;
 }
- 
+
 /*!
  * Gets the next page.
  */
- 
-wxWizardPageEx* CErrUnavailablePage::GetNext() const
+
+wxWizardPageEx* CErrAlreadyAttachedPage::GetNext() const
 {
     return NULL;
 }
- 
+
 /*!
  * Should we show tooltips?
  */
 
-bool CErrUnavailablePage::ShowToolTips()
+bool CErrAlreadyAttachedPage::ShowToolTips()
 {
     return TRUE;
 }
-  
+
 /*!
  * Get bitmap resources
  */
- 
-wxBitmap CErrUnavailablePage::GetBitmapResource( const wxString& name )
+
+wxBitmap CErrAlreadyAttachedPage::GetBitmapResource( const wxString& name )
 {
     // Bitmap retrieval
- 
-////@begin CErrUnavailablePage bitmap retrieval
+////@begin CErrAlreadyAttachedPage bitmap retrieval
     return wxNullBitmap;
-////@end CErrUnavailablePage bitmap retrieval
+////@end CErrAlreadyAttachedPage bitmap retrieval
 }
-  
+
 /*!
  * Get icon resources
  */
 
-wxIcon CErrUnavailablePage::GetIconResource( const wxString& name )
+wxIcon CErrAlreadyAttachedPage::GetIconResource( const wxString& name )
 {
     // Icon retrieval
-
-////@begin CErrUnavailablePage icon retrieval
+////@begin CErrAlreadyAttachedPage icon retrieval
     return wxNullIcon;
-////@end CErrUnavailablePage icon retrieval
+////@end CErrAlreadyAttachedPage icon retrieval
 }
-   
+
 /*!
- * wxEVT_WIZARD_PAGE_CHANGED event handler for ID_ERRPROJECTUNAVAILABLEPAGE
+ * wxEVT_WIZARD_PAGE_CHANGED event handler for ID_ERRPROJECTALREADYATTACHED
  */
 
-void CErrUnavailablePage::OnPageChanged( wxWizardExEvent& event ) {
+void CErrAlreadyAttachedPage::OnPageChanged( wxWizardExEvent& event ) {
     if (event.GetDirection() == false) return;
 
     wxASSERT(m_pTitleStaticCtrl);
     wxASSERT(m_pDirectionsStaticCtrl);
 
-    if (IS_ATTACHTOPROJECTWIZARD()) {
-        m_pTitleStaticCtrl->SetLabel(
-            _("Project temporarily unavailable")
-        );
-        m_pDirectionsStaticCtrl->SetLabel(
-            _("The project is temporarily unavailable.\n\nPlease try again later.")
-        );
-    } else if (IS_ACCOUNTMANAGERWIZARD()) {
-        m_pTitleStaticCtrl->SetLabel(
-            _("Account manager temporarily unavailable")
-        );
-        m_pDirectionsStaticCtrl->SetLabel(
-            _("The account manager is temporarily unavailable.\n\nPlease try again later.")
-        );
-    } else {
-        wxASSERT(FALSE);
-    }
+    m_pTitleStaticCtrl->SetLabel(
+        _("Already attached to project")
+    );
+    m_pDirectionsStaticCtrl->SetLabel(
+        _("You are already attached to this project.")
+    );
 
     Fit();
 }
- 
+
 /*!
- * wxEVT_WIZARD_CANCEL event handler for ID_ERRPROJECTUNAVAILABLEPAGE
+ * wxEVT_WIZARD_CANCEL event handler for ID_ERRPROJECTALREADYATTACHED
  */
 
-void CErrUnavailablePage::OnCancel( wxWizardExEvent& event ) {
+void CErrAlreadyAttachedPage::OnCancel( wxWizardExEvent& event ) {
     PROCESS_CANCELEVENT(event);
 }
 
