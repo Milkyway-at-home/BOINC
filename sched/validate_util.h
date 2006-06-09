@@ -17,31 +17,14 @@
 // or write to the Free Software Foundation, Inc.,
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-// A sample validator that grants credit to any result whose CPU time is above
-// a certain minimum
+#ifndef H_VALIDATE_UTIL
+#define H_VALIDATE_UTIL
 
-#include "config.h"
-#include "validate_util.h"
+#include "boinc_db.h"
+#include <vector>
+#include <string>
 
-using std::vector;
+extern int get_output_file_path(RESULT const& result, std::string& path);
+extern double median_mean_credit(std::vector<RESULT>& results);
 
-static const double MIN_CPU_TIME = 0;
-
-int init_result(RESULT const& /*result*/, void*& /*data*/) {
-    return 0;
-}
-
-int compare_results(
-    RESULT & r1, void* /*data1*/,
-    RESULT const& r2, void* /*data2*/,
-    bool& match
-) {
-    match = (r1.cpu_time >= MIN_CPU_TIME && r2.cpu_time >= MIN_CPU_TIME);
-    return 0;
-}
-
-int cleanup_result(RESULT const&, void*) {
-    return 0;
-}
-
-const char *BOINC_RCSID_f3a7a34795 = "$Id$";
+#endif
