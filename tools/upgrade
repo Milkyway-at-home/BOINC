@@ -1,0 +1,68 @@
+#!/usr/bin/env python
+
+# $Id$
+
+'''
+Usage: upgrade [options] project_name
+Options:
+  --project_root    default: HOME/projects/
+
+Copy source/build files to a project tree,
+overwriting what's already there.
+Run it in the source directory (tools/upgrade).
+
+'''
+
+import boinc_path_config
+from Boinc import boinc_project_path, tools
+from Boinc.setup_project import *
+import os, getopt
+
+def usage():
+    print "Usage: upgrade [--project_root] project_name"
+    raise SystemExit
+
+def syntax_error(str):
+    raise SystemExit('%s; See "%s --help" for help\n' % (str, sys.argv[0]))
+
+try:
+    opts, args = getopt.getopt(sys.argv[1:], '', ['help', 'project_root='])
+except getopt.GetoptError, e:
+    syntax_error(e)
+
+home = os.path.expanduser('~')
+
+options.project_root = os.path.join(home, 'projects')
+
+for o,a in opts:
+    if o == '--help':   usage()
+    elif o == '--project_root': options.project_root = a
+    else:
+        raise SystemExit('internal error o=%s'%o)
+
+if len(args) == 1:
+    project_shortname = args[0]
+else:
+    syntax_error('No project name')
+
+INSTALL_DIR = os.path.join(options.project_root, project_shortname)
+
+if not tools.query_noyes("Overwrite files in "+INSTALL_DIR):
+    raise SystemExit
+
+if os.system(os.path.join(INSTALL_DIR,'bin/stop')):
+    raise SystemExit("Couldn't stop project!")
+
+print "Upgrading files... "
+
+options.install_method = 'copy'
+init()
+install_boinc_files(INSTALL_DIR)
+
+print "Upgrading files... done"
+print "You may need to do database upgrades also."
+print "(see html/ops/db_update.php)"
+print "Run `bin/start' to restart the project."
+
+#if os.system(os.path.join(INSTALL_DIR,'bin/start')):
+#    raise SystemExit("Couldn't start BOINC!")
