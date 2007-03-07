@@ -4,13 +4,14 @@
 
 LIBRARY         LIBEAY32	
 
-DESCRIPTION     'OpenSSL: implementation of Secure Socket Layer 0.9.8a, LIBEAY - http://www.openssl.org/'
+DESCRIPTION     'OpenSSL: implementation of Secure Socket Layer 0.9.8e, LIBEAY - http://www.openssl.org/'
 
 EXPORTS
     SSLeay                                  @1
     ACCESS_DESCRIPTION_free                 @1994
     ACCESS_DESCRIPTION_it                   @2751
     ACCESS_DESCRIPTION_new                  @1925
+    AES_bi_ige_encrypt                      @3860
     AES_cbc_encrypt                         @3171
     AES_cfb128_encrypt                      @3217
     AES_cfb1_encrypt                        @3279
@@ -20,6 +21,7 @@ EXPORTS
     AES_decrypt                             @3040
     AES_ecb_encrypt                         @2801
     AES_encrypt                             @3033
+    AES_ige_encrypt                         @3829
     AES_ofb128_encrypt                      @3215
     AES_options                             @3074
     AES_set_decrypt_key                     @3106
@@ -223,6 +225,7 @@ EXPORTS
     BIGNUM_it                               @3170
     BIO_accept                              @51
     BIO_callback_ctrl                       @2252
+    BIO_clear_flags                         @3846
     BIO_copy_next_retry                     @955
     BIO_ctrl                                @52
     BIO_ctrl_get_read_request               @1799
@@ -252,6 +255,8 @@ EXPORTS
     BIO_free                                @66
     BIO_free_all                            @67
     BIO_get_accept_socket                   @69
+    BIO_get_callback                        @3861
+    BIO_get_callback_arg                    @3902
     BIO_get_ex_data                         @1062
     BIO_get_ex_new_index                    @1063
     BIO_get_host_ip                         @71
@@ -262,6 +267,8 @@ EXPORTS
     BIO_gets                                @76
     BIO_indent                              @3242
     BIO_int_ctrl                            @53
+    BIO_method_name                         @3898
+    BIO_method_type                         @3826
     BIO_new                                 @78
     BIO_new_accept                          @79
     BIO_new_bio_pair                        @1802
@@ -295,8 +302,11 @@ EXPORTS
     BIO_s_null                              @96
     BIO_s_socket                            @98
     BIO_set                                 @100
+    BIO_set_callback                        @3903
+    BIO_set_callback_arg                    @3820
     BIO_set_cipher                          @101
     BIO_set_ex_data                         @1064
+    BIO_set_flags                           @3823
     BIO_set_tcp_ndelay                      @102
     BIO_snprintf                            @2292
     BIO_sock_cleanup                        @103
@@ -306,6 +316,7 @@ EXPORTS
     BIO_sock_should_retry                   @107
     BIO_socket_ioctl                        @108
     BIO_socket_nbio                         @1102
+    BIO_test_flags                          @3866
     BIO_vfree                               @2334
     BIO_vprintf                             @2443
     BIO_vsnprintf                           @2444
@@ -1018,14 +1029,29 @@ EXPORTS
     ERR_set_mark                            @3332
     ERR_unload_strings                      @2881
     EVP_BytesToKey                          @255
+    EVP_CIPHER_CTX_block_size               @3879
+    EVP_CIPHER_CTX_cipher                   @3888
     EVP_CIPHER_CTX_cleanup                  @256
     EVP_CIPHER_CTX_ctrl                     @2400
+    EVP_CIPHER_CTX_flags                    @3891
+    EVP_CIPHER_CTX_free                     @3783
+    EVP_CIPHER_CTX_get_app_data             @3889
     EVP_CIPHER_CTX_init                     @961
+    EVP_CIPHER_CTX_iv_length                @3899
+    EVP_CIPHER_CTX_key_length               @3841
+    EVP_CIPHER_CTX_new                      @3782
+    EVP_CIPHER_CTX_nid                      @3831
     EVP_CIPHER_CTX_rand_key                 @3730
+    EVP_CIPHER_CTX_set_app_data             @3819
     EVP_CIPHER_CTX_set_key_length           @2399
     EVP_CIPHER_CTX_set_padding              @3019
     EVP_CIPHER_asn1_to_param                @1083
+    EVP_CIPHER_block_size                   @3816
+    EVP_CIPHER_flags                        @3857
     EVP_CIPHER_get_asn1_iv                  @1085
+    EVP_CIPHER_iv_length                    @3836
+    EVP_CIPHER_key_length                   @3873
+    EVP_CIPHER_nid                          @3877
     EVP_CIPHER_param_to_asn1                @1084
     EVP_CIPHER_set_asn1_iv                  @1086
     EVP_CIPHER_type                         @1649
@@ -1034,6 +1060,7 @@ EXPORTS
     EVP_CipherInit                          @258
     EVP_CipherInit_ex                       @2915
     EVP_CipherUpdate                        @259
+    EVP_Cipher                              @3874
     EVP_DecodeBlock                         @260
     EVP_DecodeFinal                         @261
     EVP_DecodeInit                          @262
@@ -1059,11 +1086,19 @@ EXPORTS
     EVP_EncryptInit_ex                      @2894
     EVP_EncryptUpdate                       @276
     EVP_MD_CTX_cleanup                      @2821
+    EVP_MD_CTX_clear_flags                  @3853
     EVP_MD_CTX_copy                         @1202
     EVP_MD_CTX_copy_ex                      @2589
     EVP_MD_CTX_create                       @2712
     EVP_MD_CTX_destroy                      @2925
     EVP_MD_CTX_init                         @2630
+    EVP_MD_CTX_md                           @3896
+    EVP_MD_CTX_set_flags                    @3883
+    EVP_MD_CTX_test_flags                   @3845
+    EVP_MD_block_size                       @3890
+    EVP_MD_pkey_type                        @3852
+    EVP_MD_size                             @3844
+    EVP_MD_type                             @3837
     EVP_OpenFinal                           @277
     EVP_OpenInit                            @278
     EVP_PBE_CipherInit                      @1650
@@ -2506,6 +2541,7 @@ EXPORTS
     a2i_ASN1_STRING                         @701
     a2i_IPADDRESS                           @3375
     a2i_IPADDRESS_NC                        @3732
+    a2i_ipadd                               @3813
     asc2uni                                 @1282
     asn1_Finish                             @702
     asn1_GetSequence                        @703
