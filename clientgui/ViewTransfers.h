@@ -17,27 +17,40 @@
 // or write to the Free Software Foundation, Inc.,
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-#ifndef _VIEWTRANSFERSGRID_H_
-#define _VIEWTRANSFERSGRID_H_
+#ifndef _VIEWTRANSFERS_H_
+#define _VIEWTRANSFERS_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "ViewTransfersGrid.cpp"
+#pragma interface "ViewTransfers.cpp"
 #endif
 
 
 #include "BOINCBaseView.h"
-#include "BOINCGridCtrl.h"
 
-class CViewTransfersGrid : public CBOINCBaseView
-{
-    DECLARE_DYNAMIC_CLASS( CViewTransfersGrid )
-    DECLARE_EVENT_TABLE()
-	
+
+class CTransfer : public wxObject {
 public:
-    CViewTransfersGrid();
-    CViewTransfersGrid(wxNotebook* pNotebook);
+	CTransfer();
+	~CTransfer();
 
-    ~CViewTransfersGrid();
+	wxString m_strProjectName;
+    wxString m_strFileName;
+    wxString m_strProgress;
+    wxString m_strSize;
+    wxString m_strTime;
+    wxString m_strSpeed;
+    wxString m_strStatus;
+};
+
+
+class CViewTransfers : public CBOINCBaseView {
+    DECLARE_DYNAMIC_CLASS( CViewTransfers )
+
+public:
+    CViewTransfers();
+    CViewTransfers(wxNotebook* pNotebook);
+
+    ~CViewTransfers();
 
     virtual wxString&       GetViewName();
     virtual wxString&       GetViewDisplayName();
@@ -47,14 +60,21 @@ public:
     void                    OnTransfersAbort( wxCommandEvent& event );
 
 protected:
+    std::vector<CTransfer*> m_TransferCache;
 
     virtual wxInt32         GetDocCount();
 
-    virtual void            UpdateSelection();
+    virtual wxString        OnListGetItemText( long item, long column ) const;
 
-    virtual bool            OnSaveState( wxConfigBase* pConfig );
-    virtual bool            OnRestoreState( wxConfigBase* pConfig );
-	virtual void            OnListRender( wxTimerEvent& event );	
+    virtual wxString        OnDocGetItemText( long item, long column ) const;
+
+    virtual wxInt32         AddCacheElement();
+    virtual wxInt32         EmptyCache();
+    virtual wxInt32         GetCacheCount();
+    virtual wxInt32         RemoveCacheElement();
+    virtual wxInt32         UpdateCache( long item, long column, wxString& strNewData );
+
+    virtual void            UpdateSelection();
 
     wxInt32                 FormatProjectName( wxInt32 item, wxString& strBuffer ) const;
     wxInt32                 FormatFileName( wxInt32 item, wxString& strBuffer ) const;
@@ -64,7 +84,7 @@ protected:
     wxInt32                 FormatSpeed( wxInt32 item, wxString& strBuffer ) const;
     wxInt32                 FormatStatus( wxInt32 item, wxString& strBuffer ) const;
 
-	CBOINCGridCtrl*			m_pGridPane;
+    DECLARE_EVENT_TABLE()
 };
 
 

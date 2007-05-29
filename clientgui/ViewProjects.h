@@ -17,56 +17,57 @@
 // or write to the Free Software Foundation, Inc.,
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-#ifndef _VIEWWORK_H_
-#define _VIEWWORK_H_
+#ifndef _VIEWPROJECTS_H_
+#define _VIEWPROJECTS_H_
 
 #if defined(__GNUG__) && !defined(__APPLE__)
-#pragma interface "ViewWork.cpp"
+#pragma interface "ViewProjects.cpp"
 #endif
 
 
 #include "BOINCBaseView.h"
 
 
-class CWork : public wxObject
+class CProject : public wxObject
 {
 public:
-	CWork();
-	~CWork();
+	CProject();
+	~CProject();
 
-	wxString m_strProjectName;
-    wxString m_strApplicationName;
-    wxString m_strName;
-    wxString m_strCPUTime;
-    wxString m_strProgress;
-    wxString m_strTimeToCompletion;
-    wxString m_strReportDeadline;
+    wxString m_strProjectName;
+    wxString m_strAccountName;
+    wxString m_strTeamName;
+    wxString m_strTotalCredit;
+    wxString m_strAVGCredit;
+    wxString m_strResourceShare;
     wxString m_strStatus;
 };
 
 
-class CViewWork : public CBOINCBaseView
+class CViewProjects : public CBOINCBaseView
 {
-    DECLARE_DYNAMIC_CLASS( CViewWork )
+    DECLARE_DYNAMIC_CLASS( CViewProjects )
 
 public:
-    CViewWork();
-    CViewWork(wxNotebook* pNotebook);
+    CViewProjects();
+    CViewProjects(wxNotebook* pNotebook);
 
-    ~CViewWork();
+    ~CViewProjects();
 
     virtual wxString&       GetViewName();
     virtual wxString&       GetViewDisplayName();
     virtual const char**    GetViewIcon();
 
-    void                    OnWorkSuspend( wxCommandEvent& event );
-    void                    OnWorkShowGraphics( wxCommandEvent& event );
-    void                    OnWorkAbort( wxCommandEvent& event );
+    void                    OnProjectUpdate( wxCommandEvent& event );
+    void                    OnProjectSuspend( wxCommandEvent& event );
+    void                    OnProjectNoNewWork( wxCommandEvent& event );
+    void                    OnProjectReset( wxCommandEvent& event );
+    void                    OnProjectDetach( wxCommandEvent& event );
 
     void                    OnProjectWebsiteClicked( wxEvent& event );
 
 protected:
-    std::vector<CWork*>     m_WorkCache;
+    std::vector<CProject*>  m_ProjectCache;
 
     virtual wxInt32         GetDocCount();
 
@@ -83,13 +84,16 @@ protected:
     virtual void            UpdateSelection();
 
     wxInt32                 FormatProjectName( wxInt32 item, wxString& strBuffer ) const;
-    wxInt32                 FormatApplicationName( wxInt32 item, wxString& strBuffer ) const;
-    wxInt32                 FormatName( wxInt32 item, wxString& strBuffer ) const;
-    wxInt32                 FormatCPUTime( wxInt32 item, wxString& strBuffer ) const;
-    wxInt32                 FormatProgress( wxInt32 item, wxString& strBuffer ) const;
-    wxInt32                 FormatTimeToCompletion( wxInt32 item, wxString& strBuffer ) const;
-    wxInt32                 FormatReportDeadline( wxInt32 item, wxString& strBuffer ) const;
+    wxInt32                 FormatAccountName( wxInt32 item, wxString& strBuffer ) const;
+    wxInt32                 FormatTeamName( wxInt32 item, wxString& strBuffer ) const;
+    wxInt32                 FormatTotalCredit( wxInt32 item, wxString& strBuffer ) const;
+    wxInt32                 FormatAVGCredit( wxInt32 item, wxString& strBuffer ) const;
+    wxInt32                 FormatResourceShare( wxInt32 item, wxString& strBuffer ) const;
     wxInt32                 FormatStatus( wxInt32 item, wxString& strBuffer ) const;
+
+    bool                    IsWebsiteLink( const wxString& strLink );
+    wxInt32                 ConvertWebsiteIndexToLink( wxInt32 iProjectIndex, wxInt32 iWebsiteIndex, wxString& strLink );
+    wxInt32                 ConvertLinkToWebsiteIndex( const wxString& strLink, wxInt32& iProjectIndex, wxInt32& iWebsiteIndex );
 
     DECLARE_EVENT_TABLE()
 };
