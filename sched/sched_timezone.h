@@ -17,8 +17,10 @@
 // or write to the Free Software Foundation, Inc.,
 // 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-#include <vector>
-#include "boinc_db.h"
-#define DEFER_ASSIMILATION 123321
+extern void process_av_timezone(
+    SCHEDULER_REPLY& reply, APP_VERSION* avp, APP_VERSION& av2
+);
 
-extern int assimilate_handler(WORKUNIT&, std::vector<RESULT>&, RESULT&);
+extern void process_wu_timezone(
+    SCHEDULER_REPLY& reply, WORKUNIT& wu2, WORKUNIT& wu3
+);
