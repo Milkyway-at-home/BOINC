@@ -15,9 +15,15 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with BOINC.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <stdio.h>
-#include "server_types.h"
+#ifndef _SYNCH_H_
+#define _SYNCH_H_
 
-extern void handle_time_stats_log(FILE* fin);
-extern void write_time_stats_log(SCHEDULER_REPLY& reply);
-extern bool have_time_stats_log(SCHEDULER_REPLY& reply);
+#include <sys/sem.h>
+
+extern int create_semaphore(key_t);
+extern int destroy_semaphore(key_t);
+extern int lock_semaphore(key_t);
+extern int unlock_semaphore(key_t);
+extern int get_key(char* path, int id, key_t&);
+
+#endif
