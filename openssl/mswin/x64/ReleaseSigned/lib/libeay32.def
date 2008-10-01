@@ -24,6 +24,8 @@ EXPORTS
     AES_options                             @3074
     AES_set_decrypt_key                     @3106
     AES_set_encrypt_key                     @3024
+    AES_unwrap_key                          @3929
+    AES_wrap_key                            @3930
     ASN1_ANY_it                             @3035
     ASN1_BIT_STRING_asn1_meth               @3
     ASN1_BIT_STRING_free                    @2080
@@ -107,6 +109,7 @@ EXPORTS
     ASN1_STRING_print                       @18
     ASN1_STRING_print_ex                    @2432
     ASN1_STRING_print_ex_fp                 @2430
+    ASN1_STRING_set0                        @3933
     ASN1_STRING_set                         @19
     ASN1_STRING_set_by_NID                  @1996
     ASN1_STRING_set_default_mask            @2032
@@ -130,6 +133,7 @@ EXPORTS
     ASN1_TYPE_get_int_octetstring           @1076
     ASN1_TYPE_get_octetstring               @1077
     ASN1_TYPE_new                           @22
+    ASN1_TYPE_set1                          @3932
     ASN1_TYPE_set                           @917
     ASN1_TYPE_set_int_octetstring           @1078
     ASN1_TYPE_set_octetstring               @1079
@@ -493,6 +497,7 @@ EXPORTS
     COMP_expand_block                       @1145
     COMP_rle                                @1146
     COMP_zlib                               @1147
+    COMP_zlib_cleanup                       @3936
     CONF_dump_bio                           @2288
     CONF_dump_fp                            @2283
     CONF_free                               @171
@@ -625,7 +630,6 @@ EXPORTS
     DES_string_to_2keys                     @810
     DES_string_to_key                       @811
     DES_xcbc_encrypt                        @812
-    DES_xwhite_in2out                       @813
     DH_OpenSSL                              @1890
     DH_check                                @200
     DH_check_pub_key                        @3774
@@ -883,6 +887,7 @@ EXPORTS
     ENGINE_get_name                         @2485
     ENGINE_get_next                         @2504
     ENGINE_get_prev                         @2487
+    ENGINE_get_ssl_client_cert_function     @4045
     ENGINE_get_static_state                 @3393
     ENGINE_get_table_flags                  @3143
     ENGINE_init                             @2475
@@ -899,6 +904,7 @@ EXPORTS
     ENGINE_load_padlock                     @3532
     ENGINE_load_private_key                 @2498
     ENGINE_load_public_key                  @2479
+    ENGINE_load_ssl_client_cert             @4046
     ENGINE_load_sureware                    @3211
     ENGINE_load_ubsec                       @2636
     ENGINE_new                              @2515
@@ -952,6 +958,7 @@ EXPORTS
     ENGINE_set_init_function                @2483
     ENGINE_set_load_privkey_function        @2659
     ENGINE_set_load_pubkey_function         @2764
+    ENGINE_set_load_ssl_client_cert_function @4044
     ENGINE_set_name                         @2505
     ENGINE_set_table_flags                  @3073
     ENGINE_unregister_DH                    @2917
@@ -1235,6 +1242,7 @@ EXPORTS
     HMAC                                    @962
     HMAC_CTX_cleanup                        @2784
     HMAC_CTX_init                           @2747
+    HMAC_CTX_set_flags                      @3288
     HMAC_Final                              @965
     HMAC_Init                               @963
     HMAC_Init_ex                            @2572
@@ -1398,6 +1406,7 @@ EXPORTS
     OCSP_REQUEST_it                         @2799
     OCSP_REQUEST_new                        @3034
     OCSP_REQUEST_print                      @2981
+    OCSP_REQ_CTX_free                       @3921
     OCSP_RESPBYTES_free                     @2926
     OCSP_RESPBYTES_it                       @2811
     OCSP_RESPBYTES_new                      @2711
@@ -1470,6 +1479,8 @@ EXPORTS
     OCSP_response_status                    @2561
     OCSP_response_status_str                @2598
     OCSP_sendreq_bio                        @2551
+    OCSP_sendreq_nbio                       @3923
+    OCSP_sendreq_new                        @3924
     OCSP_single_get0_status                 @2989
     OCSP_url_svcloc_new                     @2973
     OPENSSL_DIR_end                         @3396
@@ -1479,6 +1490,7 @@ EXPORTS
     OPENSSL_cleanse                         @3245
     OPENSSL_config                          @3188
     OPENSSL_ia32cap_loc                     @3467
+    OPENSSL_isservice                       @4048
     OPENSSL_issetugid                       @2465
     OPENSSL_load_builtin_modules            @3214
     OPENSSL_no_config                       @3228
@@ -1886,6 +1898,7 @@ EXPORTS
     SHA_Transform                           @1013
     SHA_Update                              @507
     SMIME_crlf_copy                         @2148
+    SMIME_read_ASN1                         @4017
     SMIME_read_PKCS7                        @2143
     SMIME_text                              @2152
     SMIME_write_PKCS7                       @2142
@@ -2117,10 +2130,13 @@ EXPORTS
     X509V3_set_ctx                          @1508
     X509V3_set_nconf                        @2695
     X509V3_string_free                      @1506
+    X509_ALGORS_it                          @3926
     X509_ALGOR_dup                          @1518
     X509_ALGOR_free                         @517
+    X509_ALGOR_get0                         @3927
     X509_ALGOR_it                           @2714
     X509_ALGOR_new                          @518
+    X509_ALGOR_set0                         @3928
     X509_ATTRIBUTE_count                    @2193
     X509_ATTRIBUTE_create                   @1155
     X509_ATTRIBUTE_create_by_NID            @2191
@@ -2173,6 +2189,7 @@ EXPORTS
     X509_CRL_sign                           @536
     X509_CRL_sort                           @2607
     X509_CRL_verify                         @537
+    X509_EXTENSIONS_it                      @3919
     X509_EXTENSION_create_by_NID            @538
     X509_EXTENSION_create_by_OBJ            @539
     X509_EXTENSION_dup                      @540
@@ -2407,6 +2424,7 @@ EXPORTS
     X509_free                               @641
     X509_get0_pubkey_bitstr                 @2662
     X509_get1_email                         @2404
+    X509_get1_ocsp                          @3920
     X509_get_default_cert_area              @642
     X509_get_default_cert_dir               @643
     X509_get_default_cert_dir_env           @644
@@ -2480,6 +2498,7 @@ EXPORTS
     X509at_add1_attr_by_OBJ                 @2216
     X509at_add1_attr_by_txt                 @2219
     X509at_delete_attr                      @2199
+    X509at_get0_data_by_OBJ                 @3931
     X509at_get_attr                         @2189
     X509at_get_attr_by_NID                  @2196
     X509at_get_attr_by_OBJ                  @2200
@@ -2530,7 +2549,6 @@ EXPORTS
     _ossl_old_des_string_to_2keys           @2725
     _ossl_old_des_string_to_key             @2808
     _ossl_old_des_xcbc_encrypt              @3159
-    _ossl_old_des_xwhite_in2out             @2650
     _shadow_DES_check_key                   @3146
     _shadow_DES_rw_mode                     @2581
     a2d_ASN1_OBJECT                         @699
@@ -2712,6 +2730,7 @@ EXPORTS
     d2i_SXNET                               @1326
     d2i_USERNOTICE                          @1498
     d2i_X509                                @754
+    d2i_X509_ALGORS                         @3937
     d2i_X509_ALGOR                          @755
     d2i_X509_ATTRIBUTE                      @756
     d2i_X509_AUX                            @1980
@@ -2722,6 +2741,7 @@ EXPORTS
     d2i_X509_CRL_INFO                       @759
     d2i_X509_CRL_bio                        @760
     d2i_X509_CRL_fp                         @761
+    d2i_X509_EXTENSIONS                     @3925
     d2i_X509_EXTENSION                      @762
     d2i_X509_NAME                           @763
     d2i_X509_NAME_ENTRY                     @764
@@ -2899,6 +2919,7 @@ EXPORTS
     i2d_SXNET                               @1325
     i2d_USERNOTICE                          @1496
     i2d_X509                                @857
+    i2d_X509_ALGORS                         @3934
     i2d_X509_ALGOR                          @858
     i2d_X509_ATTRIBUTE                      @859
     i2d_X509_AUX                            @2132
@@ -2909,6 +2930,7 @@ EXPORTS
     i2d_X509_CRL_INFO                       @862
     i2d_X509_CRL_bio                        @863
     i2d_X509_CRL_fp                         @864
+    i2d_X509_EXTENSIONS                     @3922
     i2d_X509_EXTENSION                      @865
     i2d_X509_NAME                           @866
     i2d_X509_NAME_ENTRY                     @867
@@ -2940,6 +2962,7 @@ EXPORTS
     idea_options                            @884
     idea_set_decrypt_key                    @885
     idea_set_encrypt_key                    @886
+    int_smime_write_ASN1                    @3979
     lh_delete                               @887
     lh_doall                                @888
     lh_doall_arg                            @889
