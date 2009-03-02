@@ -143,6 +143,8 @@ EXPORTS
     SSL_get_rbio                            @63
     SSL_get_read_ahead                      @64
     SSL_get_rfd                             @246
+    SSL_get_servername                      @291
+    SSL_get_servername_type                 @292
     SSL_get_session                         @154
     SSL_get_shared_ciphers                  @65
     SSL_get_shutdown                        @155

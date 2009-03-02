@@ -371,6 +371,9 @@ EXPORTS
     BN_RECP_CTX_init                        @1128
     BN_RECP_CTX_new                         @1129
     BN_RECP_CTX_set                         @1131
+    BN_X931_derive_prime_ex                 @4085
+    BN_X931_generate_Xpq                    @3325
+    BN_X931_generate_prime_ex               @4060
     BN_add                                  @115
     BN_add_word                             @116
     BN_bin2bn                               @118
@@ -534,7 +537,10 @@ EXPORTS
     CRYPTO_dbg_free                         @177
     CRYPTO_dbg_get_options                  @2246
     CRYPTO_dbg_malloc                       @178
+    CRYPTO_dbg_pop_info                     @4063
+    CRYPTO_dbg_push_info                    @4071
     CRYPTO_dbg_realloc                      @179
+    CRYPTO_dbg_remove_all_info              @4090
     CRYPTO_dbg_set_options                  @2157
     CRYPTO_destroy_dynlockid                @2413
     CRYPTO_dup_ex_data                      @1025
@@ -564,6 +570,7 @@ EXPORTS
     CRYPTO_is_mem_check_on                  @2160
     CRYPTO_lock                             @187
     CRYPTO_malloc                           @188
+    CRYPTO_malloc_debug_init                @4070
     CRYPTO_malloc_locked                    @1512
     CRYPTO_mem_ctrl                         @189
     CRYPTO_mem_leaks                        @190
@@ -591,6 +598,8 @@ EXPORTS
     CRYPTO_set_mem_debug_options            @2164
     CRYPTO_set_mem_ex_functions             @2778
     CRYPTO_set_mem_functions                @198
+    CRYPTO_set_mem_info_functions           @4053
+    CRYPTO_strdup                           @4093
     CRYPTO_thread_id                        @199
     DES_cbc_cksum                           @777
     DES_cbc_encrypt                         @778
@@ -1037,6 +1046,7 @@ EXPORTS
     EVP_CIPHER_CTX_block_size               @3879
     EVP_CIPHER_CTX_cipher                   @3888
     EVP_CIPHER_CTX_cleanup                  @256
+    EVP_CIPHER_CTX_clear_flags              @4050
     EVP_CIPHER_CTX_ctrl                     @2400
     EVP_CIPHER_CTX_flags                    @3891
     EVP_CIPHER_CTX_free                     @3783
@@ -1048,8 +1058,10 @@ EXPORTS
     EVP_CIPHER_CTX_nid                      @3831
     EVP_CIPHER_CTX_rand_key                 @3730
     EVP_CIPHER_CTX_set_app_data             @3819
+    EVP_CIPHER_CTX_set_flags                @4059
     EVP_CIPHER_CTX_set_key_length           @2399
     EVP_CIPHER_CTX_set_padding              @3019
+    EVP_CIPHER_CTX_test_flags               @4069
     EVP_CIPHER_asn1_to_param                @1083
     EVP_CIPHER_block_size                   @3816
     EVP_CIPHER_flags                        @3857
@@ -1146,6 +1158,7 @@ EXPORTS
     EVP_SealInit                            @288
     EVP_SignFinal                           @289
     EVP_VerifyFinal                         @290
+    EVP_add_alg_module                      @4077
     EVP_add_cipher                          @292
     EVP_add_digest                          @293
     EVP_aes_128_cbc                         @2927
@@ -1490,6 +1503,7 @@ EXPORTS
     OPENSSL_cleanse                         @3245
     OPENSSL_config                          @3188
     OPENSSL_ia32cap_loc                     @3467
+    OPENSSL_init                            @4091
     OPENSSL_isservice                       @4048
     OPENSSL_issetugid                       @2465
     OPENSSL_load_builtin_modules            @3214
@@ -1823,6 +1837,8 @@ EXPORTS
     RSAPublicKey_dup                        @482
     RSAPublicKey_it                         @2737
     RSA_PKCS1_SSLeay                        @483
+    RSA_X931_derive_ex                      @4065
+    RSA_X931_generate_key_ex                @4054
     RSA_X931_hash_id                        @3319
     RSA_blinding_off                        @978
     RSA_blinding_on                         @977
@@ -2962,6 +2978,7 @@ EXPORTS
     idea_options                            @884
     idea_set_decrypt_key                    @885
     idea_set_encrypt_key                    @886
+    int_CRYPTO_set_do_dynlock_callback      @4057
     int_smime_write_ASN1                    @3979
     lh_delete                               @887
     lh_doall                                @888
