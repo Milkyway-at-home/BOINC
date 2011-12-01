@@ -183,7 +183,7 @@ int procinfo_setup(PROC_MAP& pm) {
         if (!piddir) break;
         if (!isdigit(piddir->d_name[0])) continue;
 
-#if defined(HAVE_PROCFS_H) && defined(HAVE__PROC_SELF_PSINFO)  // solaris
+#if HAVE_PROCFS_H && HAVE__PROC_SELF_PSINFO  // solaris
         psinfo_t psinfo;
         sprintf(pidpath, "/proc/%s/psinfo", piddir->d_name);
         fd = fopen(pidpath, "r");
