@@ -502,11 +502,11 @@ class Project:
         # copy sample web files to final names
         install(srcdir('html/user/sample_index.php'),
             self.dir('html/user/index.php'))
-        install(srcdir('html/project.sample/project.inc'),
+        install(srcdir('html/project.milkyway/project.inc'),
             self.dir('html/project/project.inc'))
-        install(srcdir('html/project.sample/project_specific_prefs.inc'),
+        install(srcdir('html/project.milkyway/project_specific_prefs.inc'),
             self.dir('html/project/project_specific_prefs.inc'))
-        install(srcdir('html/project.sample/cache_parameters.inc'),
+        install(srcdir('html/project.milkyway/cache_parameters.inc'),
             self.dir('html/project/cache_parameters.inc'))
         install(srcdir('tools/project.xml'), self.dir('project.xml'))
         if not self.production:
