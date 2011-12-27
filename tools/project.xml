@@ -44,11 +44,47 @@
         <user_friendly_name>Sony Playstation 3 running Linux</user_friendly_name>
     </platform>
     <platform>
+        <name>sparc-sun-solaris2.7</name>
+        <user_friendly_name>Solaris 2.7 running on a SPARC-compatible CPU</user_friendly_name>
+    </platform>
+    <platform>
+        <name>sparc-sun-solaris</name>
+        <user_friendly_name>Solaris 2.8 or later running on a SPARC-compatible CPU</user_friendly_name>
+    </platform>
+    <platform>
+        <name>sparc64-sun-solaris</name>
+        <user_friendly_name>Solaris 2.8 or later running on a SPARC 64-bit CPU</user_friendly_name>
+    </platform>
+    <platform>
+        <name>powerpc64-ps3-linux-gnu</name>
+        <user_friendly_name>Sony Playstation 3 running Linux</user_friendly_name>
+    </platform>
+    <platform>
+        <name>i386-unknown-freebsd</name>
+        <user_friendly_name>FreeBSD running on i386 CPU</user_friendly_name>
+    </platform>
+    <platform>
+        <name>amd64-unknown-freebsd</name>
+        <user_friendly_name>FreeBSD running on amd64 CPU</user_friendly_name>
+    </platform>
+    <platform>
+        <name>ia64-unknown-freebsd</name>
+        <user_friendly_name>FreeBSD running on ia64 CPU</user_friendly_name>
+    </platform>
+    <platform>
+        <name>powerpc-ibm-aix5</name>
+        <user_friendly_name>IBM AIX 5.x running on PPC CPU</user_friendly_name>
+    </platform>
+    <platform>
         <name>anonymous</name>
         <user_friendly_name>anonymous</user_friendly_name>
     </platform>
     <app>
-        <name>example_app</name>
-        <user_friendly_name>Example Application</user_friendly_name>
+        <name>milkyway_separation</name>
+        <user_friendly_name>Milkyway@Home Separation</user_friendly_name>
+    </app>
+    <app>
+        <name>milkyway_nbody</name>
+        <user_friendly_name>Milkyway@Home N-Body Simulation</user_friendly_name>
     </app>
 </boinc>
