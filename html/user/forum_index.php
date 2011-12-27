@@ -75,7 +75,7 @@ if (FORUM_QA_MERGED_MODE === true){
     $categories = BoincCategory::enum("true order by orderID");
 } else {
     echo "<p>"
-        .tra("If you have a question or problem, please use the %1Questions & Answers%2 section of the message boards.", "<a href=\"forum_help_desk.php\">", "</a>")
+        .tra("If you have a question or problem, please use the %1Number Crunching%2 section of the message boards.", "<a href=\"forum_forum.php?id=2\">", "</a>")
         ."</p>"
     ;
     $categories = BoincCategory::enum("is_helpdesk=0 order by orderID");
