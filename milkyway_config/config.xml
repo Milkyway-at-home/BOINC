@@ -1,0 +1,247 @@
+<?xml version="1.0" ?>
+<boinc>
+  <config>
+    <uldl_pid>
+      /var/run/httpd.pid
+    </uldl_pid>
+    <upload_dir>
+      /export/www/boinc/milkyway/upload
+    </upload_dir>
+    <long_name>
+      Milkyway@Home
+    </long_name>
+    <cgi_url>
+      http://milkyway.cs.rpi.edu/milkyway_cgi/
+    </cgi_url>
+    <shmem_work_items>50</shmem_work_items>
+    <feeder_query_size>100</feeder_query_size>
+    <sched_debug_level>
+      1
+    </sched_debug_level>
+    <prefer_primary_platform>
+      1
+    </prefer_primary_platform>
+    <debug_version_select>
+      1
+    </debug_version_select>
+    <disable_account_creation>
+      0
+    </disable_account_creation>
+    <uldl_dir_fanout>
+      1024
+    </uldl_dir_fanout>
+    <download_url>
+      http://milkyway.cs.rpi.edu/milkyway/download
+    </download_url>
+    <db_user>
+      boincadm
+    </db_user>
+    <db_sock>
+      /tmp/mysql.sock
+    </db_sock>
+    <app_dir>
+      /export/www/boinc/milkyway/apps
+    </app_dir>
+    <download_dir>
+      /export/www/boinc/milkyway/download
+    </download_dir>
+    <log_dir>
+      /export/www/boinc/milkyway/log_milkyway
+    </log_dir>
+    <fuh_debug_level>
+      0
+    </fuh_debug_level>
+    <master_url>
+      http://milkyway.cs.rpi.edu/milkyway/
+    </master_url>
+    <host>
+      milkyway
+    </host>
+    <db_name>
+      milkyway
+    </db_name>
+    <shmem_key>
+      0x11117b45
+    </shmem_key>
+    <show_results>
+      1
+    </show_results>
+    <key_dir>
+      /export/www/boinc/milkyway/keys/
+    </key_dir>
+    <dont_generate_file_upload_certificates/>
+    <ignore_upload_certifcates/>
+    <upload_url>
+      http://milkyway.rpi.edu/milkyway_cgi/file_upload_handler
+    </upload_url>
+    <db_passwd>
+      placeholder
+    </db_passwd>
+    <min_sendwork_interval>
+      60
+    </min_sendwork_interval>
+    <db_host>
+      localhost
+    </db_host>
+    <daily_result_quota>
+      10000
+    </daily_result_quota>
+    <one_result_per_user_per_wu>
+      1
+    </one_result_per_user_per_wu>
+    <resend_lost_results>
+      0
+    </resend_lost_results>
+    <send_result_abort>
+      1
+    </send_result_abort>
+    <max_wus_to_send>
+      50
+    </max_wus_to_send>
+    <max_wus_in_progress>
+      3
+    </max_wus_in_progress>
+    <max_wus_in_progress_gpu>
+      12
+    </max_wus_in_progress_gpu>
+    <max_ncpus>
+      16
+    </max_ncpus>
+    <max_ngpus>
+      4
+    </max_ngpus>
+    <debug_send>
+      1
+    </debug_send>
+
+    <debug_quota/>
+
+    <profile_min_credit>
+      50
+    </profile_min_credit>
+    <recaptcha_public_key>
+      placeholder
+    </recaptcha_public_key>
+    <recaptcha_private_key>
+      placeholder
+    </recaptcha_private_key>
+    <nowork_skip>
+      1
+    </nowork_skip>
+  </config>
+  <tasks>
+    <task>
+      <output>
+        db_dump.out
+      </output>
+      <cmd>
+        db_dump -d 2 -dump_spec ../db_dump_spec.xml
+      </cmd>
+      <period>
+        5 hours
+      </period>
+    </task>
+    <task>
+      <output>
+        update_uotd.out
+      </output>
+      <cmd>
+		/export/www/boinc/milkyway/bin/run_in_ops5 update_uotd.php
+      </cmd>
+      <period>
+        23 hours
+      </period>
+    </task>
+	<task>
+      <output>
+        update_profile_pages.out
+      </output>
+      <cmd>
+		/export/www/boinc/milkyway/bin/run_in_ops5 update_profile_pages.php
+      </cmd>
+      <period>
+        23 hours
+      </period>
+    </task>
+    <task>
+      <output>
+        update_forum_activities.out
+      </output>
+      <cmd>
+		/export/www/boinc/milkyway/bin/run_in_ops5 update_forum_activities.php
+      </cmd>
+      <period>
+        23 hours
+      </period>
+    </task>
+    <task>
+      <output>
+        update_stats.out
+      </output>
+      <cmd>
+        update_stats -update_users -update_teams -update_hosts
+      </cmd>
+      <period>
+        5 hours
+      </period>
+    </task>
+    <task>
+      <output>
+        team_import.out
+      </output>
+      <cmd>
+		/export/www/boinc/milkyway/bin/run_in_ops5 team_import.php
+      </cmd>
+      <period>
+        23 hours
+      </period>
+    </task>
+    <task>
+      <output>
+        notify.out
+      </output>
+      <cmd>
+		/export/www/boinc/milkyway/bin/run_in_ops5 notify.php
+      </cmd>
+      <period>
+        23 hours
+      </period>
+    </task>
+  </tasks>
+  <daemons>
+    <daemon>
+      <cmd>
+        feeder -d 1 -sleep_interval 1 -allapps
+      </cmd>
+    </daemon>
+    <daemon>
+      <cmd>
+        transitioner -d 1
+      </cmd>
+    </daemon>
+
+    <daemon>
+      <cmd>
+        milkyway_purge -max_wu_per_file 10000 -no_archive -min_age_days 0.5
+      </cmd>
+    </daemon>
+    <daemon>
+      <cmd>
+        file_deleter -d 1
+      </cmd>
+    </daemon>
+
+    <daemon>
+      <cmd>
+        separation_assimilator -cp /export/www/boinc/:/export/www/boinc/mysql-connector-java-5.1.12-bin.jar:/export/www/boinc/jboinc/fast-md5/src/ -Dapplication=milkyway -Ddatabase=milkyway -DcreditFromWorkunit -DcreditModifier=1.0 -DmaxTotalWorkunits=600000 milkyway_separation_assimilator.MilkywayValidator 500
+      </cmd>
+    </daemon>
+
+    <daemon>
+      <cmd>
+        nbody_assimilator -cp /export/www/boinc/:/export/www/boinc/mysql-connector-java-5.1.12-bin.jar:/export/www/boinc/jboinc/fast-md5/src/ -DdebugCredit -Dapplication=milkyway_nbody -Ddatabase=milkyway -DcreditModifier=5.0 -DmaxTotalWorkunits=600000 milkyway_nbody_assimilator.NBodyValidator 500
+      </cmd>
+    </daemon>
+  </daemons>
+</boinc>
+
