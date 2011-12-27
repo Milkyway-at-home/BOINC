@@ -141,6 +141,18 @@ static inline bool app_plan_mt(
             hu.projected_flops/1e9
         );
     }
+
+    // also require sse2
+    downcase_string(sreq.host.p_features);
+    if (!strstr(sreq.host.p_features, "sse2")) {
+        // Pre-6.x clients report CPU features in p_model
+        //
+        if (!strstr(sreq.host.p_model, "sse2")) {
+            //add_no_work_message("Your CPU lacks SSE2");
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -156,6 +168,15 @@ static bool ati_check(COPROC_ATI& c, HOST_USAGE& hu,
 ) {
     ati_requirements.update(min_driver_version, min_ram);
 
+    if (c.attribs.doublePrecision == CAL_FALSE) {
+      if (config.debug_version_select) {
+	log_messages.printf(MSG_NORMAL,
+			    "[version] Host lacks double precision ATI GPU\n");
+      }
+      add_no_work_message("An ATI GPU supporting double precision math is required");
+      return false;
+    }
+
     if (need_amd_libs) {
         if (!c.amdrt_detected) {
             return false;
@@ -165,6 +186,7 @@ static bool ati_check(COPROC_ATI& c, HOST_USAGE& hu,
             return false;
         }
     }
+
     if (c.version_num < min_driver_version) {
         return false;
     }
@@ -172,9 +194,17 @@ static bool ati_check(COPROC_ATI& c, HOST_USAGE& hu,
         return false;
     }
 
+    if (c.attribs.doublePrecision == CAL_FALSE) {
+      if (config.debug_version_select) {
+          log_messages.printf(MSG_NORMAL,
+                              "[version] Host lacks double precision ATI GPU\n");
+      }
+      add_no_work_message("An ATI GPU supporting double precision math is required");
+      return false;
+    }
+
     hu.gpu_ram = min_ram;
     hu.natis = ndevs;
-
     coproc_perf(
         g_request->host.p_fpops,
         flops_scale * hu.natis*c.peak_flops,
@@ -184,6 +214,7 @@ static bool ati_check(COPROC_ATI& c, HOST_USAGE& hu,
     );
     hu.peak_flops = hu.natis*c.peak_flops + hu.avg_ncpus*g_request->host.p_fpops;
     hu.max_ncpus = hu.avg_ncpus;
+
     return true;
 }
 
@@ -214,7 +245,7 @@ static inline bool app_plan_ati(
             ati_version_int(1, 3, 0),
             true,
             ATI_MIN_RAM,
-            1, .01,
+            1, 0.05,
             .21
         )) {
             return false;
@@ -264,7 +295,7 @@ GPU_REQUIREMENTS cuda_requirements;
 #define CUDA23_MIN_DRIVER_VERSION       19038
 #define CUDA3_MIN_CUDA_VERSION          3000
 #define CUDA3_MIN_DRIVER_VERSION        19500
-#define CUDA_OPENCL_MIN_DRIVER_VERSION  19713
+#define CUDA_OPENCL_MIN_DRIVER_VERSION  26019
 
 static bool cuda_check(COPROC_NVIDIA& c, HOST_USAGE& hu,
     int min_cc, int max_cc,
@@ -297,12 +328,30 @@ static bool cuda_check(COPROC_NVIDIA& c, HOST_USAGE& hu,
             return false;
         }
     }
+
     if (c.available_ram < min_ram) {
         return false;
     }
 
+    /* Check for compute capability >= 1.3 */
+    int isCC_1_3 = c.prop.major > 1 || (c.prop.major == 1 && c.prop.minor >= 3);
+    if (!isCC_1_3) {
+      if (config.debug_version_select) {
+	log_messages.printf(MSG_NORMAL,
+			    "[version] Compute capability %d.%d < 1.3\n", c.prop.major, c.prop.minor
+			    );
+      }
+      add_no_work_message(
+			  "Your NVIDIA GPU lacks the needed compute capability (1.3, required for double precision math"
+			  );
+      return false;
+    }
+
     hu.gpu_ram = min_ram;
     hu.ncudas = ndevs;
+    hu.max_ncpus = hu.avg_ncpus = cpu_frac;
+    hu.projected_flops = hu.ncudas * (1.0 - cpu_frac) * c.peak_flops + cpu_frac * g_request->host.p_fpops;
+    hu.peak_flops = hu.ncudas*c.peak_flops + hu.avg_ncpus*g_request->host.p_fpops;
 
     coproc_perf(
         g_request->host.p_fpops,
@@ -313,6 +362,7 @@ static bool cuda_check(COPROC_NVIDIA& c, HOST_USAGE& hu,
     );
     hu.peak_flops = hu.ncudas*c.peak_flops + hu.avg_ncpus*g_request->host.p_fpops;
     hu.max_ncpus = hu.avg_ncpus;
+
     return true;
 }
 
@@ -342,8 +392,8 @@ static inline bool app_plan_cuda(
             CUDA3_MIN_CUDA_VERSION, CUDA3_MIN_DRIVER_VERSION,
             384*MEGA,
             1,
-            .01,
-            .22
+           .01,
+           .22
         )) {
             return false;
         }
@@ -356,6 +406,15 @@ static inline bool app_plan_cuda(
             1,
             .01,
             .21
+        )) {
+            return false;
+        }
+    } else if (!strcmp(plan_class, "cuda_opencl")) {
+        if (!cuda_check(c, hu,
+            100, 0,
+            0, CUDA_OPENCL_MIN_DRIVER_VERSION,
+            384*MEGA,
+            1, 0.05, 1
         )) {
             return false;
         }
@@ -382,8 +441,8 @@ static inline bool app_plan_cuda(
         log_messages.printf(MSG_NORMAL,
             "[version] %s app projected %.2fG peak %.2fG %.3f CPUs\n",
             plan_class,
-            hu.projected_flops/1e9,
-            hu.peak_flops/1e9,
+            1.0e-9 * hu.projected_flops,
+            1.0e-9 * hu.peak_flops,
             hu.avg_ncpus
         );
     }
@@ -397,45 +456,48 @@ static inline bool app_plan_cuda(
 static inline bool app_plan_nci(
     SCHEDULER_REQUEST& sreq, HOST_USAGE& hu
 ) {
-    hu.avg_ncpus = .01;
-    hu.max_ncpus = .01;
-    hu.projected_flops = sreq.host.p_fpops*1.01;
-        // The *1.01 is needed to ensure that we'll send this app
+    hu.avg_ncpus = 0.01;
+    hu.max_ncpus = 0.01;
+    hu.projected_flops = 1.01 * sreq.host.p_fpops;
+        // The * 1.01 is needed to ensure that we'll send this app
         // version rather than a non-plan-class one
-    hu.peak_flops = sreq.host.p_fpops*.01;
+    hu.peak_flops = 0.01 * sreq.host.p_fpops;
     return true;
 }
 
-// the following is for an app version that requires a processor with SSE3,
-// and will run 10% faster than the non-SSE3 version
+// the following is for an app version that requires a processor with SSE2,
+// and will run 10% faster than the non-SSE2 version
 //
-static inline bool app_plan_sse3(
+static inline bool app_plan_sse2(
     SCHEDULER_REQUEST& sreq, HOST_USAGE& hu
 ) {
     downcase_string(sreq.host.p_features);
-    if (!strstr(sreq.host.p_features, "sse3")) {
+    if (!strstr(sreq.host.p_features, "sse2")) {
         // Pre-6.x clients report CPU features in p_model
         //
-        if (!strstr(sreq.host.p_model, "sse3")) {
-            //add_no_work_message("Your CPU lacks SSE3");
+        if (!strstr(sreq.host.p_model, "sse2")) {
+            //add_no_work_message("Your CPU lacks SSE2");
             return false;
         }
     }
     hu.avg_ncpus = 1;
     hu.max_ncpus = 1;
-    hu.projected_flops = 1.1*sreq.host.p_fpops;
+    hu.projected_flops = sreq.host.p_fpops;
     hu.peak_flops = sreq.host.p_fpops;
     return true;
 }
 
 static inline bool opencl_check(
-    COPROC& cp, HOST_USAGE& hu,
+    const COPROC& cp, HOST_USAGE& hu,
     int min_opencl_device_version,
     double min_global_mem_size,
     double ndevs,
     double cpu_frac,
     double flops_scale
 ) {
+
+    if (!cp.count || !cp.have_opencl) return false;
+
     if (cp.opencl_prop.opencl_device_version_int < min_opencl_device_version) {
         return false;
     }
@@ -462,54 +524,103 @@ static inline bool opencl_check(
     return true;
 }
 
+static bool check_fp64_exts(const char* cl_exts) {
+    if (!strstr(cl_exts, "cl_khr_fp64") || !strstr(cl_exts, "cl_amd_fp64")) {
+        if (config.debug_version_select) {
+            log_messages.printf(MSG_NORMAL,
+                                "[version] Host lacks double precision OpenCL extensions\n");
+        }
+        add_no_work_message("GPU lacks necessary double precision extension");
+        return false;
+    }
+
+    return true;
+}
+
+
+static bool check_separation_opencl_features(const COPROC& coproc) {
+    return check_fp64_exts(coproc.opencl_prop.extensions);
+}
+
+static bool check_nbody_opencl_features(const COPROC& coproc, bool requireDouble)
+{
+    const char* cl_exts = coproc.opencl_prop.extensions;
+
+    if (   !strstr(cl_exts, "cl_khr_global_int32_base_atomics")
+        || !strstr(cl_exts, "cl_khr_local_int32_base_atomics")
+        || !strstr(cl_exts, "cl_khr_global_int32_extended_atomics")) {
+        if (config.debug_version_select) {
+            log_messages.printf(MSG_NORMAL,
+                                "[version] Host lacks atomics OpenCL extensions\n");
+        }
+
+        add_no_work_message("GPU lacks necessary atomics extensions");
+        return false;
+    }
+
+    if (requireDouble) {
+        return check_fp64_exts(cl_exts);
+    }
+
+    return true;
+}
+
+//
+// Use these ones for separation, which will assume they need double.
+// "opencl_nvidia", "opencl_cuda" (old)
+// "opencl_amd"
+//
+//
+// add nbody suffix for other features required.
+// add _double suffix for nbody since it is sort of optional
+//
+// "opencl_nvidia_nbody"
+// "opencl_nvidia_nbody_double"
+// "opencl_amd_nbody"
+// "opencl_amd_nbody_double"
+//
 static inline bool app_plan_opencl(
-    SCHEDULER_REQUEST& sreq, const char* plan_class, HOST_USAGE& hu
+    const SCHEDULER_REQUEST& sreq, const char* plan_class, HOST_USAGE& hu
 ) {
-    if (strstr(plan_class, "nvidia")) {
-        COPROC_NVIDIA& c = sreq.coprocs.nvidia;
-        if (!c.count) return false;
-        if (!c.have_opencl) return false;
-        if (!strcmp(plan_class, "opencl_nvidia_101")) {
-            return opencl_check(
-                c, hu,
-                101,
-                256*MEGA,
-                1,
-                .1,
-                .2
+    if (strstr(plan_class, "nvidia") || strstr(plan_class, "cuda")) {
+        const COPROC& cp = sreq.coprocs.nvidia;
+        bool base_cl = opencl_check(
+            cp, hu,
+            101,
+            256 * MEGA,
+            1,
+            0.1,
+            0.2
             );
-        } else {
-            log_messages.printf(MSG_CRITICAL,
-                "Unknown plan class: %s\n", plan_class
-            );
-            return false;
-        }
-    } else if (strstr(plan_class, "ati")) {
-        COPROC_ATI& c = sreq.coprocs.ati;
-        if (!c.count) return false;
-        if (!c.have_opencl) return false;
-        if (!strcmp(plan_class, "opencl_ati_101")) {
-            return opencl_check(
-                c, hu,
-                101,
-                256*MEGA,
-                1,
-                .1,
-                .2
-            );
-        } else {
-            log_messages.printf(MSG_CRITICAL,
-                "Unknown plan class: %s\n", plan_class
-            );
-            return false;
-        }
 
-    // maybe add a clause for multicore CPU
+        const char* nbody = strstr(plan_class, "nbody");
+        if (nbody) {
+            bool needsDouble = (strstr(nbody, "double") != NULL);
+            return base_cl && check_nbody_opencl_features(cp, needsDouble);
+        } else {
+            return base_cl && check_separation_opencl_features(cp);
+        }
+    } else if (strstr(plan_class, "amd")) {
+        const COPROC& cp = sreq.coprocs.ati;
+        bool base_cl = opencl_check(
+            cp, hu,
+            101,
+            256 * MEGA,
+            1,
+            0.1,
+            0.2);
 
+        const char* nbody = strstr(plan_class, "nbody");
+        if (nbody) {
+            bool needsDouble = (strstr(nbody, "double") != NULL);
+            return base_cl && check_nbody_opencl_features(cp, needsDouble);
+        } else {
+            return base_cl && check_separation_opencl_features(cp);
+        }
     } else {
         log_messages.printf(MSG_CRITICAL,
-            "Unknown plan class: %s\n", plan_class
-        );
+                            "Unknown plan class: %s\n", plan_class
+            );
         return false;
     }
 }
@@ -528,7 +639,7 @@ static inline bool app_plan_vbox(
 
     // host must have VM acceleration in order to run multi-core jobs
     //
-    if (strstr(plan_class, "mt") 
+    if (strstr(plan_class, "mt")
         && (!strstr(sreq.host.p_features, "vmx")
         && !strstr(sreq.host.p_features, "svm"))
     ) {
@@ -583,11 +694,12 @@ bool app_plan(SCHEDULER_REQUEST& sreq, char* plan_class, HOST_USAGE& hu) {
         return app_plan_cuda(sreq, plan_class, hu);
     } else if (!strcmp(plan_class, "nci")) {
         return app_plan_nci(sreq, hu);
-    } else if (!strcmp(plan_class, "sse3")) {
-        return app_plan_sse3(sreq, hu);
     } else if (strstr(plan_class, "vbox")) {
         return app_plan_vbox(sreq, plan_class, hu);
+    } else if (!strcmp(plan_class, "sse2")) {
+        return app_plan_sse2(sreq, hu);
     }
+
     log_messages.printf(MSG_CRITICAL,
         "Unknown plan class: %s\n", plan_class
     );

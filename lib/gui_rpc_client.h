@@ -747,6 +747,9 @@ struct RPC {
 //#if defined(__UNIVAC__)
 //#define NO_PER_THREAD_LOCALE 1
 //#endif
+#ifdef __FreeBSD__
+#define NO_PER_THREAD_LOCALE 1
+#endif
 #if defined(__HAIKU__)
 #define NO_PER_THREAD_LOCALE 1
 #endif

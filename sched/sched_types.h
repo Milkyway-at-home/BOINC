@@ -96,10 +96,7 @@ struct HOST_USAGE {
         strcpy(cmdline, "");
     }
     inline bool is_sequential_app() {
-         if (ncudas) return false;
-         if (natis) return false;
-         if (avg_ncpus != 1) return false;
-         return true;
+        return !(ncudas > 0.0 || natis > 0.0 || avg_ncpus != 1);
     }
     inline int resource_type() {
         if (ncudas) {
@@ -111,16 +108,15 @@ struct HOST_USAGE {
     }
     inline const char* resource_name() {
         if (ncudas) {
-            return "nvidia GPU";
+            return "Nvidia GPU";
         } else if (natis) {
             return "ATI GPU";
+        } else {
+            return "CPU";
         }
-        return "CPU";
     }
     inline bool uses_gpu() {
-        if (ncudas) return true;
-        if (natis) return true;
-        return false;
+        return (ncudas > 0.0 || natis > 0.0);
     }
 };
 
