@@ -20,7 +20,7 @@ define("STYLESHEET", "white.css");
 define("FORUM_QA_MERGED_MODE", false); // Set to true to merge Message boards and Q&A section
 define("COPYRIGHT_HOLDER", "AstroInformatics Group");
 define("SYS_ADMIN_EMAIL", "deselt@cs.rpi.edu");
-define("POST_REPORT_EMAILS", "deselt@cs.rpi.edu|blogger@rochester.rr.com");
+
 define("FORUM_MODERATION_EMAIL", "deselt@cs.rpi.edu|blogger@rochester.rr.com");
 define("UOTD_ADMIN_EMAIL", "deselt@cs.rpi.edu");
 
@@ -29,7 +29,7 @@ define("UOTD_ADMIN_EMAIL", "deselt@cs.rpi.edu");
 
 // Email addresses separated by pipe ( | ) that will receive user reported
 // offensive forum posts.
-define("POST_REPORT_EMAILS", "moderator1@$master_url|moderator2@$master_url");
+define("POST_REPORT_EMAILS", "deselt@cs.rpi.edu|blogger@rochester.rr.com");
 
 // set the following if SVN requires specific configuration (e.g. proxy)
 // Used on ops/index.php.
