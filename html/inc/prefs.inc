@@ -317,7 +317,7 @@ if ($app_types->count > 1) {
     if ($app_types->ati) {
         $project_pref_descs[] = new PREF_BOOL (
             tra(
-                "Use ATI GPU %1 Enforced by version 6.10+ %2",
+                "Use AMD (ATI) GPU %1 Enforced by version 6.10+ %2",
                 "<br><span class=note>",
                 "</span>"
             ),

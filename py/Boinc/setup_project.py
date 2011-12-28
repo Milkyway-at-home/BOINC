@@ -330,11 +330,12 @@ def install_boinc_files(dest_dir, install_web_files, install_server_files):
         install_glob(srcdir('html/user/*.css'), dir('html/user/'))
         install_glob(srcdir('html/user/*.txt'), dir('html/user/'))
         install_glob(srcdir('html/user/*.js'), dir('html/user/'))
+        install_glob(srcdir('html/user/*.ico'), dir('html/user/'))
         install_glob(srcdir('html/user/*.png'), dir('html/user/img'))
         install_glob(srcdir('html/user/*.gif'), dir('html/user/img'))
         install_glob(srcdir('html/user/img/*.*'), dir('html/user/img'))
         if not os.path.exists(dir('html/user/motd.php')):
-            shutil.copy(srcdir('html/user/sample_motd.php'), dir('html/user/motd.php'))
+            shutil.copy(srcdir('html/user/milkyway_motd.php'), dir('html/user/motd.php'))
         os.system("rm -f "+dir('html/languages/translations/*'))
         install_glob(srcdir('html/languages/translations/*.po'), dir('html/languages/translations/'))
 
@@ -500,7 +501,7 @@ class Project:
         install_boinc_files(self.dir(), True, not self.web_only)
 
         # copy sample web files to final names
-        install(srcdir('html/user/sample_index.php'),
+        install(srcdir('html/user/milkyway_index.php'),
             self.dir('html/user/index.php'))
         install(srcdir('html/project.milkyway/project.inc'),
             self.dir('html/project/project.inc'))
