@@ -15,6 +15,10 @@
 define ('COLOR_PREFS', false);
 define ('GFX_CPU_PREFS', true);
 define ('APP_SELECT_PREFS', true);
+define ('GPU_TARGET_FREQUENCY_PREFERENCE', true);
+define ('GPU_NONRESPONSIVE_PREFERENCE', false);
+define ('GPU_PRIORITY_PREFERENCE', false);
+define ('GPU_DISABLE_CHECKPOINTING_PREFERENCE', false);
 $project_has_beta = false;
 
 // Project-specific prefs are represented in three ways:
@@ -48,6 +52,11 @@ define('COLOR_DESC', tra('Color scheme for graphics'));
 define("MAX_GFX_CPU_PCT_DESC", tra("Maximum CPU % for graphics%10 ... 100%2", "<br><span class=note>", "</span>"));
 define('APP_SELECT_DESC', tra('Run only the selected applications'));
 define('ACCEPT_ANY_DESC', tra('If no work for selected applications is available, accept work from other applications?'));
+
+define('GPU_TARGET_FREQUENCY_DESC', tra('Frequency (in Hz) that should try to complete individual work chunks. Higher numbers may run slower but will provide a more responsive system. Lower may be faster but more laggy.'));
+define('GPU_NONRESPONSIVE_DESC', tra('WARNING: Be careful with this option. Ignore any responsiveness requirements for GPU workunits. This could result in an unusable system while it is running.'));
+define('GPU_PRIORITY_DESC', tra('Optionally change the process priority that a GPU application will use'));
+define('GPU_DISABLE_CHECKPOINTING_DESC', tra('Disable main checkpointing for GPU applications.'));
 
 // stuff related to app filtering.
 // Note: in this implementation, if a user selects all apps,
@@ -91,6 +100,23 @@ function project_specific_prefs_default() {
     if (GFX_CPU_PREFS) {
         $x .= "<max_gfx_cpu_pct>20</max_gfx_cpu_pct>\n";
     }
+
+    if (GPU_TARGET_FREQUENCY_PREFERENCE) {
+        $x .= "<gpu_target_frequency>30.0</gpu_target_frequency>\n";
+    }
+
+    if (GPU_NONRESPONSIVE_PREFERENCE) {
+        $x .= "<gpu_non_responsive>0</gpu_non_responsive>\n";
+    }
+
+    if (GPU_DISABLE_CHECKPOINTING_PREFERENCE) {
+        $x .= "<no_gpu_checkpoint>0</no_gpu_checkpoint>\n";
+    }
+
+    if (GPU_PRIORITY_PREFERENCE) {
+        $x .= "<gpu_process_priority>2</gpu_process_priority>\n";
+    }
+
     return $x;
 }
 
@@ -127,6 +153,12 @@ function project_specific_prefs_edit($prefs, $error=false) {
         $checked = $prefs->allow_non_preferred_apps?"checked":"";
         row2(ACCEPT_ANY_DESC, "<input type=checkbox name=allow_non_preferred_apps $checked>");
     }
+
+    if (GFX_TARGET_FREQUENCY_PREFERENCE) {
+        $y = "<input size=5 name=gpu_target_frequency value='$prefs->gpu_target_frequency'>";
+        row2(GPU_TARGET_FREQUENCY_DESC, $y, isset($error->gpu_target_frequency));
+    }
+
 }
 
 function project_specific_prefs_parse_form(&$error) {
@@ -164,6 +196,13 @@ function project_specific_prefs_parse_form(&$error) {
         }
     }
 
+    if (GPU_TARGET_FREQUENCY_PREFS) {
+        $gpu_target_frequency = sanitize_numeric($_GET["gpu_target_frequency"]);
+        if (!verify_numeric($gpu_target_frequency, 0, 100000000)) $error->gpu_target_frequency = true;
+        $x .= "<gpu_target_frequency>$gpu_target_frequency</gpu_target_frequency>\n";
+    }
+
+
     return $x;
 }
 
@@ -184,6 +223,22 @@ function project_specific_prefs_show($prefs, $columns=false) {
             row_defs(APP_SELECT_DESC, "app_id_text", "", "", $prefs);
             row_defs(ACCEPT_ANY_DESC, "allow_non_preferred_apps_text", "", "", $prefs);
         }
+
+        if (GPU_TARGET_FREQUENCY_PREFERENCE) {
+            row_defs(GPU_TARGET_FREQUENCY_DESC, "gpu_target_frequency", "", "", $prefs);
+        }
+
+        if (GPU_DISABLE_CHECKPOINTING_PREFERENCE) {
+
+        }
+
+        if (GPU_NONRESPONSIVE_PREFERENCE) {
+
+        }
+
+        if (GPU_PRIORITY_PREFERENCE) {
+
+        }
     } else {
         if (COLOR_PREFS) {
             row2(COLOR_DESC, $prefs->color_scheme);
@@ -194,6 +249,22 @@ function project_specific_prefs_show($prefs, $columns=false) {
         if (APP_SELECT_PREFS) {
             row2(APP_SELECT_DESC, selected_app_text($prefs));
             row2(ACCEPT_ANY_DESC, $prefs->allow_non_preferred_apps_text);
+        }
+
+        if (GPU_TARGET_FREQUENCY_PREFERENCE) {
+            row2(GPU_TARGET_FREQUENCY_DESC, $prefs->gpu_target_frequency);
+        }
+
+        if (GPU_DISABLE_CHECKPOINTING_PREFERENCE) {
+
+        }
+
+        if (GPU_NONRESPONSIVE_PREFERENCE) {
+
+        }
+
+        if (GPU_PRIORITY_PREFERENCE) {
+
         }
     }
 }
@@ -216,6 +287,25 @@ function project_specific_prefs_parse($prefs_xml) {
         $prefs->allow_non_preferred_apps = parse_element($prefs_xml, "<allow_non_preferred_apps>");
         $prefs->allow_non_preferred_apps_text = $prefs->allow_non_preferred_apps?"yes":"no";
     }
+
+    if (GPU_TARGET_FREQUENCY_PREFERENCE) {
+        $prefs->gpu_target_frequency = parse_element($prefs_xml, "<gpu_target_frequency>");
+    }
+
+    if (GPU_DISABLE_CHECKPOINTING_PREFERENCE) {
+        $prefs->disable_gpu_checkpointing = parse_element($prefs_xml, "<no_gpu_checkpoint>");
+        $prefs->disable_gpu_checkpointing_text = $prefs->disable_gpu_checkpointing?"yes":"no";
+    }
+
+    if (GPU_NONRESPONSIVE_PREFERENCE) {
+
+    }
+
+    if (GPU_PRIORITY_PREFERENCE) {
+
+    }
+
+
     return $prefs;
 }
 
