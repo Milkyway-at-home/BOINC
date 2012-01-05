@@ -53,7 +53,7 @@ define("MAX_GFX_CPU_PCT_DESC", tra("Maximum CPU % for graphics%10 ... 100%2", "<
 define('APP_SELECT_DESC', tra('Run only the selected applications'));
 define('ACCEPT_ANY_DESC', tra('If no work for selected applications is available, accept work from other applications?'));
 
-define('GPU_TARGET_FREQUENCY_DESC', tra('Frequency (in Hz) that should try to complete individual work chunks. Higher numbers may run slower but will provide a more responsive system. Lower may be faster but more laggy.'));
+define('GPU_TARGET_FREQUENCY_DESC', tra('Frequency (in Hz) that should try to complete individual work chunks. Higher numbers may run slower but will provide a more responsive system. Lower may be faster but more laggy. (default 30.0)'));
 define('GPU_NONRESPONSIVE_DESC', tra('WARNING: Be careful with this option. Ignore any responsiveness requirements for GPU workunits. This could result in an unusable system while it is running.'));
 define('GPU_PRIORITY_DESC', tra('Optionally change the process priority that a GPU application will use'));
 define('GPU_DISABLE_CHECKPOINTING_DESC', tra('Disable main checkpointing for GPU applications.'));
@@ -154,7 +154,7 @@ function project_specific_prefs_edit($prefs, $error=false) {
         row2(ACCEPT_ANY_DESC, "<input type=checkbox name=allow_non_preferred_apps $checked>");
     }
 
-    if (GFX_TARGET_FREQUENCY_PREFERENCE) {
+    if (GPU_TARGET_FREQUENCY_PREFERENCE) {
         $y = "<input size=5 name=gpu_target_frequency value='$prefs->gpu_target_frequency'>";
         row2(GPU_TARGET_FREQUENCY_DESC, $y, isset($error->gpu_target_frequency));
     }
@@ -201,7 +201,6 @@ function project_specific_prefs_parse_form(&$error) {
         if (!verify_numeric($gpu_target_frequency, 0, 100000000)) $error->gpu_target_frequency = true;
         $x .= "<gpu_target_frequency>$gpu_target_frequency</gpu_target_frequency>\n";
     }
-
 
     return $x;
 }
