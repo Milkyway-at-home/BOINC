@@ -623,11 +623,12 @@ static inline bool app_plan_opencl(
                 log_messages.printf(MSG_NORMAL,
                                     "[version] Host lacks OpenCL, trying fallback capability checks\n");
             }
-            base_cl = cuda_check(cp, hu,
-                                 130, 0,
-                                 0, CUDA_OPENCL_MIN_DRIVER_VERSION,
-                                 384*MEGA,
-                                 1, 0.05, 1);
+
+            return cuda_check(cp, hu,
+                              130, 0,
+                              0, CUDA_OPENCL_MIN_DRIVER_VERSION,
+                              384*MEGA,
+                              1, 0.05, 1);
         } else {
             const char* nbody = strstr(plan_class, "nbody");
             if (nbody) {
@@ -661,6 +662,8 @@ static inline bool app_plan_opencl(
             );
         return false;
     }
+
+    assert(0);
 }
 
 static inline bool app_plan_vbox(
