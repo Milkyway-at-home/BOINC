@@ -373,16 +373,6 @@ static bool cuda_check(const COPROC_NVIDIA& c, HOST_USAGE& hu,
     hu.projected_flops = hu.ncudas * (1.0 - cpu_frac) * c.peak_flops + cpu_frac * g_request->host.p_fpops;
     hu.peak_flops = hu.ncudas*c.peak_flops + hu.avg_ncpus*g_request->host.p_fpops;
 
-    coproc_perf(
-        g_request->host.p_fpops,
-        flops_scale * hu.ncudas*c.peak_flops,
-        cpu_frac,
-        hu.projected_flops,
-        hu.avg_ncpus
-    );
-    hu.peak_flops = hu.ncudas*c.peak_flops + hu.avg_ncpus*g_request->host.p_fpops;
-    hu.max_ncpus = hu.avg_ncpus;
-
     return true;
 }
 
@@ -816,13 +806,13 @@ bool JOB::get_score() {
             score += 1;
         }
     }
-            
+
     // if job needs to get done fast, send to fast/reliable host
     //
     if (bavp->reliable && (wu_result.need_reliable)) {
         score += 1;
     }
-    
+
     // if job already committed to an HR class,
     // try to send to host in that class
     //
