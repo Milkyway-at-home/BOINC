@@ -50,6 +50,7 @@
 // In either case, put your version under source-code control, e.g. SVN
 
 #include <string>
+#include <assert.h>
 
 using std::string;
 
