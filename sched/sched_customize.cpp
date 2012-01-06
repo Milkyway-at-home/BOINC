@@ -297,7 +297,35 @@ GPU_REQUIREMENTS cuda_requirements;
 #define CUDA3_MIN_DRIVER_VERSION        19500
 #define CUDA_OPENCL_MIN_DRIVER_VERSION  26019
 
-static bool cuda_check(COPROC_NVIDIA& c, HOST_USAGE& hu,
+
+
+static bool minComputeCapabilityCheck13(int major, int minor)
+{
+    return major > 1 || (major == 1 && minor >= 3);
+}
+
+static bool nv_compute_capability_check(const COPROC_NVIDIA& c)
+{
+    if (!minComputeCapabilityCheck13(c.prop.major, c.prop.minor)) {
+        if (config.debug_version_select) {
+            log_messages.printf(MSG_NORMAL,
+                                "[version] Compute capability %d.%d < 1.3\n",
+                                c.prop.major,
+                                c.prop.minor
+                );
+        }
+        add_no_work_message("Your NVIDIA GPU lacks the needed compute capability "
+                            "(1.3, required for double precision math"
+            );
+
+        return false;
+    }
+
+    return true;
+}
+
+
+static bool cuda_check(const COPROC_NVIDIA& c, HOST_USAGE& hu,
     int min_cc, int max_cc,
     int min_cuda_version, int min_driver_version,
     double min_ram,
@@ -305,9 +333,10 @@ static bool cuda_check(COPROC_NVIDIA& c, HOST_USAGE& hu,
     double cpu_frac,    // fraction of FLOPS performed by CPU
     double flops_scale
 ) {
-    int cc = c.prop.major*100 + c.prop.minor;
-    if (cc < min_cc) return false;
-    if (max_cc && cc >= max_cc) return false;
+
+    if (!nv_compute_capability_check(c)) {
+        return false;
+    }
 
     cuda_requirements.update(min_driver_version, min_ram);
 
@@ -333,18 +362,8 @@ static bool cuda_check(COPROC_NVIDIA& c, HOST_USAGE& hu,
         return false;
     }
 
-    /* Check for compute capability >= 1.3 */
-    int isCC_1_3 = c.prop.major > 1 || (c.prop.major == 1 && c.prop.minor >= 3);
-    if (!isCC_1_3) {
-      if (config.debug_version_select) {
-	log_messages.printf(MSG_NORMAL,
-			    "[version] Compute capability %d.%d < 1.3\n", c.prop.major, c.prop.minor
-			    );
-      }
-      add_no_work_message(
-			  "Your NVIDIA GPU lacks the needed compute capability (1.3, required for double precision math"
-			  );
-      return false;
+    if (!nv_compute_capability_check(c)) {
+        return false;
     }
 
     hu.gpu_ram = min_ram;
@@ -487,7 +506,7 @@ static inline bool app_plan_sse2(
     return true;
 }
 
-static inline bool opencl_check(
+static bool opencl_check(
     const COPROC& cp, HOST_USAGE& hu,
     int min_opencl_device_version,
     double min_global_mem_size,
@@ -496,7 +515,15 @@ static inline bool opencl_check(
     double flops_scale
 ) {
 
-    if (!cp.count || !cp.have_opencl) return false;
+    if (!cp.count || !cp.have_opencl)
+    {
+        if (config.debug_version_select) {
+            log_messages.printf(MSG_NORMAL,
+                                "[version] Host device lacks OpenCL\n");
+        }
+        add_no_work_message("Host device lacks OpenCL");
+        return false;
+    }
 
     if (cp.opencl_prop.opencl_device_version_int < min_opencl_device_version) {
         return false;
@@ -583,15 +610,28 @@ static inline bool app_plan_opencl(
     const SCHEDULER_REQUEST& sreq, const char* plan_class, HOST_USAGE& hu
 ) {
     if (strstr(plan_class, "nvidia") || strstr(plan_class, "cuda")) {
-        const COPROC& cp = sreq.coprocs.nvidia;
-        bool base_cl = opencl_check(
-            cp, hu,
-            101,
-            256 * MEGA,
-            1,
-            0.1,
-            0.2
-            );
+        const COPROC_NVIDIA& cp = sreq.coprocs.nvidia;
+        bool base_cl = false;
+
+        if (!cp.have_opencl) {
+            // older clients do not report any information about
+            // OpenCL We can fallback to older style checks We'll only
+            // do this for existing separation/nvidia stuff since we
+            // will still need to check for more features on AMD which
+            // I think we can't get here.
+            if (config.debug_version_select) {
+                log_messages.printf(MSG_NORMAL,
+                                    "[version] Host lacks OpenCL, trying fallback capability checks\n");
+            }
+
+        } else {
+            base_cl = cuda_check(cp, hu,
+                                 130, 0,
+                                 0, CUDA_OPENCL_MIN_DRIVER_VERSION,
+                                 384*MEGA,
+                                 1, 0.05, 1);
+        }
+
 
         const char* nbody = strstr(plan_class, "nbody");
         if (nbody) {
