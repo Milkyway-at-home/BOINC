@@ -623,22 +623,20 @@ static inline bool app_plan_opencl(
                 log_messages.printf(MSG_NORMAL,
                                     "[version] Host lacks OpenCL, trying fallback capability checks\n");
             }
-
-        } else {
             base_cl = cuda_check(cp, hu,
                                  130, 0,
                                  0, CUDA_OPENCL_MIN_DRIVER_VERSION,
                                  384*MEGA,
                                  1, 0.05, 1);
-        }
-
-
-        const char* nbody = strstr(plan_class, "nbody");
-        if (nbody) {
-            bool needsDouble = (strstr(nbody, "double") != NULL);
-            return base_cl && check_nbody_opencl_features(cp, needsDouble);
         } else {
-            return base_cl && check_separation_opencl_features(cp);
+            const char* nbody = strstr(plan_class, "nbody");
+            if (nbody) {
+                bool needsDouble = (strstr(nbody, "double") != NULL);
+                return base_cl && check_nbody_opencl_features(cp, needsDouble);
+            } else {
+                return base_cl && check_separation_opencl_features(cp);
+            }
+
         }
     } else if (strstr(plan_class, "amd")) {
         const COPROC& cp = sreq.coprocs.ati;
