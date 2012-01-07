@@ -42,10 +42,10 @@ body {
 	padding: 0 20px; /* remember that padding is the space inside the div box and margin is the space outside the div box */
 	background: #FFFFFF;
 }
-.oneColLiqCtrHdr #footer { 
+.oneColLiqCtrHdr #footer {
 	padding: 0 10px; /* this padding matches the left alignment of the elements in the divs that appear above it. */
 	background:#DDDDDD;
-} 
+
 .oneColLiqCtrHdr #footer p {
 	margin: 0; /* zeroing the margins of the first element in the footer will avoid the possibility of margin collapse - a space between divs */
 	padding: 10px 0; /* padding on this element will create space, just as the the margin would have, without the margin collapse issue */
@@ -134,7 +134,7 @@ div.content {
     <p><strong>Milkyway@home</strong> uses evolution-inspired search methods to find the optimal fit of models of the Milky Way galaxy to observed star data. By putting models of multiple stripes together we can create a highly accurate, three dimentional model of the Milky Way. For each search, the server tracks a population of individuals, each corresponding to a possible model of the Milky Way to a stripe of observed stars. The server then generates work-units which are combinations of different parent individuals in the population that result in the creation of child individuals. Then, the fitness of these children are calculated, returning the result. When a result is reported to the server that will improve the population, it is updated and that child individual becomes a parent. The following figures are updated every five minutes with the results. By running these evolutionary searches, we can find the best fit of our Milky Way models to the observed data. There is a thread in our forums discussing this in more detail <a href="http://milkyway.cs.rpi.edu/milkyway/forum_thread.php?id=643">here</a></p>
 <div align="center">
       <?php
-		$handle = opendir ('/export/www/boinc/milkyway/download/plots/');
+		$handle = opendir ('/boinc/milkyway/download/plots/');
 		while (false !== ($file = readdir($handle))) {
 			if($file != "." && $file != ".." && $file != "plots.php" && $file != basename(__FILE__)) {
 				echo '<img src="http://milkyway.cs.rpi.edu/milkyway/download/plots/'.$file.'"/>';
@@ -147,7 +147,7 @@ div.content {
   </h1>
   </div>
   <div id="footer">
-  <p align="center">Copyright © 2010 AstroInformatics Group 
+  <p align="center">Copyright © 2010 AstroInformatics Group
     <a href=http://boinc.berkeley.edu><img align=middle border=0 src=http://boinc.berkeley.edu/logo/pb_boinc.gif></a> </p>
   <!-- end #footer --></div>
 <!-- end #container --></div>
