@@ -171,21 +171,15 @@ static bool ati_check(COPROC_ATI& c, HOST_USAGE& hu,
 
     if (c.attribs.doublePrecision == CAL_FALSE) {
       if (config.debug_version_select) {
-	log_messages.printf(MSG_NORMAL,
-			    "[version] Host lacks double precision ATI GPU\n");
+          log_messages.printf(MSG_NORMAL,
+                              "[version] Host lacks double precision ATI GPU\n");
       }
       add_no_work_message("An ATI GPU supporting double precision math is required");
       return false;
     }
 
-    if (need_amd_libs) {
-        if (!c.amdrt_detected) {
-            return false;
-        }
-    } else {
-        if (!c.atirt_detected) {
-            return false;
-        }
+    if ((need_amd_libs && !c.amdrt_detected) || !c.atirt_detected) {
+        return false;
     }
 
     if (c.version_num < min_driver_version) {
@@ -206,13 +200,9 @@ static bool ati_check(COPROC_ATI& c, HOST_USAGE& hu,
 
     hu.gpu_ram = min_ram;
     hu.natis = ndevs;
-    coproc_perf(
-        g_request->host.p_fpops,
-        flops_scale * hu.natis*c.peak_flops,
-        cpu_frac,
-        hu.projected_flops,
-        hu.avg_ncpus
-    );
+    hu.avg_ncpus = hu.max_ncpus = cpu_frac;
+    hu.projected_flops = (1.0 - cpu_frac) * hu.natis * c.peak_flops + cpu_frac * g_request->host.p_fpops;
+
     hu.peak_flops = hu.natis*c.peak_flops + hu.avg_ncpus*g_request->host.p_fpops;
     hu.max_ncpus = hu.avg_ncpus;
 
@@ -228,50 +218,13 @@ static inline bool app_plan_ati(
         return false;
     }
 
-    if (!strcmp(plan_class, "ati")) {
-        if (!ati_check(c, hu,
-            ati_version_int(1, 0, 0),
-            true,
-            ATI_MIN_RAM,
-            1,
-            .01,
-            .20
-        )) {
-            return false;
-        }
-    }
-
-    if (!strcmp(plan_class, "ati13amd")) {
-        if (!ati_check(c, hu,
-            ati_version_int(1, 3, 0),
-            true,
-            ATI_MIN_RAM,
-            1, 0.05,
-            .21
-        )) {
-            return false;
-        }
-    }
-
-    if (!strcmp(plan_class, "ati13ati")) {
-        if (!ati_check(c, hu,
-            ati_version_int(1, 3, 186),
-            false,
-            ATI_MIN_RAM,
-            1, .01,
-            .22
-        )) {
-            return false;
-        }
-    }
-
     if (!strcmp(plan_class, "ati14")) {
         if (!ati_check(c, hu,
             ati_version_int(1, 4, 0),
             false,
             ATI_MIN_RAM,
-            1, .01,
-            .23
+            1, 0.05,
+            0.23
         )) {
             return false;
         }
