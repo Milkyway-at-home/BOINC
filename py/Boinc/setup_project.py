@@ -339,6 +339,18 @@ def install_boinc_files(dest_dir, install_web_files, install_server_files):
         os.system("rm -f "+dir('html/languages/translations/*'))
         install_glob(srcdir('html/languages/translations/*.po'), dir('html/languages/translations/'))
 
+        # copy sample web files to final names
+        install(srcdir('html/user/milkyway_index.php'),
+                self.dir('html/user/index.php'))
+        install(srcdir('html/project.milkyway/project.inc'),
+                self.dir('html/project/project.inc'))
+        install(srcdir('html/project.milkyway/project_specific_prefs.inc'),
+                self.dir('html/project/project_specific_prefs.inc'))
+        install(srcdir('html/project.milkyway/cache_parameters.inc'),
+                self.dir('html/project/cache_parameters.inc'))
+
+
+
     # copy Python stuff
     map(lambda (s): install(srcdir('sched',s), dir('bin',s)),
         [ 'start' ])
@@ -377,7 +389,7 @@ sys.path.insert(0, os.path.join('%s', 'py'))
           'sample_bitwise_validator', 'sample_trivial_validator',
           'file_deleter', 'sample_dummy_assimilator',
           'sample_assimilator', 'sample_work_generator',
-          'single_job_assimilator', 
+          'single_job_assimilator',
           'assimilator.py', 'pymw_assimilator.py',
           'update_stats', 'db_dump', 'db_purge', 'show_shmem', 'census',
           'delete_file', 'get_file', 'put_file' ])
@@ -386,7 +398,9 @@ sys.path.insert(0, os.path.join('%s', 'py'))
           'update_versions', 'parse_config', 'grep_logs', 'db_query',
           'watch_tcp', 'sign_executable', 'dir_hier_move',
           'manage_privileges', 'cancel_jobs',
-          'dir_hier_path', 'boinc_submit', 'demo_submit', 'demo_query' ])
+          'dir_hier_path', 'boinc_submit', 'demo_submit', 'demo_query',
+          'export_search_progress.sh', 'pso_plot.sh'
+          ])
     map(lambda (s): install(srcdir('lib',s), dir('bin',s)),
         [ 'crypt_prog' ])
     map(lambda (s): install(srcdir('sched',s), dir('',s)),
@@ -499,16 +513,6 @@ class Project:
         self.create_logdir()
 
         install_boinc_files(self.dir(), True, not self.web_only)
-
-        # copy sample web files to final names
-        install(srcdir('html/user/milkyway_index.php'),
-            self.dir('html/user/index.php'))
-        install(srcdir('html/project.milkyway/project.inc'),
-            self.dir('html/project/project.inc'))
-        install(srcdir('html/project.milkyway/project_specific_prefs.inc'),
-            self.dir('html/project/project_specific_prefs.inc'))
-        install(srcdir('html/project.milkyway/cache_parameters.inc'),
-            self.dir('html/project/cache_parameters.inc'))
         install(srcdir('tools/project.xml'), self.dir('project.xml'))
         if not self.production:
             install(srcdir('test/uc_result'), self.dir('templates/uc_result'))
