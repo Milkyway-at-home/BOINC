@@ -27,6 +27,7 @@ define("UOTD_ADMIN_EMAIL", "arsenm2@rpi.edu");
 define("USE_PHPMAILER", true);
 define("PHPMAILER_HOST", "cs.rpi.edu");
 define("PHPMAILER_MAILER", "smtp");
+define("EMAIL_FROM", "boinc@cs.rpi.edu");
 define("EMAIL_FROM_NAME", "Milkyway@Home");
 
     // who gets user of the day pool running low e-mails?
