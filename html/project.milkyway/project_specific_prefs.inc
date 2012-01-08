@@ -15,10 +15,10 @@
 define ('COLOR_PREFS', false);
 define ('GFX_CPU_PREFS', true);
 define ('APP_SELECT_PREFS', true);
-define ('GPU_TARGET_FREQUENCY_PREFERENCE', true);
-define ('GPU_NONRESPONSIVE_PREFERENCE', false);
-define ('GPU_PRIORITY_PREFERENCE', false);
-define ('GPU_DISABLE_CHECKPOINTING_PREFERENCE', false);
+define ('GPU_TARGET_FREQUENCY_PREF', true);
+define ('GPU_NONRESPONSIVE_PREF', false);
+define ('GPU_PRIORITY_PREF', false);
+define ('GPU_DISABLE_CHECKPOINTING_PREF', false);
 $project_has_beta = false;
 
 // Project-specific prefs are represented in three ways:
@@ -101,19 +101,19 @@ function project_specific_prefs_default() {
         $x .= "<max_gfx_cpu_pct>20</max_gfx_cpu_pct>\n";
     }
 
-    if (GPU_TARGET_FREQUENCY_PREFERENCE) {
+    if (GPU_TARGET_FREQUENCY_PREF) {
         $x .= "<gpu_target_frequency>30.0</gpu_target_frequency>\n";
     }
 
-    if (GPU_NONRESPONSIVE_PREFERENCE) {
+    if (GPU_NONRESPONSIVE_PREF) {
         $x .= "<gpu_non_responsive>0</gpu_non_responsive>\n";
     }
 
-    if (GPU_DISABLE_CHECKPOINTING_PREFERENCE) {
+    if (GPU_DISABLE_CHECKPOINTING_PREF) {
         $x .= "<no_gpu_checkpoint>0</no_gpu_checkpoint>\n";
     }
 
-    if (GPU_PRIORITY_PREFERENCE) {
+    if (GPU_PRIORITY_PREF) {
         $x .= "<gpu_process_priority>2</gpu_process_priority>\n";
     }
 
@@ -154,7 +154,7 @@ function project_specific_prefs_edit($prefs, $error=false) {
         row2(ACCEPT_ANY_DESC, "<input type=checkbox name=allow_non_preferred_apps $checked>");
     }
 
-    if (GPU_TARGET_FREQUENCY_PREFERENCE) {
+    if (GPU_TARGET_FREQUENCY_PREF) {
         $y = "<input size=5 name=gpu_target_frequency value='$prefs->gpu_target_frequency'>";
         row2(GPU_TARGET_FREQUENCY_DESC, $y, isset($error->gpu_target_frequency));
     }
@@ -196,7 +196,7 @@ function project_specific_prefs_parse_form(&$error) {
         }
     }
 
-    if (GPU_TARGET_FREQUENCY_PREFS) {
+    if (GPU_TARGET_FREQUENCY_PREF) {
         $gpu_target_frequency = sanitize_numeric($_GET["gpu_target_frequency"]);
         if (!verify_numeric($gpu_target_frequency, 0, 100000000)) $error->gpu_target_frequency = true;
         $x .= "<gpu_target_frequency>$gpu_target_frequency</gpu_target_frequency>\n";
@@ -223,19 +223,19 @@ function project_specific_prefs_show($prefs, $columns=false) {
             row_defs(ACCEPT_ANY_DESC, "allow_non_preferred_apps_text", "", "", $prefs);
         }
 
-        if (GPU_TARGET_FREQUENCY_PREFERENCE) {
+        if (GPU_TARGET_FREQUENCY_PREF) {
             row_defs(GPU_TARGET_FREQUENCY_DESC, "gpu_target_frequency", "", "", $prefs);
         }
 
-        if (GPU_DISABLE_CHECKPOINTING_PREFERENCE) {
+        if (GPU_DISABLE_CHECKPOINTING_PREF) {
 
         }
 
-        if (GPU_NONRESPONSIVE_PREFERENCE) {
+        if (GPU_NONRESPONSIVE_PREF) {
 
         }
 
-        if (GPU_PRIORITY_PREFERENCE) {
+        if (GPU_PRIORITY_PREF) {
 
         }
     } else {
@@ -250,19 +250,19 @@ function project_specific_prefs_show($prefs, $columns=false) {
             row2(ACCEPT_ANY_DESC, $prefs->allow_non_preferred_apps_text);
         }
 
-        if (GPU_TARGET_FREQUENCY_PREFERENCE) {
+        if (GPU_TARGET_FREQUENCY_PREF) {
             row2(GPU_TARGET_FREQUENCY_DESC, $prefs->gpu_target_frequency);
         }
 
-        if (GPU_DISABLE_CHECKPOINTING_PREFERENCE) {
+        if (GPU_DISABLE_CHECKPOINTING_PREF) {
 
         }
 
-        if (GPU_NONRESPONSIVE_PREFERENCE) {
+        if (GPU_NONRESPONSIVE_PREF) {
 
         }
 
-        if (GPU_PRIORITY_PREFERENCE) {
+        if (GPU_PRIORITY_PREF) {
 
         }
     }
@@ -287,20 +287,20 @@ function project_specific_prefs_parse($prefs_xml) {
         $prefs->allow_non_preferred_apps_text = $prefs->allow_non_preferred_apps?"yes":"no";
     }
 
-    if (GPU_TARGET_FREQUENCY_PREFERENCE) {
+    if (GPU_TARGET_FREQUENCY_PREF) {
         $prefs->gpu_target_frequency = parse_element($prefs_xml, "<gpu_target_frequency>");
     }
 
-    if (GPU_DISABLE_CHECKPOINTING_PREFERENCE) {
+    if (GPU_DISABLE_CHECKPOINTING_PREF) {
         $prefs->disable_gpu_checkpointing = parse_element($prefs_xml, "<no_gpu_checkpoint>");
         $prefs->disable_gpu_checkpointing_text = $prefs->disable_gpu_checkpointing?"yes":"no";
     }
 
-    if (GPU_NONRESPONSIVE_PREFERENCE) {
+    if (GPU_NONRESPONSIVE_PREF) {
 
     }
 
-    if (GPU_PRIORITY_PREFERENCE) {
+    if (GPU_PRIORITY_PREF) {
 
     }
 
