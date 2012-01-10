@@ -41,10 +41,10 @@ body {
 	padding-bottom: 0;
 	padding-left: 20px;
 }
-.oneColLiqCtrHdr #footer { 
+.oneColLiqCtrHdr #footer {
 	padding: 0 10px; /* this padding matches the left alignment of the elements in the divs that appear above it. */
 	background:#DDDDDD;
-} 
+}
 .oneColLiqCtrHdr #footer p {
 	margin: 0; /* zeroing the margins of the first element in the footer will avoid the possibility of margin collapse - a space between divs */
 	padding: 10px 0; /* padding on this element will create space, just as the the margin would have, without the margin collapse issue */
@@ -112,7 +112,7 @@ div.content {
 
 <div id="container">
   <div id="header">
-    <h1 align="center"><img src="mw.png" alt="milkyway@home" width="597" height="151" align="top" longdesc="file:///C|/Users/Brian/Desktop/milkyway@home/dl/mw.png" /></h1>
+    <h1 align="center"><img src="img/mw.png" alt="milkyway@home" width="597" height="151" align="top" longdesc="file:///C|/Users/Brian/Desktop/milkyway@home/dl/mw.png" /></h1>
     <div id="navBox">
         <center>
         <ol id="toc">
@@ -177,7 +177,7 @@ From Analyzing the Tuberculosis Genome to Modeling the Milky Way Galaxy: Using V
 </p>
   </div>
   <div id="footer">
-  <p align="center">Copyright © 2010 AstroInformatics Group 
+  <p align="center">Copyright &copy 2010 AstroInformatics Group
     <a href=http://boinc.berkeley.edu><img align=middle border=0 src=http://boinc.berkeley.edu/logo/pb_boinc.gif></a> </p>
   <!-- end #footer --></div>
 <!-- end #container --></div>

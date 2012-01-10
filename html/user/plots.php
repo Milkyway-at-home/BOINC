@@ -109,7 +109,7 @@ div.content {
 
 <div id="container">
   <div id="header">
-    <h1 align="center"><img src="mw.png" alt="milkyway@home" width="597" height="151" align="top" longdesc="file:///C|/Users/Brian/Desktop/milkyway@home/dl/mw.png" /></h1>
+    <h1 align="center"><img src="img/mw.png" alt="milkyway@home" width="597" height="151" align="top" longdesc="file:///C|/Users/Brian/Desktop/milkyway@home/dl/mw.png" /></h1>
     <div id="navBox">
         <center>
         <ol id="toc">
@@ -147,7 +147,7 @@ div.content {
   </h1>
   </div>
   <div id="footer">
-  <p align="center">Copyright © 2010 AstroInformatics Group
+  <p align="center">Copyright &copy 2010 AstroInformatics Group
     <a href=http://boinc.berkeley.edu><img align=middle border=0 src=http://boinc.berkeley.edu/logo/pb_boinc.gif></a> </p>
   <!-- end #footer --></div>
 <!-- end #container --></div>
