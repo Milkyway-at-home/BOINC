@@ -125,6 +125,7 @@
 #define ID_TASK_WORK_SHOWGRAPHICS               9202
 #define ID_TASK_WORK_ABORT                      9203
 #define ID_TASK_SHOW_PROPERTIES                 9204
+#define ID_TASK_WORK_VMCONSOLE                  9205
 #define ID_TASK_TRANSFERS_RETRYNOW              9300
 #define ID_TASK_TRANSFERS_ABORT                 9301
 #define ID_TASK_MESSAGES_COPYALL                9400
@@ -151,18 +152,17 @@
 #define ID_SIMPLEMESSAGECHECKTIMER              6401
 #define ID_SIMPLE_HELP                          6402
 #define ID_SIMPLE_MESSAGESVIEW                  6403
-#define ID_SIMPLE_PROGRESSPULSETIMER            6404
-#define ID_SGTASKSELECTOR                       6405
-#define ID_TASKSCOMMANDBUTTON                   6406
-#define ID_ADDROJECTBUTTON                      6407
-#define ID_SGPROJECTSELECTOR                    6408
-#define ID_PROJECTWEBSITESBUTTON                6409
-#define ID_PROJECTCOMMANDBUTTON                 6410
-#define ID_SGNOTICESBUTTON                      6411
-#define ID_SGSUSPENDRESUMEBUTTON                6412
-#define ID_SGOPTIONS                            6413
-#define ID_SGSKINSELECTOR                       6414
-#define ID_SGPROJECTDESCRIPTION                 6415
+#define ID_SGTASKSELECTOR                       6404
+#define ID_TASKSCOMMANDBUTTON                   6405
+#define ID_ADDROJECTBUTTON                      6406
+#define ID_SGPROJECTSELECTOR                    6407
+#define ID_PROJECTWEBSITESBUTTON                6408
+#define ID_PROJECTCOMMANDBUTTON                 6409
+#define ID_SGNOTICESBUTTON                      6410
+#define ID_SGSUSPENDRESUMEBUTTON                6411
+#define ID_SGOPTIONS                            6412
+#define ID_SGSKINSELECTOR                       6413
+#define ID_SGPROJECTDESCRIPTION                 6414
 #define ID_SGDEFAULTSKINSELECTOR                6500
 #define ID_SGFIRSTSKINSELECTOR                  6501
 // 6501-6599 Reserved for Skin Selection

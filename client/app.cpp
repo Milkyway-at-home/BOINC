@@ -120,6 +120,8 @@ ACTIVE_TASK::ACTIVE_TASK() {
     premature_exit_count = 0;
     overdue_checkpoint = false;
     last_deadline_miss_time = 0;
+    strcpy(web_graphics_url, "");
+    strcpy(remote_desktop_addr, "");
 }
 
 // preempt this task;
@@ -584,6 +586,18 @@ int ACTIVE_TASK::write_gui(MIOFILE& fout) {
             "   <slot_path>%s</slot_path>\n",
             app_version->graphics_exec_path,
             slot_path
+        );
+    }
+    if (strlen(web_graphics_url)) {
+        fout.printf(
+            "   <web_graphics_url>%s</web_graphics_url>\n",
+            web_graphics_url
+        );
+    }
+    if (strlen(remote_desktop_addr)) {
+        fout.printf(
+            "   <remote_desktop_addr>%s</remote_desktop_addr>\n",
+            remote_desktop_addr
         );
     }
     fout.printf("</active_task>\n");

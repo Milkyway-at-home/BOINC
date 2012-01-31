@@ -43,12 +43,14 @@ using std::vector;
 PERS_FILE_XFER::PERS_FILE_XFER() {
     nretry = 0;
     first_request_time = gstate.now;
+    is_upload = false;
     next_request_time = first_request_time;
     time_so_far = 0;
+    last_time = 0;
     last_bytes_xferred = 0;
     pers_xfer_done = false;
-    fip = NULL;
     fxp = NULL;
+    fip = NULL;
 }
 
 PERS_FILE_XFER::~PERS_FILE_XFER() {
@@ -139,7 +141,11 @@ int PERS_FILE_XFER::create_xfer() {
         }
 
         fxp->file_xfer_retval = retval;
-        transient_failure(retval);
+        if (retval == ERR_FILE_NOT_FOUND) {
+            permanent_failure(retval);
+        } else {
+            transient_failure(retval);
+        }
         delete fxp;
         fxp = NULL;
         return retval;

@@ -790,6 +790,19 @@ int ACTIVE_TASK::read_stderr_file() {
     if (read_file_malloc(path, buf1, max_len, !config.stderr_head)) {
         return ERR_MALLOC;
     }
+
+    // if it's a vbox app, check for string in stderr saying
+    // the job failed because CPU VM extensions disabled
+    //
+    if (strstr(app_version->plan_class, "vbox")) {
+        if (strstr(buf1, "ERR_CPU_VM_EXTENSIONS_DISABLED")) {
+            msg_printf(0, MSG_INFO,
+                "Vbox app stderr indicates CPU VM extensions disabled"
+            );
+            gstate.host_info.p_vm_extensions_disabled = true;
+        }
+    }
+
     buf2 = (char*)malloc(2*max_len);
     if (!buf2) {
         free(buf1);
@@ -1187,6 +1200,22 @@ bool ACTIVE_TASK::get_app_status_msg() {
     return true;
 }
 
+void ACTIVE_TASK::get_graphics_msg() {
+    char msg_buf[MSG_CHANNEL_SIZE];
+
+    if (!app_client_shm.shm) return;
+    if (app_client_shm.shm->graphics_reply.get_msg(msg_buf)) {
+        if (log_flags.app_msg_receive) {
+            msg_printf(this->wup->project, MSG_INFO,
+                "[app_msg_receive] got msg from slot %d: %s", slot, msg_buf
+            );
+        }
+
+        parse_str(msg_buf, "<web_graphics_url>", web_graphics_url, sizeof(web_graphics_url));
+        parse_str(msg_buf, "<remote_desktop_addr>", remote_desktop_addr, sizeof(remote_desktop_addr));
+    }
+}
+
 bool ACTIVE_TASK::get_trickle_up_msg() {
     char msg_buf[MSG_CHANNEL_SIZE];
     bool found = false;
@@ -1277,6 +1306,7 @@ void ACTIVE_TASK_SET::get_msgs() {
             }
         }
         atp->get_trickle_up_msg();
+        atp->get_graphics_msg();
     }
 }
 

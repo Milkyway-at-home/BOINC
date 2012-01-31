@@ -251,10 +251,14 @@ void ACTIVE_TASK::init_app_init_data(APP_INIT_DATA& aid) {
             k = 0;
         }
         aid.gpu_device_num = cp.device_nums[k];
+        aid.gpu_opencl_dev_index = cp.opencl_device_indexes[k];
     } else {
         strcpy(aid.gpu_type, "");
         aid.gpu_device_num = -1;
+        aid.gpu_opencl_dev_index = -1;
+
     }
+    aid.ncpus = app_version->avg_ncpus;
     aid.checkpoint_period = gstate.global_prefs.disk_interval;
     aid.fraction_done_start = 0;
     aid.fraction_done_end = 1;
@@ -499,6 +503,9 @@ int ACTIVE_TASK::start(bool first_time) {
 
     graphics_request_queue.init(result->name);        // reset message queues
     process_control_queue.init(result->name);
+
+    bytes_sent = 0;
+    bytes_received = 0;
 
     if (!app_client_shm.shm) {
         retval = get_shmem_seg_name();

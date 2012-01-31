@@ -18,12 +18,15 @@ EXPORTS
 	ShutdownBOINCScreensaver
 	ShutdownUD
 	GrantBOINCAdminsRights
+	GrantBOINCAdminsVirtualBoxRights
 	GrantBOINCUsersRights
 	GrantBOINCProjectsRights
+	GrantBOINCProjectsVirtualBoxRights
 	HideBOINCMasterProfile
 	HideBOINCProjectProfile
 	SetPermissionBOINC
 	SetPermissionBOINCData
 	SetPermissionBOINCDataProjects
 	SetPermissionBOINCDataSlots
-	
+	LaunchBOINCManager
+	LaunchBOINCTray

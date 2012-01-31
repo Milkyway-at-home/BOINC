@@ -268,11 +268,11 @@ static inline bool string_equal_nodigits(string& s1, string& s2) {
     const char *p = s1.c_str();
     const char *q = s2.c_str();
     while (1) {
-        if (isdigit(*p)) {
+        if (isascii(*p) && isdigit(*p)) {
             p++;
             continue;
         }
-        if (isdigit(*q)) {
+        if (isascii(*q) && isdigit(*q)) {
             q++;
             continue;
         }
@@ -746,6 +746,12 @@ void RSS_FEED_OP::handle_reply(int http_op_retval) {
 
     rfp->feed_file_name(filename);
     FILE* f = fopen(filename, "r");
+    if (!f) {
+        msg_printf(0, MSG_INTERNAL_ERROR,
+            "RSS feed file '%s' not found", filename
+        );
+        return;
+    }
     MIOFILE fin;
     fin.init_file(f);
     XML_PARSER xp(&fin);

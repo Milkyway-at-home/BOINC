@@ -104,6 +104,7 @@ struct FILE_INFO {
     char md5_cksum[33];
     double max_nbytes;
     double nbytes;
+    double gzipped_nbytes;  // defined if download_gzipped is true
     double upload_offset;
     int status;             // see above
     bool executable;        // change file protections to make executable
@@ -124,6 +125,8 @@ struct FILE_INFO {
     int ref_cnt;
     URL_LIST download_urls;
     URL_LIST upload_urls;
+    bool download_gzipped;
+        // if set, download NAME.gz and gunzip it to NAME
     char xml_signature[MAX_SIGNATURE_LEN];
         // the upload signature
     char file_signature[MAX_SIGNATURE_LEN];
@@ -149,6 +152,9 @@ struct FILE_INFO {
     bool verify_file_certs();
     int gzip();
         // gzip file and add .gz to name
+    int gunzip(char*);
+        // unzip file and remove .gz from filename.
+        // optionally compute MD5 also
     inline bool uploadable() {
         return !upload_urls.empty();
     }
@@ -335,7 +341,7 @@ struct PROJECT : PROJ_AM {
     int sched_rpc_pending;
         // we need to do a scheduler RPC, for various possible reasons:
         // user request, propagate host CPID, time-based, etc.
-		// Reasons are enumerated in scheduler_op.h
+		// Reasons are enumerated in lib/common_defs.h
 	bool possibly_backed_off;
         // we need to call request_work_fetch() when a project
         // transitions from being backed off to not.
@@ -359,6 +365,10 @@ struct PROJECT : PROJ_AM {
         // to make sure they haven't been tampered with.
         // This provides only the illusion of security.
     bool use_symlinks;
+    double disk_usage;
+        // computed by get_disk_usages()
+    double disk_share;
+        // computed by get_disk_shares();
 
     // items send in scheduler replies, requesting that
     // various things be sent in the next request
@@ -580,6 +590,7 @@ struct APP_VERSION {
     char file_prefix[256];
         // prepend this to input/output file logical names
         // (e.g. "share" for VM apps)
+    bool needs_network;
 
     APP* app;
     PROJECT* project;
@@ -805,10 +816,13 @@ struct RESULT {
 struct RUN_MODE {
     int perm_mode;
     int temp_mode;
+    int prev_mode;
     double temp_timeout;
     RUN_MODE();
     void set(int mode, double duration);
+    void set_prev(int mode);
     int get_perm();
+    int get_prev();
     int get_current();
 	double delay();
 };

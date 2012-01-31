@@ -184,7 +184,7 @@ int SCHED_SHMEM::scan_tables() {
     }
 
     n = 0;
-    while (!assignment.enumerate()) {
+    while (!assignment.enumerate("multi <> 0")) {
         assignments[n++] = assignment;
         if (n == MAX_ASSIGNMENTS) {
             overflow("assignments", "MAX_ASSIGNMENTS");
@@ -230,6 +230,19 @@ APP_VERSION* SCHED_SHMEM::lookup_app_version(int id) {
     for (int i=0; i<napp_versions; i++) {
         avp = &app_versions[i];
         if (avp->id == id) {
+            return avp;
+        }
+    }
+    return NULL;
+}
+
+APP_VERSION* SCHED_SHMEM::lookup_app_version_platform_plan_class(
+    int platformid, char* plan_class
+) {
+    APP_VERSION* avp;
+    for (int i=0; i<napp_versions; i++) {
+        avp = &app_versions[i];
+        if (avp->platformid == platformid && !strcmp(avp->plan_class, plan_class)) {
             return avp;
         }
     }
@@ -285,6 +298,14 @@ void SCHED_SHMEM::show(FILE* f) {
         "rs: result ID\n"
         "hr: HR class\n"
         "nr: need reliable\n"
+    );
+    fprintf(f,
+        "host fpops mean %f stddev %f\n",
+        perf_info.host_fpops_mean, perf_info.host_fpops_stddev
+    );
+    fprintf(f,
+        "host fpops 50th pctile %f 95th pctile %f\n",
+        perf_info.host_fpops_50_percentile, perf_info.host_fpops_95_percentile
     );
     fprintf(f, "ready: %d\n", ready);
     fprintf(f, "max_wu_results: %d\n", max_wu_results);

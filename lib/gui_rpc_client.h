@@ -209,7 +209,7 @@ public:
     ~APP_VERSION();
 
     int parse(XML_PARSER&);
-    int parse_coproc(MIOFILE&);
+    int parse_coproc(XML_PARSER&);
     void print();
     void clear();
 };
@@ -256,6 +256,7 @@ public:
     bool project_suspended_via_gui;
     bool coproc_missing;
     bool scheduler_wait;
+    bool network_wait;
 
     // the following defined if active
     bool active_task;
@@ -271,12 +272,12 @@ public:
     double working_set_size_smoothed;
     double estimated_cpu_time_remaining;
         // actually, estimated elapsed time remaining
-    bool supports_graphics;
-    int graphics_mode_acked;
     bool too_large;
     bool needs_shmem;
     bool edf_scheduled;
     char graphics_exec_path[512];
+    char web_graphics_url[256];
+    char remote_desktop_addr[256];
     char slot_path[512];
         // only present if graphics_exec_path is
     char resources[256];
@@ -299,7 +300,7 @@ public:
     std::string name;
     std::string project_url;
     std::string project_name;
-    double nbytes;
+    double nbytes;              // total # of bytes to be transferred
     bool uploaded;
     bool is_upload;
     bool generated_locally;     // deprecated; for compatibility w/ old clients
@@ -307,8 +308,8 @@ public:
     bool pers_xfer_active;
     bool xfer_active;
     int num_retries;
-    int first_request_time;
-    int next_request_time;
+    double first_request_time;
+    double next_request_time;
     int status;
     double time_so_far;
     double bytes_xferred;
@@ -385,13 +386,13 @@ public:
     CC_STATE();
     ~CC_STATE();
 
-    PROJECT* lookup_project(char* url);
-    APP* lookup_app(PROJECT*, char* name);
+    PROJECT* lookup_project(const char* url);
+    APP* lookup_app(PROJECT*, const char* name);
     APP_VERSION* lookup_app_version(PROJECT*, APP*, int, char* plan_class);
     APP_VERSION* lookup_app_version_old(PROJECT*, APP*, int);
-    WORKUNIT* lookup_wu(PROJECT*, char* name);
-    RESULT* lookup_result(PROJECT*, char* name);
-    RESULT* lookup_result(char* url, char* name);
+    WORKUNIT* lookup_wu(PROJECT*, const char* name);
+    RESULT* lookup_result(PROJECT*, const char* name);
+    RESULT* lookup_result(const char* url, const char* name);
 
     void print();
     void clear();

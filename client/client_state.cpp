@@ -408,7 +408,7 @@ int CLIENT_STATE::init() {
 	for (int j=1; j<coprocs.n_rsc; j++) {
 		COPROC& cp = coprocs.coprocs[j];
 		if (cp.have_opencl) {
-			msg_printf(NULL, MSG_INFO, "%s GPU is OpenCL-capable", cp.type);
+			msg_printf(NULL, MSG_INFO, "%s GPU %d is OpenCL-capable", cp.type, cp.device_num);
 		}
 	}
 
@@ -811,6 +811,8 @@ bool CLIENT_STATE::poll_slow_events() {
                     "Suspending network activity - %s",
                     suspend_reason_string(network_suspend_reason)
                 );
+                request_schedule_cpus("network suspended");
+                    // in case any "needs_network" jobs are running
             } else {
                 sprintf(buf,
                     "Suspending file transfers - %s",

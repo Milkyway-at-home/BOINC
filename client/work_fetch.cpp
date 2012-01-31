@@ -391,7 +391,7 @@ void RSC_WORK_FETCH::set_request(PROJECT* p) {
 
     if (log_flags.work_fetch_debug) {
         msg_printf(0, MSG_INFO,
-            "[wfd] ninst %d nused_total %f nidle_now %f fetch share %f req_inst %f",
+            "[work_fetch] set_request(): ninst %d nused_total %f nidle_now %f fetch share %f req_inst %f",
             ninstances, w.nused_total, nidle_now, w.fetchable_share, req_instances
         );
     }
@@ -555,7 +555,10 @@ void WORK_FETCH::compute_work_request(PROJECT* p) {
         return;
     }
 
-    work_fetch.set_all_requests_hyst(p, -1);
+    PROJECT* bestp = choose_project();
+    if (p != bestp) {
+        clear_request();
+    }
 }
 
 // see if there's a fetchable non-CPU-intensive project without work
@@ -593,24 +596,17 @@ PROJECT* WORK_FETCH::choose_project() {
     compute_shares();
     project_priority_init(true);
 
-    // adjust project priorities according to how much work they currently have queued
+    // Decrement the priority of projects that have a lot of work queued.
+    // Specifically, subtract
+    // (FLOPs queued for P)/(FLOPs of max queue)
+    // which will generally be between 0 and 1.
+    // This is a little arbitrary but I can't think of anything better.
     //
-    double total_flops_remaining = 0;
+    double max_queued_flops = gstate.work_buf_total()*total_peak_flops();
     for (unsigned int i=0; i<gstate.results.size(); i++) {
         RESULT* rp = gstate.results[i];
-        total_flops_remaining += rp->estimated_flops_remaining();
-    }
-#define CURRENT_QUEUE_WEIGHT 1.
-    if (total_flops_remaining) {
-        for (unsigned int i=0; i<gstate.projects.size(); i++) {
-            p = gstate.projects[i];
-            p->sched_priority += CURRENT_QUEUE_WEIGHT * p->resource_share_frac;
-        }
-        for (unsigned int i=0; i<gstate.results.size(); i++) {
-            RESULT* rp = gstate.results[i];
-            p = rp->project;
-            p->sched_priority -= CURRENT_QUEUE_WEIGHT * rp->estimated_flops_remaining()/total_flops_remaining;
-        }
+        p = rp->project;
+        p->sched_priority -= rp->estimated_flops_remaining()/max_queued_flops;
     }
 
     p = 0;
@@ -963,6 +959,7 @@ bool RESULT::runnable() {
     if (state() != RESULT_FILES_DOWNLOADED) return false;
     if (coproc_missing) return false;
     if (schedule_backoff > gstate.now) return false;
+    if (avp->needs_network && gstate.network_suspended) return false;
     return true;
 }
 

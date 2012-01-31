@@ -84,15 +84,15 @@ struct HOST_USAGE {
         peak_flops = 0;
         strcpy(cmdline, "");
     }
-    void sequential_app(double x) {
+    void sequential_app(double flops) {
         ncudas = 0;
         natis = 0;
         gpu_ram = 0;
         avg_ncpus = 1;
         max_ncpus = 1;
-        if (x <= 0) x = 1e9;
-        projected_flops = x;
-        peak_flops = x;
+        if (flops <= 0) flops = 1e9;
+        projected_flops = flops;
+        peak_flops = flops;
         strcpy(cmdline, "");
     }
     inline bool is_sequential_app() {
@@ -511,6 +511,9 @@ struct SCHEDULER_REPLY {
     char code_sign_key_signature[4096];
     bool send_msg_ack;
     bool project_is_down;
+    std::vector<APP_VERSION>old_app_versions;
+        // superceded app versions that we consider using because of
+        // homogeneous app version.
 
     SCHEDULER_REPLY();
     ~SCHEDULER_REPLY();
@@ -527,6 +530,7 @@ struct SCHEDULER_REPLY {
 extern SCHEDULER_REQUEST* g_request;
 extern SCHEDULER_REPLY* g_reply;
 extern WORK_REQ* g_wreq;
+extern double capped_host_fpops();
 
 static inline void add_no_work_message(const char* m) {
     g_wreq->add_no_work_message(m);

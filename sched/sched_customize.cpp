@@ -120,20 +120,19 @@ static inline void coproc_perf(
 
 // the following is for an app that can use anywhere from 1 to 64 threads
 //
-static inline bool app_plan_mt(
-    SCHEDULER_REQUEST& sreq, HOST_USAGE& hu
-) {
+static inline bool app_plan_mt(SCHEDULER_REQUEST&, HOST_USAGE& hu) {
     double ncpus = g_wreq->effective_ncpus;
         // number of usable CPUs, taking user prefs into account
+    if (ncpus < 2) return false;
     int nthreads = (int)ncpus;
     if (nthreads > 64) nthreads = 64;
     hu.avg_ncpus = nthreads;
     hu.max_ncpus = nthreads;
     sprintf(hu.cmdline, "--nthreads %d", nthreads);
-    hu.projected_flops = sreq.host.p_fpops*hu.avg_ncpus*.99;
+    hu.projected_flops = capped_host_fpops()*hu.avg_ncpus*.99;
         // the .99 ensures that on uniprocessors a sequential app
         // will be used in preferences to this
-    hu.peak_flops = sreq.host.p_fpops*hu.avg_ncpus;
+    hu.peak_flops = capped_host_fpops()*hu.avg_ncpus;
     if (config.debug_version_select) {
         log_messages.printf(MSG_NORMAL,
             "[version] Multi-thread app projected %.2fGS\n",
@@ -175,13 +174,13 @@ static bool ati_check(COPROC_ATI& c, HOST_USAGE& hu,
     hu.natis = ndevs;
 
     coproc_perf(
-        g_request->host.p_fpops,
+        capped_host_fpops(),
         flops_scale * hu.natis*c.peak_flops,
         cpu_frac,
         hu.projected_flops,
         hu.avg_ncpus
     );
-    hu.peak_flops = hu.natis*c.peak_flops + hu.avg_ncpus*g_request->host.p_fpops;
+    hu.peak_flops = hu.natis*c.peak_flops + hu.avg_ncpus*capped_host_fpops();
     hu.max_ncpus = hu.avg_ncpus;
     return true;
 }
@@ -197,7 +196,7 @@ static inline bool app_plan_ati(
 
     if (!strcmp(plan_class, "ati")) {
         if (!ati_check(c, hu,
-            1000000,
+            ati_version_int(1, 0, 0),
             true,
             ATI_MIN_RAM,
             1,
@@ -210,7 +209,7 @@ static inline bool app_plan_ati(
 
     if (!strcmp(plan_class, "ati13amd")) {
         if (!ati_check(c, hu,
-            1003000,
+            ati_version_int(1, 3, 0),
             true,
             ATI_MIN_RAM,
             1, .01,
@@ -222,7 +221,7 @@ static inline bool app_plan_ati(
 
     if (!strcmp(plan_class, "ati13ati")) {
         if (!ati_check(c, hu,
-            1003186,
+            ati_version_int(1, 3, 186),
             false,
             ATI_MIN_RAM,
             1, .01,
@@ -234,7 +233,7 @@ static inline bool app_plan_ati(
 
     if (!strcmp(plan_class, "ati14")) {
         if (!ati_check(c, hu,
-            1004000,
+            ati_version_int(1, 4, 0),
             false,
             ATI_MIN_RAM,
             1, .01,
@@ -304,13 +303,13 @@ static bool cuda_check(COPROC_NVIDIA& c, HOST_USAGE& hu,
     hu.ncudas = ndevs;
 
     coproc_perf(
-        g_request->host.p_fpops,
+        capped_host_fpops(),
         flops_scale * hu.ncudas*c.peak_flops,
         cpu_frac,
         hu.projected_flops,
         hu.avg_ncpus
     );
-    hu.peak_flops = hu.ncudas*c.peak_flops + hu.avg_ncpus*g_request->host.p_fpops;
+    hu.peak_flops = hu.ncudas*c.peak_flops + hu.avg_ncpus*capped_host_fpops();
     hu.max_ncpus = hu.avg_ncpus;
     return true;
 }
@@ -393,15 +392,13 @@ static inline bool app_plan_cuda(
 // Say that we'll use 1% of a CPU.
 // This will cause the client (6.7+) to run it at non-idle priority
 //
-static inline bool app_plan_nci(
-    SCHEDULER_REQUEST& sreq, HOST_USAGE& hu
-) {
+static inline bool app_plan_nci(SCHEDULER_REQUEST&, HOST_USAGE& hu) {
     hu.avg_ncpus = .01;
     hu.max_ncpus = .01;
-    hu.projected_flops = sreq.host.p_fpops*1.01;
+    hu.projected_flops = capped_host_fpops()*1.01;
         // The *1.01 is needed to ensure that we'll send this app
         // version rather than a non-plan-class one
-    hu.peak_flops = sreq.host.p_fpops*.01;
+    hu.peak_flops = capped_host_fpops()*.01;
     return true;
 }
 
@@ -422,8 +419,8 @@ static inline bool app_plan_sse3(
     }
     hu.avg_ncpus = 1;
     hu.max_ncpus = 1;
-    hu.projected_flops = 1.1*sreq.host.p_fpops;
-    hu.peak_flops = sreq.host.p_fpops;
+    hu.projected_flops = 1.1*capped_host_fpops();
+    hu.peak_flops = capped_host_fpops();
     return true;
 }
 
@@ -450,13 +447,13 @@ static inline bool opencl_check(
     }
 
     coproc_perf(
-        g_request->host.p_fpops,
+        capped_host_fpops(),
         flops_scale * ndevs * cp.peak_flops,
         cpu_frac,
         hu.projected_flops,
         hu.avg_ncpus
     );
-    hu.peak_flops = ndevs*cp.peak_flops + hu.avg_ncpus*g_request->host.p_fpops;
+    hu.peak_flops = ndevs*cp.peak_flops + hu.avg_ncpus*capped_host_fpops();
     hu.max_ncpus = hu.avg_ncpus;
     return true;
 }
@@ -502,6 +499,9 @@ static inline bool app_plan_opencl(
             );
             return false;
         }
+
+    // maybe add a clause for multicore CPU
+
     } else {
         log_messages.printf(MSG_CRITICAL,
             "Unknown plan class: %s\n", plan_class
@@ -510,10 +510,16 @@ static inline bool app_plan_opencl(
     }
 }
 
+// handles vbox_[32|64][_mt]
+// "mt" is tailored to the needs of CERN:
+// use 1 or 2 CPUs
+
 static inline bool app_plan_vbox(
-    SCHEDULER_REQUEST& sreq, HOST_USAGE& hu, bool is_64bit
+    SCHEDULER_REQUEST& sreq, char* plan_class, HOST_USAGE& hu
 ) {
-    // make sure they have VirtualBox
+    bool can_use_multicore = true;
+
+    // host must have VirtualBox 3.2 or later
     //
     if (strlen(sreq.host.virtualbox_version) == 0) return false;
     int n, maj, min, rel;
@@ -522,19 +528,48 @@ static inline bool app_plan_vbox(
     if (maj < 3) return false;
     if (maj == 3 and min < 2) return false;
 
+    // host must have VM acceleration in order to run multi-core jobs
+    //
+    if (strstr(plan_class, "mt")) {
+        if ((!strstr(sreq.host.p_features, "vmx") && !strstr(sreq.host.p_features, "svm"))
+            || sreq.host.p_vm_extensions_disabled
+        ) {
+            can_use_multicore = false;
+        }
+    }
+
     // only send the version for host's primary platform.
     // A Win64 host can't run a 32-bit VM app:
     // it will look in the 32-bit half of the registry and fail
     //
     PLATFORM* p = g_request->platforms.list[0];
-    if (is_64bit != is_64b_platform(p->name)) {
-        return false;
+    if (is_64b_platform(p->name)) {
+        if (!strstr(plan_class, "64")) return false;
+    } else {
+        if (strstr(plan_class, "64")) return false;
     }
 
-    hu.avg_ncpus = 1;
-    hu.max_ncpus = 1;
-    hu.projected_flops = 1.1*sreq.host.p_fpops;
-    hu.peak_flops = sreq.host.p_fpops;
+    if (strstr(plan_class, "mt") && can_use_multicore) {
+        // Use number of usable CPUs, taking user prefs into account
+        double ncpus = g_wreq->effective_ncpus;
+        // CernVM on average uses between 25%-50% of a second core
+        // Total on a dual-core machine is between 65%-75%
+        if (ncpus > 1.5) ncpus = 1.5;
+        hu.avg_ncpus = ncpus;
+        hu.max_ncpus = 2.0;
+        sprintf(hu.cmdline, "--nthreads %f", ncpus);
+    } else {
+        hu.avg_ncpus = 1;
+        hu.max_ncpus = 1;
+    }
+    hu.projected_flops = capped_host_fpops()*hu.avg_ncpus;
+    hu.peak_flops = capped_host_fpops()*hu.max_ncpus;
+    if (config.debug_version_select) {
+        log_messages.printf(MSG_NORMAL,
+            "[version] %s app projected %.2fG\n",
+            plan_class, hu.projected_flops/1e9
+        );
+    }
     return true;
 }
 
@@ -544,6 +579,8 @@ static inline bool app_plan_vbox(
 bool app_plan(SCHEDULER_REQUEST& sreq, char* plan_class, HOST_USAGE& hu) {
     if (!strcmp(plan_class, "mt")) {
         return app_plan_mt(sreq, hu);
+    } else if (strstr(plan_class, "opencl")) {
+        return app_plan_opencl(sreq, plan_class, hu);
     } else if (strstr(plan_class, "ati")) {
         return app_plan_ati(sreq, plan_class, hu);
     } else if (strstr(plan_class, "cuda")) {
@@ -552,32 +589,12 @@ bool app_plan(SCHEDULER_REQUEST& sreq, char* plan_class, HOST_USAGE& hu) {
         return app_plan_nci(sreq, hu);
     } else if (!strcmp(plan_class, "sse3")) {
         return app_plan_sse3(sreq, hu);
-    } else if (!strcmp(plan_class, "vbox32")) {
-        return app_plan_vbox(sreq, hu, false);
-    } else if (!strcmp(plan_class, "vbox64")) {
-        return app_plan_vbox(sreq, hu, true);
-    } else if (strstr(plan_class, "opencl")) {
-        return app_plan_opencl(sreq, plan_class, hu);
+    } else if (strstr(plan_class, "vbox")) {
+        return app_plan_vbox(sreq, plan_class, hu);
     }
     log_messages.printf(MSG_CRITICAL,
         "Unknown plan class: %s\n", plan_class
     );
-    return false;
-}
-
-// the following is used to enforce limits on in-progress jobs
-// for GPUs and CPUs (see handle_request.cpp)
-//
-bool app_plan_uses_gpu(const char* plan_class) {
-    if (strstr(plan_class, "cuda")) {
-        return true;
-    }
-    if (strstr(plan_class, "nvidia")) {
-        return true;
-    }
-    if (strstr(plan_class, "ati")) {
-        return true;
-    }
     return false;
 }
 
@@ -670,7 +687,7 @@ bool JOB::get_score() {
     // match large jobs to fast hosts
     //
     if (config.job_size_matching) {
-        double host_stdev = (g_reply->host.p_fpops - ssp->perf_info.host_fpops_mean)/ ssp->perf_info.host_fpops_stdev;
+        double host_stdev = (capped_host_fpops() - ssp->perf_info.host_fpops_mean)/ ssp->perf_info.host_fpops_stddev;
         double diff = host_stdev - wu_result.fpops_size;
         score -= diff*diff;
     }

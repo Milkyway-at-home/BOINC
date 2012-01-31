@@ -40,8 +40,6 @@ CBOINCBaseView::CBOINCBaseView() {}
 CBOINCBaseView::CBOINCBaseView(wxNotebook* pNotebook) :
     wxPanel(pNotebook, -1, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL)
 {
-    wxASSERT(pNotebook);
-
     m_bProcessingTaskRenderEvent = false;
     m_bProcessingListRenderEvent = false;
 
@@ -59,7 +57,6 @@ CBOINCBaseView::CBOINCBaseView(wxNotebook* pNotebook) :
     m_SortArrows = NULL;
     
     SetName(GetViewName());
-
     SetAutoLayout(TRUE);
 
 #if BASEVIEW_STRIPES    
@@ -69,12 +66,9 @@ CBOINCBaseView::CBOINCBaseView(wxNotebook* pNotebook) :
 }
 
 
-CBOINCBaseView::CBOINCBaseView(
-    wxNotebook* pNotebook, wxWindowID iTaskWindowID, int iTaskWindowFlags, wxWindowID iListWindowID, int iListWindowFlags) :
+CBOINCBaseView::CBOINCBaseView(wxNotebook* pNotebook, wxWindowID iTaskWindowID, int iTaskWindowFlags, wxWindowID iListWindowID, int iListWindowFlags) :
     wxPanel(pNotebook, -1, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL)
 {
-    wxASSERT(pNotebook);
-
     m_bProcessingTaskRenderEvent = false;
     m_bProcessingListRenderEvent = false;
 
@@ -88,7 +82,6 @@ CBOINCBaseView::CBOINCBaseView(
     m_pListPane = NULL;
 
     SetName(GetViewName());
-
     SetAutoLayout(TRUE);
 
     wxFlexGridSizer* itemFlexGridSizer = new wxFlexGridSizer(2, 0, 0);
@@ -96,7 +89,7 @@ CBOINCBaseView::CBOINCBaseView(
 
     itemFlexGridSizer->AddGrowableRow(0);
     itemFlexGridSizer->AddGrowableCol(1);
-    
+
     m_pTaskPane = new CBOINCTaskCtrl(this, iTaskWindowID, iTaskWindowFlags);
     wxASSERT(m_pTaskPane);
 
@@ -108,7 +101,7 @@ CBOINCBaseView::CBOINCBaseView(
 
     SetSizer(itemFlexGridSizer);
 
-    Layout();
+    UpdateSelection();
 
 #if USE_NATIVE_LISTCONTROL
     m_pListPane->PushEventHandler(new MyEvtHandler(m_pListPane));
@@ -137,6 +130,7 @@ CBOINCBaseView::CBOINCBaseView(
         wxNullFont
     );
 #endif
+
 }
 
 
@@ -751,9 +745,10 @@ void CBOINCBaseView::UpdateWebsiteSelection(long lControlGroup, PROJECT* project
     wxASSERT(m_pTaskPane);
     wxASSERT(m_pListPane);
 
-    // Update the websites list
-    //
     if (m_bForceUpdateSelection) {
+
+        // Update the websites list
+        //
         if (m_TaskGroups.size() > 1) {
 
             // Delete task group, objects, and controls.
@@ -772,16 +767,17 @@ void CBOINCBaseView::UpdateWebsiteSelection(long lControlGroup, PROJECT* project
         }
 
         // If something is selected create the tasks and controls
+        //
         if (m_pListPane->GetSelectedItemCount()) {
             if (project) {
                 // Create the web sites task group
-                pGroup = new CTaskItemGroup( _("Web sites") );
+                pGroup = new CTaskItemGroup( _("Project web pages") );
                 m_TaskGroups.push_back( pGroup );
 
                 // Default project url
                 pItem = new CTaskItem(
-                    wxString(project->project_name.c_str(), wxConvUTF8), 
-                    wxT(""), 
+                    wxString("Home page", wxConvUTF8), 
+                    wxString(project->project_name.c_str(), wxConvUTF8) + wxT(" web site"), 
                     wxString(project->master_url, wxConvUTF8),
                     ID_TASK_PROJECT_WEB_PROJDEF_MIN
                 );
@@ -800,6 +796,7 @@ void CBOINCBaseView::UpdateWebsiteSelection(long lControlGroup, PROJECT* project
                 }
             }
         }
+
         m_bForceUpdateSelection = false;
     }
 }

@@ -53,7 +53,9 @@
 struct MSG_CHANNEL {
     char buf[MSG_CHANNEL_SIZE];
     bool get_msg(char*);    // returns a message and clears pending flag
-    bool has_msg();
+    inline bool has_msg() {
+        return buf[0]?true:false;
+    }
     bool send_msg(const char*);   // if there is not a message in the segment,
                             // writes specified message and sets pending flag
     void send_msg_overwrite(const char*);
@@ -193,6 +195,11 @@ struct APP_INIT_DATA {
     //
     char gpu_type[64];
     int gpu_device_num;
+    int gpu_opencl_dev_index;
+
+    // info for multicore apps: how many cores to use
+    //
+    double ncpus;
 
     // Items below here are for BOINC runtime system,
     // and should not be directly accessed by apps

@@ -42,6 +42,7 @@
 #include "filesys.h"
 #include "client_msgs.h"
 #include "log_flags.h"
+#include "md5.h"
 #include "parse.h"
 #include "util.h"
 #include "str_util.h"
@@ -782,7 +783,6 @@ void PROJECT::update_project_files_downloaded_time() {
 }
 
 int APP::parse(XML_PARSER& xp) {
-
     strcpy(name, "");
     strcpy(user_friendly_name, "");
     project = NULL;
@@ -796,6 +796,7 @@ int APP::parse(XML_PARSER& xp) {
         }
         if (xp.parse_str("name", name, sizeof(name))) continue;
         if (xp.parse_str("user_friendly_name", user_friendly_name, sizeof(user_friendly_name))) continue;
+        if (xp.parse_bool("non_cpu_intensive", non_cpu_intensive)) continue;
 #ifdef SIM
         if (xp.parse_double("latency_bound", latency_bound)) continue;
         if (xp.parse_double("fpops_est", fpops_est)) continue;
@@ -809,7 +810,6 @@ int APP::parse(XML_PARSER& xp) {
             checkpoint_period.parse(xp, "/checkpoint_period");
             continue;
         }
-        if (xp.parse_bool("non_cpu_intensive", non_cpu_intensive)) continue;
 #endif
         if (log_flags.unparsed_xml) {
             msg_printf(0, MSG_INFO,
@@ -827,8 +827,10 @@ int APP::write(MIOFILE& out) {
         "<app>\n"
         "    <name>%s</name>\n"
         "    <user_friendly_name>%s</user_friendly_name>\n"
+        "    <non_cpu_intensive>%d</non_cpu_intensive>\n"
         "</app>\n",
-        name, user_friendly_name
+        name, user_friendly_name,
+        non_cpu_intensive?1:0
     );
     return 0;
 }
@@ -838,12 +840,14 @@ FILE_INFO::FILE_INFO() {
     strcpy(md5_cksum, "");
     max_nbytes = 0;
     nbytes = 0;
+    gzipped_nbytes = 0;
     upload_offset = -1;
     status = FILE_NOT_PRESENT;
     executable = false;
     uploaded = false;
     sticky = false;
     gzip_when_done = false;
+    download_gzipped = false;
     signature_required = false;
     is_user_file = false;
     is_project_file = false;
@@ -921,12 +925,18 @@ int FILE_INFO::parse(XML_PARSER& xp) {
     PERS_FILE_XFER *pfxp;
     int retval;
     bool btemp;
+    vector<string>gzipped_urls;
 
     while (!xp.get_tag()) {
         if (xp.match_tag("/file_info") || xp.match_tag("/file")) {
             if (!strlen(name)) return ERR_BAD_FILENAME;
             if (strstr(name, "..")) return ERR_BAD_FILENAME;
             if (strstr(name, "%")) return ERR_BAD_FILENAME;
+            if (gzipped_urls.size() > 0) {
+                download_urls.clear();
+                download_urls.urls = gzipped_urls;
+                download_gzipped = true;
+            }
             return 0;
         }
         if (xp.match_tag("xml_signature")) {
@@ -978,14 +988,20 @@ int FILE_INFO::parse(XML_PARSER& xp) {
             upload_urls.urls.push_back(url);
             continue;
         }
+        if (xp.parse_string("gzipped_url", url)) {
+            gzipped_urls.push_back(url);
+            continue;
+        }
         if (xp.parse_str("md5_cksum", md5_cksum, sizeof(md5_cksum))) continue;
         if (xp.parse_double("nbytes", nbytes)) continue;
+        if (xp.parse_double("gzipped_nbytes", gzipped_nbytes)) continue;
         if (xp.parse_double("max_nbytes", max_nbytes)) continue;
         if (xp.parse_int("status", status)) continue;
         if (xp.parse_bool("executable", executable)) continue;
         if (xp.parse_bool("uploaded", uploaded)) continue;
         if (xp.parse_bool("sticky", sticky)) continue;
         if (xp.parse_bool("gzip_when_done", gzip_when_done)) continue;
+        if (xp.parse_bool("download_gzipped", download_gzipped)) continue;
         if (xp.parse_bool("signature_required", signature_required)) continue;
         if (xp.parse_bool("is_project_file", is_project_file)) continue;
         if (xp.parse_bool("no_delete", btemp)) continue;
@@ -1060,6 +1076,10 @@ int FILE_INFO::write(MIOFILE& out, bool to_server) {
         if (uploaded) out.printf("    <uploaded/>\n");
         if (sticky) out.printf("    <sticky/>\n");
         if (gzip_when_done) out.printf("    <gzip_when_done/>\n");
+        if (download_gzipped) {
+            out.printf("    <download_gzipped/>\n");
+            out.printf("    <gzipped_nbytes>%.0f</gzipped_nbytes>\n", gzipped_nbytes);
+        }
         if (signature_required) out.printf("    <signature_required/>\n");
         if (is_user_file) out.printf("    <is_user_file/>\n");
         if (strlen(file_signature)) out.printf("    <file_signature>\n%s\n</file_signature>\n", file_signature);
@@ -1110,7 +1130,7 @@ int FILE_INFO::write_gui(MIOFILE& out) {
         project->master_url,
         project->project_name,
         name,
-        nbytes,
+        download_gzipped?gzipped_nbytes:nbytes,
         max_nbytes,
         status
     );
@@ -1134,6 +1154,15 @@ int FILE_INFO::delete_file() {
 
     get_pathname(this, path, sizeof(path));
     int retval = delete_project_owned_file(path, true);
+
+    // files with download_gzipped set may exist
+    // in temporary or compressed form
+    //
+    strcat(path, ".gz");
+    delete_project_owned_file(path, true);
+    strcat(path, "t");
+    delete_project_owned_file(path, true);
+
     if (retval && status != FILE_NOT_PRESENT) {
         msg_printf(project, MSG_INTERNAL_ERROR, "Couldn't delete file %s", path);
     }
@@ -1197,6 +1226,7 @@ int FILE_INFO::merge_info(FILE_INFO& new_info) {
 
     download_urls.replace(new_info.download_urls);
     upload_urls.replace(new_info.upload_urls);
+    download_gzipped = new_info.download_gzipped;
 
     // replace signatures
     //
@@ -1269,6 +1299,51 @@ int FILE_INFO::gzip() {
     return 0;
 }
 
+// unzip a file.
+// If md5_buf is not NULL, compute the uncompressed MD5 at the same time
+//
+int FILE_INFO::gunzip(char* md5_buf) {
+    unsigned char buf[BUFSIZE];
+    char inpath[256], outpath[256];
+    md5_state_t md5_state;
+
+    if (md5_buf) {
+        md5_init(&md5_state);
+    }
+    get_pathname(this, outpath, sizeof(outpath));
+    strcpy(inpath, outpath);
+    strcat(inpath, ".gz");
+    FILE* out = boinc_fopen(outpath, "wb");
+    if (!out) return ERR_FOPEN;
+    gzFile in = gzopen(inpath, "rb");
+    while (1) {
+        int n = gzread(in, buf, BUFSIZE);
+        if (n <= 0) break;
+        int m = (int)fwrite(buf, 1, n, out);
+        if (m != n) {
+            gzclose(in);
+            fclose(out);
+            return ERR_WRITE;
+        }
+        if (md5_buf) {
+            md5_append(&md5_state, buf, n);
+        }
+    }
+    if (md5_buf) {
+        unsigned char binout[16];
+        md5_finish(&md5_state, binout);
+        for (int i=0; i<16; i++) {
+            sprintf(md5_buf+2*i, "%02x", binout[i]);
+        }
+        md5_buf[32] = 0;
+    }
+
+    gzclose(in);
+    fclose(out);
+    delete_project_owned_file(inpath, true);
+    return 0;
+}
+
 int APP_VERSION::parse(XML_PARSER& xp) {
     FILE_REF file_ref;
     double dtemp;
@@ -1291,6 +1366,7 @@ int APP_VERSION::parse(XML_PARSER& xp) {
     missing_coproc = false;
     strcpy(missing_coproc_name, "");
     dont_throttle = false;
+    needs_network = false;
 
     while (!xp.get_tag()) {
         if (xp.match_tag("/app_version")) return 0;
@@ -1338,6 +1414,7 @@ int APP_VERSION::parse(XML_PARSER& xp) {
             continue;
         }
         if (xp.parse_bool("dont_throttle", dont_throttle)) continue;
+        if (xp.parse_bool("needs_network", needs_network)) continue;
         if (log_flags.unparsed_xml) {
             msg_printf(0, MSG_INFO,
                 "[unparsed_xml] APP_VERSION::parse(): unrecognized: %s\n",
@@ -1417,6 +1494,11 @@ int APP_VERSION::write(MIOFILE& out, bool write_file_info) {
     if (dont_throttle) {
         out.printf(
             "    <dont_throttle/>\n"
+        );
+    }
+    if (needs_network) {
+        out.printf(
+            "    <needs_network/>\n"
         );
     }
 
@@ -1933,6 +2015,7 @@ int RESULT::write_gui(MIOFILE& out) {
     if (edf_scheduled) out.printf("    <edf_scheduled/>\n");
     if (coproc_missing) out.printf("    <coproc_missing/>\n");
     if (schedule_backoff > gstate.now) out.printf("    <scheduler_wait/>\n");
+    if (avp->needs_network && gstate.network_suspended) out.printf("    <network_wait/>\n");
     ACTIVE_TASK* atp = gstate.active_tasks.lookup_result(this);
     if (atp) {
         atp->write_gui(out);
@@ -2109,15 +2192,21 @@ void RESULT::abort_inactive(int status) {
 RUN_MODE::RUN_MODE() {
     perm_mode = 0;
     temp_mode = 0;
+    prev_mode = 0;
     temp_timeout = 0;
 }
 
 void RUN_MODE::set(int mode, double duration) {
+    if (mode == 0) mode = RUN_MODE_AUTO;
     if (mode == RUN_MODE_RESTORE) {
         temp_timeout = 0;
+        if (temp_mode == perm_mode) {
+            perm_mode = prev_mode;
+        }
         temp_mode = perm_mode;
         return;
     }
+    prev_mode = temp_mode;
     if (duration) {
         temp_mode = mode;
         temp_timeout = gstate.now + duration;
@@ -2127,10 +2216,21 @@ void RUN_MODE::set(int mode, double duration) {
         perm_mode = mode;
         gstate.set_client_state_dirty("Set mode");
     }
+
+    // In case we read older state file with no prev_mode
+    if (prev_mode == 0) prev_mode = temp_mode;
+}
+
+void RUN_MODE::set_prev(int mode) {
+    prev_mode = mode;
 }
 
 int RUN_MODE::get_perm() {
     return perm_mode;
+}
+
+int RUN_MODE::get_prev() {
+    return prev_mode;
 }
 
 int RUN_MODE::get_current() {

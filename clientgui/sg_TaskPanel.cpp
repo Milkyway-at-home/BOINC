@@ -32,6 +32,7 @@
 #define DESCRIPTIONSPACER 4
 #define HIDEDEFAULTSLIDE 1
 #define TESTALLDESCRIPTIONS 0
+#define SCROLLBARWIDTH 18
 
 enum { suspendedIcon, waitingIcon, runningIcon };
 
@@ -49,8 +50,6 @@ CScrolledTextBox::CScrolledTextBox() {
 CScrolledTextBox::CScrolledTextBox( wxWindow* parent) :
     wxScrolledWindow( parent, ID_SGPROJECTDESCRIPTION, wxDefaultPosition, wxDefaultSize, wxVSCROLL)
 {
-    m_iAvailableWidth = 296;    // This will be overwritten
-
 	SetForegroundColour(*wxBLACK);
 
 	m_TextSizer = new wxBoxSizer( wxVERTICAL );
@@ -68,7 +67,7 @@ CScrolledTextBox::~CScrolledTextBox() {
 
 
 void CScrolledTextBox::SetValue(const wxString& s) {
-    int lineHeight, totalLines;
+    int lineHeight, totalLines, availableWidth;
     wxString t = s;
 
     // Delete sizer & its children (CTransparentStaticText objects)
@@ -77,17 +76,10 @@ void CScrolledTextBox::SetValue(const wxString& s) {
     // Change all occurrences of "<sup>n</sup>" to "^n"
     t.Replace(wxT("<sup>"), wxT("^"), true);
     t.Replace(wxT("</sup>"), wxT(""), true);
-    wxString tt = t;
-    
-    // First, determine if scroll bars needed so sizer can recompute
-    totalLines = Wrap(tt, m_iAvailableWidth, &lineHeight);
-    m_TextSizer->FitInside(this);
 
-    // Now get the actual client size with or without scroll bars
-    GetClientSize(&m_iAvailableWidth, &lineHeight);
-    m_TextSizer->Clear(true);   // Delete sizer & its children
-    
-    totalLines = Wrap(t, m_iAvailableWidth - 3, &lineHeight);
+    wxSize taskPanelSize = GetGrandParent()->GetSize();
+    availableWidth = taskPanelSize.GetWidth() - (2*SIDEMARGINS);
+    totalLines = Wrap(t, availableWidth - SCROLLBARWIDTH, &lineHeight);
     
     m_TextSizer->FitInside(this);
     SetScrollRate(1, lineHeight);
@@ -243,6 +235,7 @@ void CSlideShowPanel::OnSlideShowTimer(wxTimerEvent& WXUNUSED(event)) {
 void CSlideShowPanel::AdvanceSlideShow(bool changeSlide, bool reload) {
 	double xRatio, yRatio, ratio;
     unsigned int i;
+    wxString s;
     TaskSelectionData* selData = ((CSimpleTaskPanel*)GetParent())->GetTaskSelectionData();
     if (selData == NULL) return;
 
@@ -281,9 +274,12 @@ numSlides = 0;
         
         for (i=0; i<m_AllProjectsList.projects.size(); i++) {
             if (!strcmp(m_AllProjectsList.projects[i]->url.c_str(), selData->project_url)) {
-                m_institution->SetLabel(wxString(m_AllProjectsList.projects[i]->home.c_str(), wxConvUTF8));
-                m_scienceArea->SetLabel(wxString(m_AllProjectsList.projects[i]->specific_area.c_str(), wxConvUTF8));
-                m_description->SetValue(wxString(m_AllProjectsList.projects[i]->description.c_str(), wxConvUTF8));
+                s = wxString(m_AllProjectsList.projects[i]->home.c_str(), wxConvUTF8);
+                m_institution->SetLabel(wxGetTranslation(s));
+                s = wxString(m_AllProjectsList.projects[i]->specific_area.c_str(), wxConvUTF8);
+                m_scienceArea->SetLabel(wxGetTranslation(s));
+                s = wxString(m_AllProjectsList.projects[i]->description.c_str(), wxConvUTF8);
+                m_description->SetValue(wxGetTranslation(s));
 
                 m_institution->Show(true);
                 m_scienceArea->Show(true);
@@ -424,7 +420,6 @@ IMPLEMENT_DYNAMIC_CLASS(CSimpleTaskPanel, CSimplePanelBase)
 
 BEGIN_EVENT_TABLE(CSimpleTaskPanel, CSimplePanelBase)
     EVT_BOINCBITMAPCOMBOBOX(ID_SGTASKSELECTOR, CSimpleTaskPanel::OnTaskSelection)
-    EVT_TIMER(ID_SIMPLE_PROGRESSPULSETIMER, CSimpleTaskPanel::OnPulseProgressIndicator)
 #ifdef __WXMAC__
     EVT_ERASE_BACKGROUND(CSimpleTaskPanel::OnEraseBackground)    
 #endif
@@ -440,7 +435,6 @@ CSimpleTaskPanel::CSimpleTaskPanel( wxWindow* parent ) :
     int w, h;
     wxString str = wxEmptyString;
 
-	m_pulseTimer = new wxTimer(this, ID_SIMPLE_PROGRESSPULSETIMER);
     m_oldWorkCount = -1;
     error_time = 0;
     m_GotBGBitMap = false; // Can't be made until parent has been laid out.
@@ -576,10 +570,7 @@ CSimpleTaskPanel::~CSimpleTaskPanel()
         m_TaskSelectionCtrl->SetClientData(j, NULL);
 	}
     m_TaskSelectionCtrl->Clear();
-    
-    m_pulseTimer->Stop(); 
-    delete m_pulseTimer;
-    
+        
     if (m_progressBarRect) {
         delete m_progressBarRect;
     }
@@ -625,13 +616,12 @@ void CSimpleTaskPanel::UpdatePanel(bool delayShow) {
             m_SlideShowArea->Hide();
             m_ElapsedTimeValue->Hide();
             m_TimeRemainingValue->Hide();
-            m_ProgressValueText->Hide();
-            m_TaskCommandsButton->Hide();
             if (m_iPctDoneX10 >= 0) {
                 m_iPctDoneX10 = -1;
-                m_ProgressBar->Pulse();
-                m_pulseTimer->Start(100);
+                m_ProgressBar->Hide();
             }
+            m_ProgressValueText->Hide();
+            m_TaskCommandsButton->Hide();
             this->Layout();
 
 #ifdef __WXMAC__
@@ -656,6 +646,7 @@ void CSimpleTaskPanel::UpdatePanel(bool delayShow) {
             m_SlideShowArea->Show();
             m_ElapsedTimeValue->Show();
             m_TimeRemainingValue->Show();
+            m_ProgressBar->Show();
             m_ProgressValueText->Show();
             m_TaskCommandsButton->Show();
             this->Layout();
@@ -703,11 +694,8 @@ void CSimpleTaskPanel::UpdatePanel(bool delayShow) {
                 UpdateStaticText(&m_TimeRemainingValue, GetTimeRemainingString(result->estimated_cpu_time_remaining));
                 int pctDoneX10 = result->fraction_done * 1000.0;
                 if (m_iPctDoneX10 != pctDoneX10) {
-                    if (m_iPctDoneX10 < 0) {
-                        m_pulseTimer->Stop();
-                    }
                     int pctDone = pctDoneX10 / 10;
-                    if (pctDone != (m_iPctDoneX10 / 10)) {
+                    if (m_iPctDoneX10 != (pctDone * 10)) {
                         m_ProgressBar->SetValue(pctDone);
                     }
                     s.Printf(_("%.3f%%"), result->fraction_done*100);
@@ -724,8 +712,7 @@ void CSimpleTaskPanel::UpdatePanel(bool delayShow) {
                 UpdateStaticText(&m_TimeRemainingValue, GetTimeRemainingString(-1.0));
                 if (m_iPctDoneX10 >= 0) {
                     m_iPctDoneX10 = -1;
-                    m_ProgressBar->Pulse();
-                    m_pulseTimer->Start(100);
+                    m_ProgressBar->Hide();
                 }
                 UpdateStaticText(&m_ProgressValueText, wxEmptyString);
                 UpdateStaticText(&m_StatusValueText, GetStatusString(NULL));
@@ -740,17 +727,21 @@ void CSimpleTaskPanel::UpdatePanel(bool delayShow) {
 }
 
 
+wxRect* CSimpleTaskPanel::GetProgressRect() {
+    if (m_ProgressBar->IsShown()) {
+        return &m_ProgressRect;
+    } else {
+        return NULL;
+    }
+}
+
+
 void CSimpleTaskPanel::ReskinInterface() {
     wxLogTrace(wxT("Function Start/End"), wxT("CSimpleTaskPanel::ReskinInterface - Function Begin"));
     CSimplePanelBase::ReskinInterface();
     m_SlideShowArea->AdvanceSlideShow(false, false);
     UpdateTaskSelectionList(true);
     wxLogTrace(wxT("Function Start/End"), wxT("CSimpleTaskPanel::ReskinInterface - Function Begin"));
-}
-
-
-void CSimpleTaskPanel::OnPulseProgressIndicator(wxTimerEvent& /*event*/) {
-    m_ProgressBar->Pulse();
 }
 
 
@@ -1246,16 +1237,18 @@ void CSimpleTaskPanel::DisplayIdleState() {
 void CSimpleTaskPanel::OnEraseBackground(wxEraseEvent& event) {
     wxRect clipRect;
     wxDC *dc = event.GetDC();
-     
-    if (m_progressBarRect == NULL) {
-        m_progressBarRect = new wxRect(m_ProgressBar->GetRect());
-        m_progressBarRect->Inflate(1, 0);
+    
+    if (m_ProgressBar->IsShown()) {
+        if (m_progressBarRect == NULL) {
+            m_progressBarRect = new wxRect(m_ProgressBar->GetRect());
+            m_progressBarRect->Inflate(1, 0);
+        }
+        dc->GetClippingBox(&clipRect.x, &clipRect.y, &clipRect.width, &clipRect.height);
+        if (clipRect.IsEmpty() || m_progressBarRect->Contains(clipRect)) {
+            return;
+        }
     }
-    dc->GetClippingBox(&clipRect.x, &clipRect.y, &clipRect.width, &clipRect.height);
-    if (clipRect.IsEmpty() || m_progressBarRect->Contains(clipRect)) {
-        return;
-    }
-
+    
     CSimplePanelBase::OnEraseBackground(event);
 }
 #endif

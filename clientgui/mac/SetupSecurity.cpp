@@ -691,6 +691,12 @@ static OSStatus UpdateNestedDirectories(char * basepath) {
             retval = UpdateNestedDirectories(fullpath);
             if (retval)
                 break;
+        } else {
+            // Since we are changing ownership from boinc_project to boinc_master, 
+            // make sure executable-by-group bit is set if executable-by-owner is set 
+            if ((sbuf.st_mode & 0110) == 0100) {    // If executable by owner but not by group
+                retval = DoPrivilegedExec(chmodPath, "g+x", fullpath, NULL, NULL, NULL);
+            }
         }
             
     }       // End while (true)
@@ -715,6 +721,15 @@ static OSStatus CreateUserAndGroup(char * user_name, char * group_name) {
     char            buf1[80];
     char            buf2[80];
     char            buf3[80];
+    SInt32          response;
+   
+    err = Gestalt(gestaltSystemVersion, &response);
+    if (err) return err;
+    
+    // OS 10.4 has problems with Accounts pane if we create uid or gid > 501
+    if (response < 0x1050) {
+        start_id = 25;
+    }
     
     pw = getpwnam(user_name);
     if (pw) {

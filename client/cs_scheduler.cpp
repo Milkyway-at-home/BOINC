@@ -74,7 +74,6 @@ int CLIENT_STATE::make_scheduler_request(PROJECT* p) {
     MIOFILE mf;
     unsigned int i;
     RESULT* rp;
-    double disk_total, disk_project;
 
     get_sched_request_filename(*p, buf, sizeof(buf));
     FILE* f = boinc_fopen(buf, "wb");
@@ -209,14 +208,15 @@ int CLIENT_STATE::make_scheduler_request(PROJECT* p) {
 
     // get and write disk usage
     //
-    total_disk_usage(disk_total);
-    project_disk_usage(p, disk_project);
+    get_disk_usages();
+    get_disk_shares();
     fprintf(f,
         "    <disk_usage>\n"
         "        <d_boinc_used_total>%f</d_boinc_used_total>\n"
         "        <d_boinc_used_project>%f</d_boinc_used_project>\n"
+        "        <d_project_share>%f</d_project_share>\n"
         "    </disk_usage>\n",
-        disk_total, disk_project
+        total_disk_usage, p->disk_usage, p->disk_share
     );
 
     // copy request values from RSC_WORK_FETCH to COPROC
@@ -464,7 +464,7 @@ bool CLIENT_STATE::scheduler_rpc_poll() {
     if (p) {
         if (actively_uploading(p)) {
             if (log_flags.work_fetch_debug) {
-                msg_printf(p, MSG_INFO, "[wfd] deferring work fetch; upload active");
+                msg_printf(p, MSG_INFO, "[work_fetch] deferring work fetch; upload active");
             }
             return false;
         }
@@ -797,6 +797,8 @@ int CLIENT_STATE::handle_scheduler_reply(PROJECT* project, char* scheduler_url) 
             strcpy(avp->cmdline, avpp.cmdline);
             avp->gpu_usage = avpp.gpu_usage;
             strlcpy(avp->api_version, avpp.api_version, sizeof(avp->api_version));
+            avp->dont_throttle = avpp.dont_throttle;
+            avp->needs_network = avpp.needs_network;
 
             // if we had download failures, clear them
             //

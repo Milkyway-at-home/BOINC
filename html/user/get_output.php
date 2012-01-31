@@ -22,7 +22,7 @@
 
 require_once("../inc/util.inc");
 require_once("../inc/result.inc");
-require_once("../inc/submit_db.inc");
+require_once("../inc/submit_util.inc");
 
 // get a single output file
 //
@@ -93,11 +93,6 @@ function get_output_files($batch_id, $auth_str) {
 
     readfile("$zip_filename");
     unlink($zip_filename);
-}
-
-if (0) {
-get_output_files(24, "xxx");
-exit;
 }
 
 $auth_str = get_str('auth_str');

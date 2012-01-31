@@ -1,6 +1,6 @@
 // This file is part of BOINC.
 // http://boinc.berkeley.edu
-// Copyright (C) 2010 University of California
+// Copyright (C) 2010-2012 University of California
 //
 // BOINC is free software; you can redistribute it and/or modify it
 // under the terms of the GNU Lesser General Public License
@@ -26,8 +26,6 @@
 // - suspend/resume/quit/abort
 // - reporting CPU time
 // - loss of heartbeat from core client
-// - checkpointing
-//      (at the level of task; or potentially within task)
 //
 // Contributors:
 // Andrew J. Younge (ajy4490 AT umiacs DOT umd DOT edu)
@@ -58,6 +56,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdio.h>
+#include <math.h>
 #include <string>
 #include <unistd.h>
 #endif
@@ -71,20 +70,16 @@
 #include "util.h"
 #include "error_numbers.h"
 #include "procinfo.h"
+#include "vboxwrapper.h"
 #include "vbox.h"
 
 using std::vector;
 
-#define IMAGE_FILENAME "vm_image.vdi"
-#define JOB_FILENAME "vbox_job.xml"
-#define CHECKPOINT_FILENAME "vbox_checkpoint.txt"
-#define POLL_PERIOD 1.0
-
 int parse_job_file(VBOX_VM& vm) {
     MIOFILE mf;
-    char buf[256], buf2[256];
+    char buf[1024], buf2[256];
 
-    boinc_resolve_filename(JOB_FILENAME, buf, 1024);
+    boinc_resolve_filename(JOB_FILENAME, buf, sizeof(buf));
     FILE* f = boinc_fopen(buf, "r");
     if (!f) {
         fprintf(stderr,
@@ -110,8 +105,14 @@ int parse_job_file(VBOX_VM& vm) {
         }
         else if (xp.parse_string("os_name", vm.os_name)) continue;
         else if (xp.parse_string("memory_size_mb", vm.memory_size_mb)) continue;
+        else if (xp.parse_double("job_duration", vm.job_duration)) continue;
+        else if (xp.parse_bool("enable_cern_dataformat", vm.enable_cern_dataformat)) continue;
         else if (xp.parse_bool("enable_network", vm.enable_network)) continue;
         else if (xp.parse_bool("enable_shared_directory", vm.enable_shared_directory)) continue;
+        else if (xp.parse_bool("enable_floppyio", vm.enable_floppyio)) continue;
+        else if (xp.parse_bool("enable_remotedesktop", vm.enable_remotedesktop)) continue;
+        else if (xp.parse_int("pf_guest_port", vm.pf_guest_port)) continue;
+        else if (xp.parse_int("pf_host_port", vm.pf_host_port)) continue;
         fprintf(stderr, "%s parse_job_file(): unexpected tag %s\n",
             boinc_msg_prefix(buf, sizeof(buf)), xp.parsed_tag
         );
@@ -120,24 +121,28 @@ int parse_job_file(VBOX_VM& vm) {
     return ERR_XML_PARSE;
 }
 
-void write_checkpoint(double cpu) {
-    boinc_begin_critical_section();
+void write_checkpoint(double cpu, VBOX_VM& vm) {
     FILE* f = fopen(CHECKPOINT_FILENAME, "w");
     if (!f) return;
-    fprintf(f, "%f\n", cpu);
+    fprintf(f, "%f %d %d\n", cpu, vm.pf_host_port, vm.rd_host_port);
     fclose(f);
-    boinc_checkpoint_completed();
 }
 
-void read_checkpoint(double& cpu) {
+void read_checkpoint(double& cpu, VBOX_VM& vm) {
     double c;
-    cpu = 0;
+    int pf_host;
+    int rd_host;
+    cpu = 0.0;
+    vm.pf_host_port = 0;
+    vm.rd_host_port = 0;
     FILE* f = fopen(CHECKPOINT_FILENAME, "r");
     if (!f) return;
-    int n = fscanf(f, "%lf", &c);
+    int n = fscanf(f, "%lf %d %d", &c, &pf_host, &rd_host);
     fclose(f);
-    if (n != 1) return;
+    if (n != 3) return;
     cpu = c;
+    vm.pf_host_port = pf_host;
+    vm.rd_host_port = rd_host;
 }
 
 // set CPU and network throttling if needed
@@ -162,21 +167,134 @@ void set_throttles(APP_INIT_DATA& aid, VBOX_VM& vm) {
     }
 }
 
+// If the Floppy device has been specified, initialize its state so that
+// it contains the contents of the init_data.xml file.  In theory this
+// would allow network enabled VMs to know about proxy server configurations
+// either specified by the volunteer or automatically detected by the
+// core client.
+//
+// CERN decided they only needed a small subset of the data and changed the
+// data format to 'name=value\n' pairs.  So if we are running under their
+// environment set things up accordingly.
+//
+void set_floppy_image(APP_INIT_DATA& aid, VBOX_VM& vm) {
+    int retval;
+    char buf[256];
+    std::string scratch;
+
+    if (vm.enable_floppyio) {
+        scratch = "";
+        if (!vm.enable_cern_dataformat) {
+            retval = read_file_string(INIT_DATA_FILE, scratch);
+            if (retval) {
+                fprintf(stderr,
+                    "%s can't write init_data.xml to floppy abstration device\n",
+                    boinc_msg_prefix(buf, sizeof(buf))
+                );
+            }
+        } else {
+            // Per: https://github.com/stig/json-framework/issues/48
+            //
+            // Use %.17g to represent doubles
+            //
+            scratch  = "BOINC_USERNAME=" + std::string(aid.user_name) + "\n";
+            scratch += "BOINC_AUTHENTICATOR=" + std::string(aid.authenticator) + "\n";
+
+            sprintf(buf, "%d", aid.userid);
+            scratch += "BOINC_USERID=" + std::string(buf) + "\n";
+
+            sprintf(buf, "%d", aid.hostid);
+            scratch += "BOINC_HOSTID=" + std::string(buf) + "\n";
+
+            sprintf(buf, "%.17g", aid.user_total_credit);
+            scratch += "BOINC_USER_TOTAL_CREDIT=" + std::string(buf) + "\n";
+
+            sprintf(buf, "%.17g", aid.host_total_credit);
+            scratch += "BOINC_HOST_TOTAL_CREDIT=" + std::string(buf) + "\n";
+        }
+        vm.write_floppy(scratch);
+    }
+}
+
+// set port forwarding information if needed
+//
+void set_port_forwarding_info(APP_INIT_DATA& /* aid */, VBOX_VM& vm) {
+    char buf[256];
+
+    if (vm.pf_guest_port && vm.pf_host_port) {
+        // Write info to disk
+        //
+        MIOFILE mf;
+        FILE* f = boinc_fopen(PORTFORWARD_FILENAME, "w");
+        mf.init_file(f);
+
+        mf.printf(
+            "<port_forwarding>\n"
+            "  <rule>\n"
+            "    <host_port>%d</host_port>\n"
+            "    <guest_port>%d</guest_port>\n"
+            "  </rule>\n"
+            "</port_forwarding>\n",
+            vm.pf_host_port,
+            vm.pf_guest_port
+        );
+
+        fclose(f);
+
+        sprintf(buf, "http://localhost:%d", vm.pf_host_port);
+        boinc_web_graphics_url(buf);
+    }
+}
+
+// set remote desktop information if needed
+//
+void set_remote_desktop_info(APP_INIT_DATA& /* aid */, VBOX_VM& vm) {
+    char buf[256];
+
+    if (vm.rd_host_port) {
+        // Write info to disk
+        //
+        MIOFILE mf;
+        FILE* f = boinc_fopen(REMOTEDESKTOP_FILENAME, "w");
+        mf.init_file(f);
+
+        mf.printf(
+            "<remote_desktop>\n"
+            "  <host_port>%d</host_port>\n"
+            "</remote_desktop>\n",
+            vm.rd_host_port
+        );
+
+        fclose(f);
+
+        sprintf(buf, "localhost:%d", vm.rd_host_port);
+        boinc_remote_desktop_addr(buf);
+    }
+}
+
 int main(int argc, char** argv) {
+    int retval;
     BOINC_OPTIONS boinc_options;
     VBOX_VM vm;
     APP_INIT_DATA aid;
     double elapsed_time = 0.0;
-    double checkpoint_cpu_time = 0.0;
     double trickle_period = 0.0;
     double trickle_cpu_time = 0.0;
-    bool is_running = false;
+    double fraction_done = 0.0;
+    double checkpoint_cpu_time = 0.0;
+    double last_status_report_time = 0.0;
+    double stopwatch_time = 0.0;
+    double sleep_time = 0.0;
+    double bytes_sent = 0.0;
+    double bytes_received = 0.0;
+    double ncpus = 0.0;
     bool report_vm_pid = false;
-    double bytes_sent=0, bytes_received=0;
     bool report_net_usage = false;
-    int vm_pid=0;
+    int vm_pid = 0;
+    unsigned long vm_exit_code = 0;
+    std::string vm_log;
+    std::string system_log;
     char buf[256];
-    int retval;
 
     memset(&boinc_options, 0, sizeof(boinc_options));
     boinc_options.main_program = true;
@@ -188,6 +306,9 @@ int main(int argc, char** argv) {
         if (!strcmp(argv[i], "--trickle")) {
             trickle_period = atof(argv[++i]);
         }
+        if (!strcmp(argv[i], "--nthreads")) {
+            ncpus = atof(argv[++i]);
+        }
         if (!strcmp(argv[i], "--register_only")) {
             vm.register_only = true;
         }
@@ -198,6 +319,20 @@ int main(int argc, char** argv) {
         "%s vboxwrapper: starting\n",
         boinc_msg_prefix(buf, sizeof(buf))
     );
+
+#if defined(_WIN32) && defined(USE_WINSOCK)
+    WSADATA wsdata;
+    retval = WSAStartup( MAKEWORD( 1, 1 ), &wsdata);
+    if (retval) {
+        fprintf(
+            stderr,
+            "%s can't initialize winsock: %d\n",
+            boinc_msg_prefix(buf, sizeof(buf)),
+            retval
+        );
+        boinc_finish(retval);
+    }
+#endif
 
     retval = parse_job_file(vm);
     if (retval) {
@@ -211,66 +346,189 @@ int main(int argc, char** argv) {
     }
 
     // Validate whatever configuration options we can
+    //
     if (vm.enable_shared_directory) {
-        if (!is_dir("shared")) {
-            fprintf(
-                stderr,
-                "%s vbox_job.xml specifies that the shared directory should be enabled, but the\n"
-                "%s 'shared' subdirectory could not be found. Please check your app_version and verify\n"
-                "%s that the <file_prefix> element has been specified.\n",
-                boinc_msg_prefix(buf, sizeof(buf)),
-                boinc_msg_prefix(buf, sizeof(buf)),
-                boinc_msg_prefix(buf, sizeof(buf))
-            );
+        if (boinc_file_exists("shared")) {
+            if (!is_dir("shared")) {
+                fprintf(
+                    stderr,
+                    "%s 'shared' exists but is not a directory.\n",
+                    boinc_msg_prefix(buf, sizeof(buf))
+                );
+            }
+        } else {
+            retval = boinc_mkdir("shared");
+            if (retval) {
+                fprintf(stderr,
+                    "%s couldn't created shared directory: %s.\n",
+                    boinc_msg_prefix(buf, sizeof(buf)),
+                    boincerror(retval)
+                );
+            }
         }
     }
 
     boinc_get_init_data_p(&aid);
-    vm.vm_name = "boinc_";
+    vm.vm_master_name = "boinc_";
     if (boinc_is_standalone()) {
-        vm.vm_name += "standalone";
-        vm.image_filename = IMAGE_FILENAME;
+        vm.vm_master_name += "standalone";
+        vm.image_filename = IMAGE_FILENAME_COMPLETE;
+        if (vm.enable_floppyio) {
+            sprintf(buf, "%s.%s", FLOPPY_IMAGE_FILENAME, FLOPPY_IMAGE_FILENAME_EXTENSION);
+            vm.floppy_image_filename = buf;
+        }
     } else {
-        vm.vm_name += aid.result_name;
-        sprintf(buf, "%s_%d", IMAGE_FILENAME, aid.slot);
+        vm.vm_master_name += aid.result_name;
+        sprintf(buf, "%s_%d.%s", IMAGE_FILENAME, aid.slot, IMAGE_FILENAME_EXTENSION);
         vm.image_filename = buf;
-        boinc_rename(IMAGE_FILENAME, buf);
+        boinc_rename(IMAGE_FILENAME_COMPLETE, buf);
+        if (vm.enable_floppyio) {
+            sprintf(buf, "%s_%d.%s", FLOPPY_IMAGE_FILENAME, aid.slot, FLOPPY_IMAGE_FILENAME_EXTENSION);
+            vm.floppy_image_filename = buf;
+        }
+    }
+    if (aid.ncpus > 1.0 || ncpus > 1.0) {
+        if (ncpus) {
+            sprintf(buf, "%d", (int)ceil(ncpus));
+        } else {
+            sprintf(buf, "%d", (int)ceil(aid.ncpus));
+        }
+        vm.vm_cpu_count = buf;
+    } else {
+        vm.vm_cpu_count = "1";
     }
 
-    read_checkpoint(checkpoint_cpu_time);
+    // Restore from checkpoint
+    read_checkpoint(checkpoint_cpu_time, vm);
+    elapsed_time = checkpoint_cpu_time;
+
+    // Should we even try to start things up?
+    if (vm.job_duration && (elapsed_time > vm.job_duration)) {
+        return ERR_RSC_LIMIT_EXCEEDED;
+    }
 
     retval = vm.run();
     if (retval) {
+        // Get logs before cleanup
+        vm.get_system_log(system_log);
+        vm.get_vm_log(vm_log);
+
+        // Cleanup
+        vm.cleanup();
+        write_checkpoint(elapsed_time, vm);
+
+        fprintf(
+            stderr,
+            "%s VM failed to start.\n",
+            boinc_msg_prefix(buf, sizeof(buf))
+        );
+        if ((vm_log.find("VERR_VMX_MSR_LOCKED_OR_DISABLED") != std::string::npos) || (vm_log.find("VERR_SVM_DISABLED") != std::string::npos)) {
+            fprintf(
+                stderr,
+                "%s NOTE: BOINC has detected that your processor supports hardware acceleration for virtual machines\n"
+                "    but the hypervisor failed to successfully launch with this feature enabled. This means that the\n"
+                "    hardware acceleration feature has been disabled in the computers BIOS. Please enable this\n"
+                "    feature in your BIOS.\n"
+                "    Intel Processors call it 'VT-x'\n"
+                "    AMD Processors call it 'AMD-V'\n"
+                "    More information can be found here: http://en.wikipedia.org/wiki/X86_virtualization\n"
+                "    Error Code: ERR_CPU_VM_EXTENSIONS_DISABLED\n",
+                boinc_msg_prefix(buf, sizeof(buf))
+            );
+        } else if ((vm_log.find("VERR_VMX_IN_VMX_ROOT_MODE") != std::string::npos) || (vm_log.find("VERR_SVM_IN_USE") != std::string::npos)) {
+            fprintf(
+                stderr,
+                "%s NOTE: VirtualBox hypervisor reports that another hypervisor has locked the hardware acceleration\n"
+                "    for virtual machines feature in exclusive mode. You'll either need to reconfigure the other hypervisor\n"
+                "    to not use the feature exclusively or just let BOINC run this project in software emulation mode.\n"
+                "    Error Code: ERR_CPU_VM_EXTENSIONS_DISABLED\n",
+                boinc_msg_prefix(buf, sizeof(buf))
+            );
+        } else if ((vm_log.find("VERR_VMX_NO_VMX") != std::string::npos) || (vm_log.find("VERR_SVM_NO_SVM") != std::string::npos)) {
+            fprintf(
+                stderr,
+                "%s NOTE: VirtualBox has reported an improperly configured virtual machine. It was configured to require\n"
+                "    hardware acceleration for virtual machines, but your processor does not support the required feature.\n"
+                "    Please report this issue to the project so that it can be addresssed.\n",
+                boinc_msg_prefix(buf, sizeof(buf))
+            );
+        } else {
+            fprintf(
+                stderr,
+                "%s Hypervisor System Log:\n\n"
+                "%s\n"
+                "%s VM Execution Log:\n\n"
+                "%s\n",
+                boinc_msg_prefix(buf, sizeof(buf)),
+                system_log.c_str(),
+                boinc_msg_prefix(buf, sizeof(buf)),
+                vm_log.c_str()
+            );
+        }
+
         boinc_finish(retval);
     }
 
+    set_floppy_image(aid, vm);
+    set_port_forwarding_info(aid, vm);
+    set_remote_desktop_info(aid, vm);
     set_throttles(aid, vm);
+    write_checkpoint(elapsed_time, vm);
 
     while (1) {
+        // Begin stopwatch timer
+        stopwatch_time = dtime();
+
+        // Discover the VM's current state
         vm.poll();
-        is_running = vm.is_running();
 
         if (boinc_status.no_heartbeat || boinc_status.quit_request) {
             vm.stop();
-            write_checkpoint(checkpoint_cpu_time);
+            write_checkpoint(checkpoint_cpu_time, vm);
             boinc_temporary_exit(0);
         }
         if (boinc_status.abort_request) {
             vm.cleanup();
-            write_checkpoint(checkpoint_cpu_time);
+            write_checkpoint(elapsed_time, vm);
             boinc_finish(EXIT_ABORTED_BY_CLIENT);
         }
-        if (!is_running) {
-            fprintf(
-                stderr,
-                "%s Virtual machine is no longer running, it must have completed its work.\n"
-                "%s NOTE: If this is in error, check the vboxwrapper source code for additional steps to debug this issue.\n",
-                boinc_msg_prefix(buf, sizeof(buf)),
-                boinc_msg_prefix(buf, sizeof(buf))
-            );
+        if (!vm.online) {
+            if (vm.crashed || (elapsed_time < vm.job_duration)) {
+                vm.get_system_log(system_log);
+                vm.get_vm_log(vm_log);
+                vm.get_vm_exit_code(vm_exit_code);
+            }
             vm.cleanup();
-            write_checkpoint(checkpoint_cpu_time);
-            boinc_finish(0);
+            write_checkpoint(elapsed_time, vm);
+
+            if (vm.crashed || (elapsed_time < vm.job_duration)) {
+                fprintf(
+                    stderr,
+                    "%s VM Premature Shutdown Detected.\n"
+                    "    Hypervisor System Log:\n\n"
+                    "%s\n"
+                    "    VM Execution Log:\n\n"
+                    "%s\n"
+                    "    VM Exit Code: %d (0x%x)\n\n",
+                    boinc_msg_prefix(buf, sizeof(buf)),
+                    system_log.c_str(),
+                    vm_log.c_str(),
+                    (unsigned int)vm_exit_code,
+                    (unsigned int)vm_exit_code
+                );
+                if (vm_exit_code) {
+                    boinc_finish(vm_exit_code);
+                } else {
+                    boinc_finish(EXIT_ABORTED_BY_CLIENT);
+                }
+            } else {
+                fprintf(
+                    stderr,
+                    "%s Virtual machine exited.\n",
+                    boinc_msg_prefix(buf, sizeof(buf))
+                );
+                boinc_finish(0);
+            }
         }
         if (boinc_status.suspended) {
             if (!vm.suspended) {
@@ -280,23 +538,71 @@ int main(int argc, char** argv) {
             if (vm.suspended) {
                 vm.resume();
             }
+
             elapsed_time += POLL_PERIOD;
+
             if (!vm_pid) {
-                vm.get_process_id(vm_pid);
-                report_vm_pid = true;
+                vm.get_vm_process_id(vm_pid);
+                if (vm_pid) {
+                    vm.reset_vm_process_priority();
+                    report_vm_pid = true;
+                }
             }
+
+            if (boinc_time_to_checkpoint()) {
+                checkpoint_cpu_time = elapsed_time;
+                write_checkpoint(checkpoint_cpu_time, vm);
+                if (vm.job_duration) {
+                    fraction_done = elapsed_time / vm.job_duration;
+                    if (fraction_done > 1.0) {
+                        fraction_done = 1.0;
+                    }
+                }
+                boinc_report_app_status(
+                    elapsed_time,
+                    checkpoint_cpu_time,
+                    fraction_done
+                );
+                if ((elapsed_time - last_status_report_time) >= 6000.0) {
+                    last_status_report_time = elapsed_time;
+                    if (aid.global_prefs.daily_xfer_limit_mb) {
+                        fprintf(
+                            stderr,
+                            "%s Status Report: Job Duration: '%f', Elapsed Time: '%f', Network Bytes Sent (Total): '%f', Network Bytes Received (Total): '%f'\n",
+                            boinc_msg_prefix(buf, sizeof(buf)),
+                            vm.job_duration,
+                            elapsed_time,
+                            bytes_sent,
+                            bytes_received
+                        );
+                    } else {
+                        fprintf(
+                            stderr,
+                            "%s Status Report: Job Duration: '%f', Elapsed Time: '%f'\n",
+                            boinc_msg_prefix(buf, sizeof(buf)),
+                            vm.job_duration,
+                            elapsed_time
+                        );
+                    }
+                }
+                boinc_checkpoint_completed();
+            }
+
             if (report_vm_pid || report_net_usage) {
                 retval = boinc_report_app_status_aux(
-                    elapsed_time, checkpoint_cpu_time, 0, vm_pid,
-                    bytes_sent, bytes_received
+                    elapsed_time,
+                    checkpoint_cpu_time,
+                    fraction_done,
+                    vm_pid,
+                    bytes_sent,
+                    bytes_received
                 );
                 if (!retval) {
                     report_vm_pid = false;
                     report_net_usage = false;
                 }
-            } else {
-                boinc_report_app_status(elapsed_time, checkpoint_cpu_time, 0);
             }
+
             if (trickle_period) {
                 trickle_cpu_time += POLL_PERIOD;
                 if (trickle_cpu_time >= trickle_period) {
@@ -306,14 +612,13 @@ int main(int argc, char** argv) {
                 }
             }
 
-            // if we've been running for at least the scheduling period,
-            // do a checkpoint and temporary exit;
-            // the client will run us again if it wants.
-            // 
-            if (elapsed_time > aid.global_prefs.cpu_scheduling_period()) {
-                vm.stop();
-                write_checkpoint(checkpoint_cpu_time);
-                boinc_temporary_exit(0);
+            // if the VM has a maximum amount of time it is allowed to run,
+            // shut it down gacefully and exit.
+            //
+            if (vm.job_duration && (elapsed_time > vm.job_duration)) {
+                vm.cleanup();
+                write_checkpoint(elapsed_time, vm);
+                boinc_finish(0);
             }
         }
         if (vm.enable_network) {
@@ -329,6 +634,13 @@ int main(int argc, char** argv) {
         }
         if (boinc_status.reread_init_data_file) {
             boinc_status.reread_init_data_file = false;
+
+            fprintf(
+                stderr,
+                "%s Preference change detected\n",
+                boinc_msg_prefix(buf, sizeof(buf))
+            );
+
             boinc_parse_init_data_file();
             boinc_get_init_data_p(&aid);
             set_throttles(aid, vm);
@@ -357,8 +669,17 @@ int main(int argc, char** argv) {
                 }
             }
         }
-        boinc_sleep(POLL_PERIOD);
+
+        // Sleep for the remainder of the polling period
+        sleep_time = POLL_PERIOD - (dtime() - stopwatch_time);
+        if (sleep_time > 0) {
+            boinc_sleep(sleep_time);
+        }
     }
+
+#if defined(_WIN32) && defined(USE_WINSOCK)
+    WSACleanup();
+#endif
 }
 
 #ifdef _WIN32

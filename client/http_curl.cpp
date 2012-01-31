@@ -548,7 +548,9 @@ int HTTP_OP::libcurl_exec(
     // So, detect this and don't accept any encoding in that case
     //
     if (!out || !ends_with(std::string(out), std::string(".gz"))) {
-        curl_easy_setopt(curlEasy, CURLOPT_ENCODING, "");
+        // Per: http://curl.haxx.se/dev/readme-encoding.html
+        // NULL disables, empty string accepts all.
+        curl_easy_setopt(curlEasy, CURLOPT_ENCODING, NULL);
     }
 
     // setup any proxy they may need
@@ -912,11 +914,8 @@ void HTTP_OP::handle_messages(CURLMsg *pcurlMsg) {
         CURLINFO_RESPONSE_CODE, &response
     );
 
-    // CURLINFO_LONG+25 is a workaround for a bug in the gcc version
-    // included with Mac OS X 10.3.9
-    //
     curl_easy_getinfo(curlEasy,
-        (CURLINFO)(CURLINFO_LONG+25) /*CURLINFO_OS_ERRNO*/, &connect_error
+        CURLINFO_OS_ERRNO, &connect_error
     );
 
     // update byte counts and transfer speed

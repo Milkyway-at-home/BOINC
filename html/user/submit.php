@@ -1,4 +1,5 @@
 <?php
+
 // This file is part of BOINC.
 // http://boinc.berkeley.edu
 // Copyright (C) 2011 University of California
@@ -16,398 +17,323 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with BOINC.  If not, see <http://www.gnu.org/licenses/>.
 
-// Handler for remote job submission.
-// See http://boinc.berkeley.edu/trac/wiki/RemoteJobs
-
-require_once("../inc/boinc_db.inc");
 require_once("../inc/submit_db.inc");
-require_once("../inc/xml.inc");
-require_once("../inc/dir_hier.inc");
+require_once("../inc/util.inc");
 require_once("../inc/result.inc");
 require_once("../inc/submit_util.inc");
+require_once("../project/project.inc");
 
 error_reporting(E_ALL);
 ini_set('display_errors', true);
 ini_set('display_startup_errors', true);
 
-function error($s) {
-    echo "<error>\n<message>$s</message>\n</error>\n";
-    exit;
-}
-
-function authenticate_user($r, $app) {
-    $auth = (string)$r->authenticator;
-    if (!$auth) error("no authenticator");
-    $user = BoincUser::lookup("authenticator='$auth'");
-    if (!$user) error("bad authenticator");
-    $user_submit = BoincUserSubmit::lookup_userid($user->id);
-    if (!$user_submit) error("no submit access");
-    if ($app && !$user_submit->submit_all) {
-        $usa = BoincUserSubmitApp::lookup("user_id=$user->id and app_id=$app->id");
-        if (!$usa) {
-            error("no submit access");
-        }
-    }
-    return array($user, $user_submit);
-}
-
-function get_app($r) {
-    $name = (string)($r->batch->app_name);
-    $app = BoincApp::lookup("name='$name'");
-    if (!$app) error("no app");
-    return $app;
-}
-
-function batch_flop_count($r) {
-    $x = 0;
-    foreach($r->batch->job as $job) {
-        $x += (double)$job->rsc_fpops_est;
-    }
-    return $x;
-}
-
-// estimate project FLOPS based on recent average credit
+// the job submission "home page":
+// show the user's in-progress and completed batches,
+// and a button for creating a new batch
 //
-function project_flops() {
-    $x = BoincUser::sum("expavg_credit");
-    if ($x == 0) $x = 200;
-    $y = 1e9*$x/200;
-    return $y;
-}
+function handle_main($user) {
+    page_head("Job submission and control");
 
-function est_elapsed_time($r) {
-    // crude estimate: batch FLOPs / project FLOPS
-    //
-    return batch_flop_count($r) / project_flops();
-}
-
-function estimate_batch($r) {
-    $app = get_app($r);
-    list($user, $user_submit) = authenticate_user($r, $app);
-
-    $e = est_elapsed_time($r);
-    echo "<estimate>\n<seconds>$e</seconds>\n</estimate>\n";
-}
-
-function read_input_template($app) {
-    $path = "../../templates/$app->name"."_in";
-    return simplexml_load_file($path);
-}
-
-function validate_batch($jobs, $template) {
-    $i = 0;
-    $n = count($template->file_info);
-    foreach($jobs as $job) {
-        $m = count($job->input_files);
-        if ($n != $m) {
-            error("wrong # of input files for job $i: need $n, got $m");
-        }
-        $i++;
-    }
-}
-
-$fanout = parse_config(get_config(), "<uldl_dir_fanout>");
-
-// stage a file, and return the physical name
-//
-function stage_file($file) {
-    global $fanout;
-
-    $md5 = md5_file($file->source);
-    if (!$md5) {
-        error("Can't get MD5 of file $source");
-    }
-    $name = "batch_$md5";
-    $path = dir_hier_path($name, "../../download", $fanout);
-    if (file_exists($path)) return;
-    if (!copy($file->source, $path)) {
-        error("can't copy file from $file->source to $path");
-    }
-    return $name;
-}
-
-// stage all the files
-//
-function stage_files(&$jobs, $template) {
-    foreach($jobs as $job) {
-        foreach ($job->input_files as $file) {
-            $file->name = stage_file($file);
-        }
-    }
-}
-
-function submit_job($job, $template, $app, $batch_id, $i) {
-    $cmd = "cd ../..; ./bin/create_work --appname $app->name --batch $batch_id --rsc_fpops_est $job->rsc_fpops_est";
-    if ($job->command_line) {
-        $cmd .= " --command_line \"$job->command_line\"";
-    }
-    $cmd .= " --wu_name batch_".$batch_id."_".$i;
-    foreach ($job->input_files as $file) {
-        $cmd .= " $file->name";
-    }
-    $ret = system($cmd);
-    if ($ret === FALSE) {
-        error("can't create job");
-    }
-}
-
-function xml_get_jobs($r) {
-    $jobs = array();
-    foreach($r->batch->job as $j) {
-        $job = null;
-        $job->input_files = array();
-        $job->command_line = (string)$j->command_line;
-        $job->rsc_fpops_est = (double)$j->rsc_fpops_est;
-        foreach ($j->input_file as $f) {
-            $file = null;
-            $file->source = (string)$f->source;
-            $job->input_files[] = $file;
-        }
-        $jobs[] = $job;
-    }
-    return $jobs;
-}
-
-function submit_batch($r) {
-    $app = get_app($r);
-    list($user, $user_submit) = authenticate_user($r, $app);
-    $template = read_input_template($app);
-    $jobs = xml_get_jobs($r);
-    validate_batch($jobs, $template);
-    stage_files($jobs, $template);
-    $njobs = count($jobs);
-    $now = time();
-    $batch_name = (string)($r->batch->batch_name);
-    $batch_id = BoincBatch::insert(
-        "(user_id, create_time, njobs, name, app_id) values ($user->id, $now, $njobs, '$batch_name', $app->id)"
-    );
-    $i = 0;
-    foreach($jobs as $job) {
-        submit_job($job, $template, $app, $batch_id, $i++);
-    }
-    $batch = BoincBatch::lookup_id($batch_id);
-    $batch->update("state=".BATCH_STATE_IN_PROGRESS);
-    echo "<batch_id>$batch_id</batch_id>\n";
-}
-
-// given its WUs, compute params of a batch
-// NOTE: eventually this should be done by server components
-// (transitioner, validator etc.) as jobs complete or time out
-//
-// TODO: update est_completion_time
-//
-function get_batch_params($batch, $wus) {
-    $fp_total = 0;
-    $fp_done = 0;
-    $completed = true;
-    $batch->nerror_jobs = 0;
-    $batch->credit_canonical = 0;
-    foreach ($wus as $wu) {
-        $fp_total += $wu->rsc_fpops_est;
-        if ($wu->canonical_resultid) {
-            $fp_done += $wu->rsc_fpops_est;
-            $batch->credit_canonical += $wu->canonical_credit;
-        } else if ($wu->error_mask) {
-            $batch->nerror_jobs++;
-        } else {
-            $completed = false;
-        }
-    }
-    if ($fp_total) {
-        $batch->fraction_done = $fp_done / $fp_total;
-    }
-    if ($completed && $batch->state < BATCH_STATE_COMPLETE) {
-        $batch->state = BATCH_STATE_COMPLETE;
-        $batch->completion_time = time();
-    }
-    $batch->update("fraction_done = $batch->fraction_done, nerror_jobs = $batch->nerror_jobs, state=$batch->state, completion_time = $batch->completion_time, credit_canonical = $batch->credit_canonical");
-
-    $batch->credit_estimate = flops_to_credit($fp_total);
-    return $batch;
-}
-
-function print_batch_params($batch) {
-    $app = BoincApp::lookup_id($batch->app_id);
-    echo "
-        <id>$batch->id</id>
-        <create_time>$batch->create_time</create_time>
-        <est_completion_time>$batch->est_completion_time</est_completion_time>
-        <njobs>$batch->njobs</njobs>
-        <fraction_done>$batch->fraction_done</fraction_done>
-        <nerror_jobs>$batch->nerror_jobs</nerror_jobs>
-        <state>$batch->state</state>
-        <completion_time>$batch->completion_time</completion_time>
-        <credit_estimate>$batch->credit_estimate</credit_estimate>
-        <credit_canonical>$batch->credit_canonical</credit_canonical>
-        <name>$batch->name</name>
-        <app_name>$app->name</app_name>
-";
-}
-
-function query_batches($r) {
-    list($user, $user_submit) = authenticate_user($r, null);
+    $first = true;
     $batches = BoincBatch::enum("user_id = $user->id");
-    echo "<batches>\n";
+
     foreach ($batches as $batch) {
         if ($batch->state < BATCH_STATE_COMPLETE) {
             $wus = BoincWorkunit::enum("batch = $batch->id");
             $batch = get_batch_params($batch, $wus);
         }
-        echo "    <batch>\n";
-        print_batch_params($batch);
-        echo "   </batch>\n";
-    }
-    echo "</batches>\n";
-}
-
-function n_outfiles($wu) {
-    $path = "../../$wu->result_template_file";
-    $r = simplexml_load_file($path);
-    return count($r->file_info);
-}
-
-function query_batch($r) {
-    list($user, $user_submit) = authenticate_user($r, null);
-    $batch_id = (int)($r->batch_id);
-    $batch = BoincBatch::lookup_id($batch_id);
-    if (!$batch) {
-        error("no such batch");
-    }
-    if ($batch->user_id != $user->id) {
-        error("not owner");
-    }
-
-    $wus = BoincWorkunit::enum("batch = $batch_id");
-    $batch = get_batch_params($batch, $wus);
-    echo "<batch>\n";
-    print_batch_params($batch);
-    $n_outfiles = n_outfiles($wus[0]);
-    foreach ($wus as $wu) {
-        echo "    <job>
-        <id>$wu->id</id>
-        <canonical_instance_id>$wu->canonical_resultid</canonical_instance_id>
-        <n_outfiles>$n_outfiles</n_outfiles>
-        </job>
-";
-    }
-    echo "</batch>\n";
-}
-
-function query_job($r) {
-    list($user, $user_submit) = authenticate_user($r, null);
-    $job_id = (int)($r->job_id);
-    $wu = BoincWorkunit::lookup_id($job_id);
-    if (!$wu) error("no such job");
-    $batch = BoincBatch::lookup_id($wu->batch);
-    if ($batch->user_id != $user->id) {
-        error("not owner");
-    }
-    echo "<job>\n";
-    $results = BoincResult::enum("workunitid=$job_id");
-    foreach ($results as $result) {
-        echo "    <instance>
-        <name>$result->name</name>
-        <id>$result->id</id>
-        <state>".state_string($result)."</state>
-";
-        if ($result->server_state == 5) {   // over?
-            $paths = get_outfile_paths($result);
-            foreach($paths as $path) {
-                if (is_file($path)) {
-                    $size = filesize($path);
-                    echo "        <outfile>
-            <size>$size</size>
-        </outfile>
-";
-                }
-            }
+        $app = BoincApp::lookup_id($batch->app_id);
+        if ($app) {
+            $batch->app_name = $app->name;
+        } else {
+            $batch->app_name = "unknown";
         }
-        echo "</instance>\n";
     }
-    echo "</job>\n";
+
+    foreach ($batches as $batch) {
+        if ($batch->state != BATCH_STATE_IN_PROGRESS) continue;
+        if ($first) {
+            $first = false;
+            echo "<h2>Batches in progress</h2>\n";
+            start_table();
+            table_header("name", "ID", "app", "# jobs", "progress", "submitted");
+        }
+        $pct_done = (int)($batch->fraction_done*100);
+        table_row(
+            "<a href=submit.php?action=query_batch&batch_id=$batch->id>$batch->name</a>",
+            "<a href=submit.php?action=query_batch&batch_id=$batch->id>$batch->id</a>",
+            $batch->app_name,
+            $batch->njobs,
+            "$pct_done%",
+            local_time_str($batch->create_time)
+        );
+    }
+    if ($first) {
+        echo "<p>You have no in-progress batches.\n";
+    } else {
+        end_table();
+    }
+
+    $first = true;
+    foreach ($batches as $batch) {
+        if ($batch->state != BATCH_STATE_COMPLETE) continue;
+        if ($first) {
+            $first = false;
+            echo "<h2>Completed batches</h2>\n";
+            start_table();
+            table_header("name", "ID", "app", "# jobs", "submitted");
+        }
+        table_row(
+            "<a href=submit.php?action=query_batch&batch_id=$batch->id>$batch->name</a>",
+            "<a href=submit.php?action=query_batch&batch_id=$batch->id>$batch->id</a>",
+            $batch->app_name,
+            $batch->njobs,
+            local_time_str($batch->create_time)
+        );
+    }
+    if ($first) {
+        echo "<p>You have no completed batches.\n";
+    } else {
+        end_table();
+    }
+
+    $first = true;
+    foreach ($batches as $batch) {
+        if ($batch->state != BATCH_STATE_ABORTED) continue;
+        if ($first) {
+            $first = false;
+            echo "<h2>Aborted batches</h2>\n";
+            start_table();
+            table_header("name", "ID", "app", "# jobs", "submitted");
+        }
+        table_row(
+            "<a href=submit.php?action=query_batch&batch_id=$batch->id>$batch->name</a>",
+            "<a href=submit.php?action=query_batch&batch_id=$batch->id>$batch->id</a>",
+            $batch->app_name,
+            $batch->njobs,
+            local_time_str($batch->create_time)
+        );
+    }
+    if (!$first) {
+        end_table();
+    }
+
+    echo "<p><a href=submit.php>Return to job control page</a>\n";
+    page_tail();
 }
 
-function handle_abort_batch($r) {
-    list($user, $user_submit) = authenticate_user($r, null);
-    $batch_id = (int)($r->batch_id);
+// show the details of an existing batch
+//
+function handle_query_batch($user) {
+    $batch_id = get_int('batch_id');
     $batch = BoincBatch::lookup_id($batch_id);
+    $app = BoincApp::lookup_id($batch->app_id);
+
+    page_head("Batch $batch_id");
+    start_table();
+    row2("name", $batch->name);
+    row2("application", $app->name);
+    row2("state", batch_state_string($batch->state));
+    row2("# jobs", $batch->njobs);
+    row2("# error jobs", $batch->nerror_jobs);
+    row2("progress", sprintf("%.0f%%", $batch->fraction_done*100));
+    if ($batch->completion_time) {
+        row2("completed", local_time_str($batch->completion_time));
+    }
+    row2("GFLOP/hours, estimated", number_format(credit_to_gflop_hours($batch->credit_estimate), 2));
+    row2("GFLOP/hours, actual", number_format(credit_to_gflop_hours($batch->credit_canonical), 2));
+    end_table();
+    $url = boinc_get_output_files_url($user, $batch_id);
+    show_button($url, "Get zipped output files");
+    switch ($batch->state) {
+    case BATCH_STATE_IN_PROGRESS:
+        echo "<br>";
+        show_button(
+            "submit.php?action=abort_batch_confirm&batch_id=$batch_id",
+            "Abort batch"
+        );
+        break;
+    case BATCH_STATE_COMPLETE:
+    case BATCH_STATE_ABORTED:
+        echo "<br>";
+        show_button(
+            "submit.php?action=retire_batch_confirm&batch_id=$batch_id",
+            "Retire batch"
+        );
+        break;
+    }
+    
+    echo "<h2>Jobs</h2>\n";
+    start_table();
+    table_header(
+        "Job ID<br><span class=note>click for details or to get output files</span>",
+        "status",
+        "Canonical instance<br><span class=note>click to see result page on BOINC server</span>"
+    );
+    $wus = BoincWorkunit::enum("batch = $batch->id");
+    foreach($wus as $wu) {
+        $resultid = $wu->canonical_resultid;
+        if ($resultid) {
+            $x = "<a href=result.php?resultid=$resultid>$resultid</a>";
+            $y = "completed";
+        } else {
+            $x = "---";
+            $y = "in progress";
+        }
+
+        echo "<tr>
+                <td><a href=submit.php?action=query_job&wuid=$wu->id>$wu->id</a></td>
+                <td>$y</td>
+                <td>$x</td>
+            </tr>
+        ";
+    }
+    end_table();
+    echo "<p><a href=submit.php>Return to job control page</a>\n";
+    page_tail();
+}
+
+// show the details of a job, including links to see the output files
+// 
+function handle_query_job($user) {
+    $wuid = get_int('wuid');
+
+    page_head("Job $wuid");
+
+    echo "<a href=workunit.php?wuid=$wuid>View workunit page</a>\n";
+
+    // show input files
+    //
+    echo "<h2>Input files</h2>\n";
+    $wu = BoincWorkunit::lookup_id($wuid);
+    $x = "<in>".$wu->xml_doc."</in>";
+    $x = simplexml_load_string($x);
+    start_table();
+    table_header("Logical name<br><span class=note>(click to view)</span>",
+        "Size (bytes)", "MD5"
+    );
+    $fanout = parse_config(get_config(), "<uldl_dir_fanout>");
+    foreach ($x->workunit->file_ref as $fr) {
+        $pname = (string)$fr->file_name;
+        $lname = (string)$fr->open_name;
+        $dir = filename_hash($pname, $fanout);
+        $path = "../../download/$dir/$pname";
+        $md5 = md5_file($path);
+        $s = stat($path);
+        $size = $s['size'];
+        table_row(
+            "<a href=/download/$dir/$pname>$lname</a>",
+            $size,
+            $md5
+        );
+    }
+    end_table();
+
+    echo "<h2>Instances</h2>\n";
+    start_table();
+    table_header(
+        "Instance ID<br><span class=note>click for result page</span>",
+        "State", "Output files"
+    );
+    $results = BoincResult::enum("workunitid=$wuid");
+    foreach($results as $result) {
+        echo "<tr>
+            <td><a href=result.php?resultid=$result->id>$result->id</a></td>
+            <td>".state_string($result)."</td>
+            <td>
+";
+        $i = 0;
+        if ($result->server_state == 5) {
+            $names = get_outfile_names($result);
+            $fanout = parse_config(get_config(), "<uldl_dir_fanout>");
+            $i = 0;
+            foreach ($names as $name) {
+                $url = boinc_get_output_file_url($user, $result, $i++);
+                $path = dir_hier_path($name, "../../upload", $fanout);
+                $s = stat($path);
+                $size = $s['size'];
+                echo "<a href=$url>$size bytes</a>";
+            }
+            $i++;
+        }
+        echo "</td></tr>\n";
+    }
+    end_table();
+    echo "<p><a href=submit.php>Return to job control page</a>\n";
+    page_tail();
+}
+
+function handle_abort_batch_confirm() {
+    $batch_id = get_int('batch_id');
+    page_head("Confirm abort batch");
+    echo "
+        Aborting a batch will cancel all unstarted jobs.
+        Are you sure you want to do this?
+        <p>
+    ";
+    show_button(
+        "submit.php?action=abort_batch&batch_id=$batch_id",
+        "Yes - abort batch"
+    );
+    echo "<p><a href=submit.php>Return to job control page</a>\n";
+    page_tail();
+}
+
+function handle_abort_batch() {
+    $batch_id = get_int('batch_id');
+    $batch = BoincBatch::lookup_id($batch_id);
+    if (!$batch) error("no such batch");
     if ($batch->user_id != $user->id) {
         error("not owner");
     }
     abort_batch($batch);
-    echo "<success>1</success>";
+    page_head("Batch aborted");
+    echo "<p><a href=submit.php>Return to job control page</a>\n";
+    page_tail();
 }
 
-function handle_retire_batch($r) {
-    list($user, $user_submit) = authenticate_user($r, null);
-    $batch_id = (int)($r->batch_id);
+function handle_retire_batch_confirm() {
+    $batch_id = get_int('batch_id');
+    page_head("Confirm retire batch");
+    echo "
+        Retiring a batch will remove all of its output files.
+        Are you sure you want to do this?
+        <p>
+    ";
+    show_button(
+        "submit.php?action=retire_batch&batch_id=$batch_id",
+        "Yes - retire batch"
+    );
+    echo "<p><a href=submit.php>Return to job control page</a>\n";
+    page_tail();
+}
+
+function handle_retire_batch() {
+    $batch_id = get_int('batch_id');
     $batch = BoincBatch::lookup_id($batch_id);
     if ($batch->user_id != $user->id) {
-        error("not owner");
+        error_page("not owner");
     }
     retire_batch($batch);
-    echo "<success>1</success>";
+    page_head("Batch retired");
+    echo "<p><a href=submit.php>Return to job control page</a>\n";
+    page_tail();
 }
 
-if (0) {
-$r = simplexml_load_string("
-<query_batch>
-    <authenticator>x</authenticator>
-    <batch_id>54</batch_id>
-</query_batch>
-");
-query_batch($r);
-exit;
-}
+$user = get_logged_in_user();
 
-if (0) {
-$r = simplexml_load_string("
-<query_job>
-    <authenticator>x</authenticator>
-    <job_id>312173</job_id>
-</query_job>
-");
-query_job($r);
-exit;
-}
+$action = get_str('action', true);
 
-if (0) {
-$r = simplexml_load_string("
-<submit_batch>
-    <authenticator>x</authenticator>
-    <batch>
-    <app_name>remote_test</app_name>
-    <batch_name>Aug 6 batch 2</batch_name>
-    <job>
-        <rsc_fpops_est>19000000000</rsc_fpops_est>
-        <command_line>--t 19</command_line>
-        <input_file>
-            <source>http://google.com/</source>
-        </input_file>
-    </job>
-    </batch>
-</submit_batch>
-");
-submit_batch($r);
-exit;
-}
-
-xml_header();
-$r = simplexml_load_string($_POST['request']);
-
-if (!$r) {
-    error("can't parse request message");
-}
-
-switch ($r->getName()) {
-    case 'estimate_batch': estimate_batch($r); break;
-    case 'submit_batch': submit_batch($r); break;
-    case 'query_batches': query_batches($r); break;
-    case 'query_batch': query_batch($r); break;
-    case 'query_job': query_job($r); break;
-    case 'abort_batch': handle_abort_batch($r); break;
-    case 'retire_batch': handle_retire_batch($r); break;
-    default: error("bad command");
+switch ($action) {
+case '': handle_main($user); break;
+case 'abort_batch': handle_abort_batch(); break;
+case 'abort_batch_confirm': handle_abort_batch_confirm(); break;
+case 'query_batch': handle_query_batch($user); break;
+case 'query_job': handle_query_job($user); break;
+case 'retire_batch': handle_retire_batch(); break;
+case 'retire_batch_confirm': handle_retire_batch_confirm(); break;
+default:
+    error_page('no such action');
 }
 
 ?>

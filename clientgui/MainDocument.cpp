@@ -486,11 +486,11 @@ int CMainDocument::OnInit() {
      wxASSERT(m_pRPC_Request_Condition);
   
     m_RPCThread = new RPCThread(this, 
-                                m_pRPC_Thread_Mutex, 
-                                m_pRPC_Thread_Condition, 
-                                m_pRPC_Request_Mutex, 
-                                m_pRPC_Request_Condition
-                    );
+        m_pRPC_Thread_Mutex, 
+        m_pRPC_Thread_Condition, 
+        m_pRPC_Request_Mutex, 
+        m_pRPC_Request_Condition
+    );
     wxASSERT(m_RPCThread);
 
     iRetVal = m_RPCThread->Create();
@@ -1456,7 +1456,8 @@ RESULT* CMainDocument::result(unsigned int i) {
     return pResult;
 }
 
-/* get the result not by index, but by name */
+// get the result not by index, but by name
+//
 RESULT* CMainDocument::result(const wxString& name, const wxString& project_url) {
     RESULT* pResult = NULL;
 
@@ -1526,8 +1527,8 @@ int CMainDocument::WorkResume(char* url, char* name) {
 
 // If the graphics application for the current task is already 
 // running, return a pointer to its RUNNING_GFX_APP struct.
-RUNNING_GFX_APP* CMainDocument::GetRunningGraphicsApp(RESULT* result, int slot)
-{
+//
+RUNNING_GFX_APP* CMainDocument::GetRunningGraphicsApp(RESULT* result, int slot) {
     bool exited = false;
     std::vector<RUNNING_GFX_APP>::iterator gfx_app_iter;
     
@@ -1570,8 +1571,7 @@ RUNNING_GFX_APP* CMainDocument::GetRunningGraphicsApp(RESULT* result, int slot)
 
 
 // Kill any running graphics apps whose worker tasks aren't running
-void CMainDocument::KillInactiveGraphicsApps()
-{
+void CMainDocument::KillInactiveGraphicsApps() {
 /*
     std::vector<RUNNING_GFX_APP>::iterator gfx_app_iter;
     unsigned int i;
@@ -1660,10 +1660,14 @@ void CMainDocument::KillGraphicsApp(int pid) {
 }
 #endif
 
-int CMainDocument::WorkShowGraphics(RESULT* result)
-{
+int CMainDocument::WorkShowGraphics(RESULT* result) {
     int iRetVal = 0;
     
+    if (strlen(result->web_graphics_url)) {
+        wxString url(result->web_graphics_url, wxConvUTF8);
+        wxLaunchDefaultBrowser(url);
+        return 0;
+    }
     if (strlen(result->graphics_exec_path)) {
         // V6 Graphics
         RUNNING_GFX_APP gfx_app;
@@ -1734,7 +1738,7 @@ int CMainDocument::WorkShowGraphics(RESULT* result)
         // If graphics app is already running, don't launch a second instance
         //
         if (previous_gfx_app) return 0;
-        argv[0] =0;
+        argv[0] = 0;
         
         iRetVal = run_program(
             result->slot_path,
@@ -1753,6 +1757,53 @@ int CMainDocument::WorkShowGraphics(RESULT* result)
             m_running_gfx_apps.push_back(gfx_app);
         }
     }
+    return iRetVal;
+}
+
+
+int CMainDocument::WorkShowVMConsole(RESULT* result) {
+    int iRetVal = 0;
+    
+    if (strlen(result->remote_desktop_addr)) {
+        wxString strConnection(result->remote_desktop_addr, wxConvUTF8);
+        wxString strCommand;
+
+#if   defined(__WXMSW__)
+        strCommand = wxT("mstsc.exe /v:") + strConnection;
+        wxExecute(strCommand);
+#elif defined(__WXGTK__)
+        strCommand = wxT("rdesktop-vrdp ") + strConnection;
+        wxExecute(strCommand);
+#elif defined(__WXMAC__)
+    FSRef theFSRef;
+    OSStatus status = noErr;
+
+    // I have found no reliable way to pass the IP address and port to Microsoft's 
+    // Remote Desktop Connection application for the Mac, so I'm using CoRD.  
+    // Unfortunately, CoRD does not seem as reliable as I would like either.
+    //
+    // First try to find the CoRD application by Bundle ID and Creator Code
+    status = LSFindApplicationForInfo('RDC#', CFSTR("net.sf.cord"),   
+                                        NULL, &theFSRef, NULL);
+    if (status != noErr) {
+        CBOINCBaseFrame* pFrame = wxGetApp().GetFrame();
+        if (pFrame) {
+            pFrame->ShowAlert(
+                _("Missing application"), 
+                _("Please download and install the CoRD application from http://cord.sourceforge.net"),
+                wxOK | wxICON_INFORMATION,
+                    false
+                );
+        } 
+        return ERR_FILE_MISSING;
+    }
+
+    strCommand = wxT("osascript -e 'tell application \"CoRD\"' -e 'activate' -e 'open location \"rdp://") + strConnection + wxT("\"' -e 'end tell'");
+    strCommand.Replace(wxT("localhost"), wxT("127.0.0.1"));
+    system(strCommand.char_str());
+#endif
+    }
+
     return iRetVal;
 }
 
@@ -2429,6 +2480,9 @@ wxString result_description(RESULT* result, bool show_resources) {
         }
         if (result->scheduler_wait) {
             strBuffer += _(" (Scheduler wait)");
+        }
+        if (result->network_wait) {
+            strBuffer += _(" (Waiting for network access)");
         }
         break;
     case RESULT_COMPUTE_ERROR:

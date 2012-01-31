@@ -19,7 +19,7 @@
 
 ##
 # Script to convert Macintosh BOINC installer to Progress Thru Processors Desktop installer
-# updated 2/17/11 by Charlie Fenton for BOINC 6.12.7 and later
+# updated 12/14/11 by Charlie Fenton for BOINC 6.8.34 / 6.12.44 / 7.0.3 and later
 ##
 
 ## Usage:
@@ -28,7 +28,7 @@
 ##     the Uninstall BOINC application to be converted
 ##     PTP_ReadMe.rtf
 ##     ProgThruProc.icns
-##     MacPTPPkgIcon.zip
+##     PTP_install.icns
 ##     PTP_uninstall.icns
 ##     COPYING
 ##     COPYING.LESSER
@@ -65,7 +65,7 @@ README_FILE="PTP-ReadMe.rtf"
 ## BRANDING_FILE="PTP-Branding"
 BRANDING_INFO="BrandId=2"
 ICNS_FILE="ProgThruProc.icns"
-INSTALLER_ICNS_FILE="MacPTPPkgIcon.zip"
+INSTALLER_ICNS_FILE="PTP_install.icns"
 UNINSTALLER_ICNS_FILE="PTP_uninstall.icns"
 SAVER_DIR="PTP_saver"
 SAVER_SYSPREF_ICON="ProgThruProc.tiff"
@@ -73,7 +73,9 @@ SAVER_LOGO="ProgThruProc_ss_logo.png"
 BRAND_NAME="Progress Thru Processors"
 MANAGER_NAME="Progress Thru Processors Desktop"
 LC_BRAND_NAME="Progress Thru Processors"
-SOURCE_PKG_PATH="BOINC Installer.pkg/Contents"
+SOURCE_PKG_PATH="BOINC Installer.app/Contents/Resources/BOINC.pkg/Contents"
+ZIP_BRAND_NAME="ptp"
+
 
 if [ $# -lt 3 ]; then
 echo "Usage:"
@@ -296,24 +298,39 @@ plutil -convert xml1 "`pwd`/${NEW_DIR_PATH}/Pkg-Info.plist"
 defaults write "`pwd`/${NEW_DIR_PATH}/Description" "IFPkgDescriptionTitle" "$MANAGER_NAME"
 plutil -convert xml1 "`pwd`/${NEW_DIR_PATH}/Description.plist"
 
-# Build the installer package
+# Copy the installer wrapper application "${BRAND_NAME} Installer.app"
+sudo cp -fpR "BOINC Installer.app" "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.app"
+sudo rm -dfR "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.app/Contents/Resources/BOINC.pkg"
+
+# Update the installer wrapper application's info.plist, InfoPlist.strings files
+sudo sed -i "" s/BOINC/"${BRAND_NAME}"/g "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.app/Contents/Info.plist"
+sudo sed -i "" s/MacInstaller.icns/"${INSTALLER_ICNS_FILE}"/g "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.app/Contents/Info.plist"
+sudo chmod a+w "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.app/Contents/Resources/English.lproj/InfoPlist.strings"
+sudo iconv -f UTF-16 -t UTF-8 "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.app/Contents/Resources/English.lproj/InfoPlist.strings" > "${PR_PATH}/tempUTF84"
+sudo sed -i "" s/BOINC/"${MANAGER_NAME}"/g "${PR_PATH}/tempUTF84"
+sudo iconv -f UTF-8 -t UTF-16 "${PR_PATH}/tempUTF84" > "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.app/Contents/Resources/English.lproj/InfoPlist.strings"
+sudo rm -f "${PR_PATH}/tempUTF84"
+
+# Replace the installer wrapper application's MacInstaller.icns file
+sudo cp -fp "${INSTALLER_ICNS_FILE}" "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.app/Contents/Resources/${INSTALLER_ICNS_FILE}"
+sudo rm -f "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.app/Contents/Resources/MacInstaller.icns"
+
+# Rename the installer wrapper application's executable inside the bundle
+sudo mv -f "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.app/Contents/MacOS/BOINC Installer" "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.app/Contents/MacOS/${BRAND_NAME} Installer"
+
+# Build the installer package inside the wrapper application's bundle
 if [ "$PACKAGEMAKER_VERSION" = "3" ]; then
     # Packagemaker Version 3
-##  /Developer/usr/bin/packagemaker -r ../BOINC_Installer/Pkg_Root -e ../BOINC_Installer/Installer\ Resources/ -s ../BOINC_Installer/Installer\ Scripts/ -f mac_build/Pkg-Info.plist -t "BOINC Manager" -n "$1.$2.$3" -b -o ../BOINC_Installer/New_Release_$1_$2_$3/boinc_$1.$2.$3_macOSX_universal/BOINC\ Installer.pkg
-    /Developer/usr/bin/packagemaker -r "${PR_PATH}" -e "${IR_PATH}" -s "${SCRIPTS_PATH}" -f "${NEW_DIR_PATH}/Pkg-Info.plist" -t "${MANAGER_NAME}" -n "$1.$2.$3" -b -o "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.pkg"
+##  /Developer/usr/bin/packagemaker -r ../BOINC_Installer/Pkg_Root -e ../BOINC_Installer/Installer\ Resources/ -s ../BOINC_Installer/Installer\ Scripts/ -f mac_build/Pkg-Info.plist -t "BOINC Manager" -n "$1.$2.$3" -b -o ../BOINC_Installer/New_Release_$1_$2_$3/boinc_$1.$2.$3_macOSX_universal/BOINC\ Installer.app/Contents/Resources/BOINC.pkg
+    /Developer/usr/bin/packagemaker -r "${PR_PATH}" -e "${IR_PATH}" -s "${SCRIPTS_PATH}" -f "${NEW_DIR_PATH}/Pkg-Info.plist" -t "${MANAGER_NAME}" -n "$1.$2.$3" -b -o "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.app/Contents/Resources/${BRAND_NAME}.pkg"
     # Remove TokenDefinitions.plist and IFPkgPathMappings in Info.plist, which would cause installer to find a previous copy of ${MANAGER_NAME} and install there
-    sudo rm -f "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.pkg/Contents/Resources/TokenDefinitions.plist"
-    defaults delete "`pwd`/${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.pkg/Contents/Info" IFPkgPathMappings
+    sudo rm -f "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.app/Contents/Resources/${BRAND_NAME}.pkg/Contents/Resources/TokenDefinitions.plist"
+    defaults delete "`pwd`/${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.app/Contents/Resources/${BRAND_NAME}.pkg/Contents/Info" IFPkgPathMappings
 else
     # Packagemaker Version 2
-##  /Developer/Tools/packagemaker -build -p ../BOINC_Installer/New_Release_$1_$2_$3/boinc_$1.$2.$3_macOSX_universal/BOINC\ Installer.pkg -f ../BOINC_Installer/Pkg_Root -r ../BOINC_Installer/Installer\ Resources/ -i mac_build/Pkg-Info.plist -d mac_Installer/Description.plist -ds 
-    /Developer/Tools/packagemaker -build -p "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.pkg" -f "${PR_PATH}" -r "${IR_PATH}" -i "${NEW_DIR_PATH}/Pkg-Info.plist" -d "${NEW_DIR_PATH}/Description.plist" -ds 
+##  /Developer/Tools/packagemaker -build -p ../BOINC_Installer/New_Release_$1_$2_$3/boinc_$1.$2.$3_macOSX_universal/BOINC\ Installer.app/Contents/Resources/BOINC.pkg -f ../BOINC_Installer/Pkg_Root -r ../BOINC_Installer/Installer\ Resources/ -i mac_build/Pkg-Info.plist -d mac_Installer/Description.plist -ds 
+    /Developer/Tools/packagemaker -build -p "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.app/Contents/Resources/${BRAND_NAME}.pkg" -f "${PR_PATH}" -r "${IR_PATH}" -i "${NEW_DIR_PATH}/Pkg-Info.plist" -d "${NEW_DIR_PATH}/Description.plist" -ds 
 fi
-
-# Add our custom icon to installer package
-ditto -xk "${INSTALLER_ICNS_FILE}" "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.pkg"
-SetFile -a CE "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.pkg"
-SetFile -a V  "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.pkg/"Icon*
 
 ## for debugging
 ## if [  $? -ne 0 ]; then
@@ -325,6 +342,12 @@ SetFile -a V  "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAN
 ## echo "********** End /Pkg-Info.plist File contents *************"
 ## echo ""
 ## fi
+
+# Allow the installer wrapper application to modify the package's Info.plist file
+sudo chmod u+w,g+w,o+w "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.app/Contents/Resources/${BRAND_NAME}.pkg/Contents/Info.plist"
+
+# Update the installer wrapper application's creation date
+sudo touch "${NEW_DIR_PATH}/${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal/${BRAND_NAME} Installer.app"
 
 # Remove temporary copies of Pkg-Info.plist and Description.plist
 sudo rm ${NEW_DIR_PATH}/Pkg-Info.plist
@@ -338,15 +361,15 @@ sudo rm -dfR "${SCRIPTS_PATH}"
 # Compress the products
 cd ${NEW_DIR_PATH}
 ## Use ditto instead of zip utility to preserve resource forks and Finder attributes (custom icon, hide extension) 
-ditto -ck --sequesterRsrc --keepParent "${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal" "${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal.zip"
+ditto -ck --sequesterRsrc --keepParent "${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal" "${ZIP_BRAND_NAME}_$1.$2.$3_macOSX_universal.zip"
 ##### We've decided not to create branded command-line executables; they are identical to standard ones
-#### ditto -ck --sequesterRsrc --keepParent "${LC_BRAND_NAME}_$1.$2.$3_universal-apple-darwin" "${LC_BRAND_NAME}_$1.$2.$3_universal-apple-darwin.zip"
+#### ditto -ck --sequesterRsrc --keepParent "${LC_BRAND_NAME}_$1.$2.$3_universal-apple-darwin" "${ZIP_BRAND_NAME}_$1.$2.$3_universal-apple-darwin.zip"
 ##### We've decided not to create branded symbol table file; it is identical to standard one
-#### ditto -ck --sequesterRsrc --keepParent "${LC_BRAND_NAME}_$1.$2.$3_macOSX_SymbolTables" "${LC_BRAND_NAME}_$1.$2.$3_macOSX_SymbolTables.zip"
+#### ditto -ck --sequesterRsrc --keepParent "${LC_BRAND_NAME}_$1.$2.$3_macOSX_SymbolTables" "${ZIP_BRAND_NAME}_$1.$2.$3_macOSX_SymbolTables.zip"
 
 # Force Finder to recognize changed icons by deleting the uncompressed products and expanding the zip file 
 sudo rm -dfR "${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal"
-open "${LC_BRAND_NAME}_$1.$2.$3_macOSX_universal.zip"
+open "${ZIP_BRAND_NAME}_$1.$2.$3_macOSX_universal.zip"
 
 popd
 exit 0
