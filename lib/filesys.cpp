@@ -480,6 +480,13 @@ FILE* boinc_fopen(const char* path, const char* mode) {
     return f;
 }
 
+int boinc_flush(FILE* f) {
+#ifdef _WIN32
+    return _commit(fileno(f));
+#else
+    return fsync(fileno(f));
+#endif /* _WIN32 */
+}
 
 int boinc_file_exists(const char* path) {
     struct stat buf;

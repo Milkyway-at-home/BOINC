@@ -664,6 +664,11 @@ void boinc_exit(int status) {
     BOINCINFO("Exit Status: %d", status);
     fflush(NULL);
 
+    // Ensure redirected stderr file is written to disk; fflush is
+    // insufficient
+    if (diagnostics_is_flag_set(BOINC_DIAG_REDIRECTSTDERR))
+        boinc_flush(stderr);
+
 #if defined(_WIN32)
     // Halt all the threads and clean up.
     TerminateProcess(GetCurrentProcess(), status);

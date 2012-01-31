@@ -46,6 +46,7 @@ extern "C" {
   extern int boinc_delete_file(const char*);
   extern int boinc_touch_file(const char *path);
   extern FILE* boinc_fopen(const char* path, const char* mode);
+  extern int boinc_flush(FILE*);
   extern int boinc_copy(const char* orig, const char* newf);
   extern int boinc_rename(const char* old, const char* newf);
   extern int boinc_mkdir(const char*);
