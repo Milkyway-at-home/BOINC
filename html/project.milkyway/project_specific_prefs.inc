@@ -53,7 +53,7 @@ define("MAX_GFX_CPU_PCT_DESC", tra("Maximum CPU % for graphics%10 ... 100%2", "<
 define('APP_SELECT_DESC', tra('Run only the selected applications'));
 define('ACCEPT_ANY_DESC', tra('If no work for selected applications is available, accept work from other applications?'));
 
-define('GPU_TARGET_FREQUENCY_DESC', tra('Frequency (in Hz) that should try to complete individual work chunks. Higher numbers may run slower but will provide a more responsive system. Lower may be faster but more laggy. %1default 30.0 (corresponds to 30 fps)%2', "<br><span class=note>", "</span>"));
+define('GPU_TARGET_FREQUENCY_DESC', tra('Frequency (in Hz) that should try to complete individual work chunks. Higher numbers may run slower but will provide a more responsive system. Lower may be faster but more laggy. %1default 60.0 (corresponds to 60 fps)%2', "<br><span class=note>", "</span>"));
 define('GPU_NONRESPONSIVE_DESC', tra('WARNING: Be careful with this option. Ignore any responsiveness requirements for GPU workunits. This could result in an unusable system while it is running.'));
 define('GPU_PRIORITY_DESC', tra('Optionally change the process priority that a GPU application will use'));
 define('GPU_DISABLE_CHECKPOINTING_DESC', tra('Disable main checkpointing for GPU applications.'));
@@ -102,7 +102,7 @@ function project_specific_prefs_default() {
     }
 
     if (GPU_TARGET_FREQUENCY_PREF) {
-        $x .= "<gpu_target_frequency>30.0</gpu_target_frequency>\n";
+        $x .= "<gpu_target_frequency>60.0</gpu_target_frequency>\n";
     }
 
     if (GPU_NONRESPONSIVE_PREF) {
