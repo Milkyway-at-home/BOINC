@@ -2,10 +2,10 @@
 <boinc>
   <config>
     <uldl_pid>
-      /var/run/httpd.pid
+      /var/run/apache2.pid
     </uldl_pid>
     <upload_dir>
-      /export/www/boinc/milkyway/upload
+      /boinc/milkyway/upload
     </upload_dir>
     <long_name>
       Milkyway@Home
@@ -16,10 +16,10 @@
     <shmem_work_items>50</shmem_work_items>
     <feeder_query_size>100</feeder_query_size>
     <sched_debug_level>
-      1
+     1
     </sched_debug_level>
     <prefer_primary_platform>
-      1
+     1
     </prefer_primary_platform>
     <debug_version_select>
       1
@@ -40,13 +40,13 @@
       /tmp/mysql.sock
     </db_sock>
     <app_dir>
-      /export/www/boinc/milkyway/apps
+      /boinc/milkyway/apps
     </app_dir>
     <download_dir>
-      /export/www/boinc/milkyway/download
+      /boinc/milkyway/download
     </download_dir>
     <log_dir>
-      /export/www/boinc/milkyway/log_milkyway
+      /boinc/milkyway/log_milkyway
     </log_dir>
     <fuh_debug_level>
       0
@@ -67,21 +67,21 @@
       1
     </show_results>
     <key_dir>
-      /export/www/boinc/milkyway/keys/
+      /boinc/milkyway/keys/
     </key_dir>
     <dont_generate_file_upload_certificates/>
     <ignore_upload_certifcates/>
     <upload_url>
-      http://milkyway.rpi.edu/milkyway_cgi/file_upload_handler
+      http://milkyway.cs.rpi.edu/milkyway_cgi/file_upload_handler
     </upload_url>
     <db_passwd>
-      placeholder
+
     </db_passwd>
     <min_sendwork_interval>
       60
     </min_sendwork_interval>
     <db_host>
-      localhost
+    localhost
     </db_host>
     <daily_result_quota>
       10000
@@ -96,13 +96,13 @@
       1
     </send_result_abort>
     <max_wus_to_send>
-      50
+      100
     </max_wus_to_send>
     <max_wus_in_progress>
       3
     </max_wus_in_progress>
     <max_wus_in_progress_gpu>
-      12
+      40
     </max_wus_in_progress_gpu>
     <max_ncpus>
       16
@@ -120,10 +120,10 @@
       50
     </profile_min_credit>
     <recaptcha_public_key>
-      placeholder
+
     </recaptcha_public_key>
     <recaptcha_private_key>
-      placeholder
+
     </recaptcha_private_key>
     <nowork_skip>
       1
@@ -146,7 +146,7 @@
         update_uotd.out
       </output>
       <cmd>
-		/export/www/boinc/milkyway/bin/run_in_ops5 update_uotd.php
+	run_in_ops update_uotd.php
       </cmd>
       <period>
         23 hours
@@ -157,18 +157,18 @@
         update_profile_pages.out
       </output>
       <cmd>
-		/export/www/boinc/milkyway/bin/run_in_ops5 update_profile_pages.php
+	run_in_ops update_profile_pages.php
       </cmd>
       <period>
         23 hours
       </period>
     </task>
-    <task>
+   <task>
       <output>
         update_forum_activities.out
       </output>
       <cmd>
-		/export/www/boinc/milkyway/bin/run_in_ops5 update_forum_activities.php
+	run_in_ops update_forum_activities.php
       </cmd>
       <period>
         23 hours
@@ -190,7 +190,7 @@
         team_import.out
       </output>
       <cmd>
-		/export/www/boinc/milkyway/bin/run_in_ops5 team_import.php
+	run_in_ops team_import.php
       </cmd>
       <period>
         23 hours
@@ -201,7 +201,7 @@
         notify.out
       </output>
       <cmd>
-		/export/www/boinc/milkyway/bin/run_in_ops5 notify.php
+	run_in_ops notify.php
       </cmd>
       <period>
         23 hours
@@ -222,25 +222,25 @@
 
     <daemon>
       <cmd>
-        milkyway_purge -max_wu_per_file 10000 -no_archive -min_age_days 0.5
+	db_purge -max_wu_per_file 10000 -no_archive -min_age_days 2
       </cmd>
     </daemon>
     <daemon>
       <cmd>
-        file_deleter -d 1
-      </cmd>
-    </daemon>
-
-    <daemon>
-      <cmd>
-        separation_assimilator -cp /export/www/boinc/:/export/www/boinc/mysql-connector-java-5.1.12-bin.jar:/export/www/boinc/jboinc/fast-md5/src/ -Dapplication=milkyway -Ddatabase=milkyway -DcreditFromWorkunit -DcreditModifier=1.0 -DmaxTotalWorkunits=600000 milkyway_separation_assimilator.MilkywayValidator 500
+	file_deleter -d 1
       </cmd>
     </daemon>
 
     <daemon>
-      <cmd>
-        nbody_assimilator -cp /export/www/boinc/:/export/www/boinc/mysql-connector-java-5.1.12-bin.jar:/export/www/boinc/jboinc/fast-md5/src/ -DdebugCredit -Dapplication=milkyway_nbody -Ddatabase=milkyway -DcreditModifier=5.0 -DmaxTotalWorkunits=600000 milkyway_nbody_assimilator.NBodyValidator 500
-      </cmd>
+    <cmd>
+    separation_assimilator -cp /boinc/src:/usr/share/java/fast-md5.jar:/usr/share/java/mysql.jar:/usr/share/java/mysql-connector-java.jar  -Dapplication=milkyway -Ddatabase=milkyway -DcreditFromWorkunit -DcreditModifier=1.0 -DmaxTotalWorkunits=4000000 milkyway_separation_assimilator.MilkywayValidator 500
+    </cmd>
+    </daemon>
+
+    <daemon>
+    <cmd>
+    nbody_assimilator -cp /boinc/src:/usr/share/java/fast-md5.jar:/usr/share/java/mysql.jar:/usr/share/java/mysql-connector-java.jar -DdebugCredit -Dapplication=milkyway_nbody -Ddatabase=milkyway -DcreditModifier=5.0 -DmaxTotalWorkunits=4000000 milkyway_nbody_assimilator.NBodyValidator 500
+    </cmd>
     </daemon>
   </daemons>
 </boinc>
