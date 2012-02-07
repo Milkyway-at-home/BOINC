@@ -60,7 +60,7 @@
 #if HAVE_SYS_STATVFS_H
 #include <sys/statvfs.h>
 #define STATFS statvfs
-#elif defined(HAVE_SYS_STATFS_H)
+#elif HAVE_SYS_STATFS_H
 #include <sys/statfs.h>
 #define STATFS statfs
 #else
