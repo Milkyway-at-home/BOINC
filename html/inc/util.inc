@@ -791,7 +791,7 @@ function get_app_types() {
     $t->count = 0;
     $avs = BoincAppVersion::enum("deprecated=0");
     foreach ($avs as $av) {
-        if (strstr($av->plan_class, "ati")) {
+        if (strstr($av->plan_class, "amd") || strstr($av->plan_class, "ati")) {
             $t->ati = true;
             $t->count++;
         } else if (strstr($av->plan_class, "cuda")) {
