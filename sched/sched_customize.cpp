@@ -121,7 +121,7 @@ static inline void coproc_perf(
 
 // the following is for an app that can use anywhere from 1 to 64 threads
 //
-static inline bool app_plan_mt(SCHEDULER_REQUEST&, HOST_USAGE& hu) {
+static inline bool app_plan_mt(SCHEDULER_REQUEST& sreq, HOST_USAGE& hu) {
     double ncpus = g_wreq->effective_ncpus;
         // number of usable CPUs, taking user prefs into account
     if (ncpus < 2) return false;

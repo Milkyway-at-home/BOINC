@@ -304,7 +304,8 @@ int handle_file_upload(FILE* in, R_RSA_PUBLIC_KEY& key) {
             "<name>%s</name><max_nbytes>%.0f</max_nbytes>",
             name, max_nbytes
         );
-        retval = verify_string(
+
+        retval = check_string_signature(
             signed_xml, xml_signature, key, is_valid
         );
         if (retval || !is_valid) {
