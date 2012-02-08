@@ -69,16 +69,18 @@
 using std::vector;
 using std::string;
 
-#include "filesys.h"
+#include "base64.h"
 #include "error_numbers.h"
-#include "util.h"
-#include "str_util.h"
-#include "str_replace.h"
+#include "filesys.h"
 #include "shmem.h"
+#include "str_replace.h"
+#include "str_util.h"
+#include "util.h"
+
+#include "async_file.h"
 #include "client_msgs.h"
 #include "client_state.h"
 #include "file_names.h"
-#include "base64.h"
 #include "sandbox.h"
 #include "unix_util.h"
 
@@ -251,9 +253,12 @@ void ACTIVE_TASK::init_app_init_data(APP_INIT_DATA& aid) {
             k = 0;
         }
         aid.gpu_device_num = cp.device_nums[k];
+        aid.gpu_opencl_dev_index = cp.opencl_device_indexes[k];
     } else {
         strcpy(aid.gpu_type, "");
         aid.gpu_device_num = -1;
+        aid.gpu_opencl_dev_index = -1;
+
     }
     aid.ncpus = app_version->avg_ncpus;
     aid.checkpoint_period = gstate.global_prefs.disk_interval;
@@ -375,13 +380,25 @@ int ACTIVE_TASK::setup_file(
 
     if (must_copy_file(fref, is_io_file)) {
         if (input) {
-            retval = boinc_copy(file_path, link_path);
-            if (retval) {
-                msg_printf(project, MSG_INTERNAL_ERROR,
-                    "Can't copy %s to %s: %s", file_path, link_path,
-                    boincerror(retval)
-                );
-                return retval;
+            // the file may be there already (async copy case)
+            //
+            if (boinc_file_exists(link_path)) {
+                return 0;
+            }
+            if (fip->nbytes > 0) {
+                ASYNC_COPY* ac = new ASYNC_COPY;
+                retval = ac->init(this, file_path, link_path);
+                if (retval) return retval;
+                return ERR_IN_PROGRESS;
+            } else {
+                retval = boinc_copy(file_path, link_path);
+                if (retval) {
+                    msg_printf(project, MSG_INTERNAL_ERROR,
+                        "Can't copy %s to %s: %s", file_path, link_path,
+                        boincerror(retval)
+                    );
+                    return retval;
+                }
             }
 #ifdef SANDBOX
             return set_to_project_group(link_path);
@@ -475,7 +492,16 @@ int ACTIVE_TASK::start(bool first_time) {
     int retval, rt;
     APP_INIT_DATA aid;
 
-    // if this job less than one CPU, run it at above idle priority
+    if (async_copy) {
+        if (log_flags.task_debug) {
+            msg_printf(wup->project, MSG_INFO,
+                "ACTIVE_TASK::start(): async file copy already in progress"
+            );
+        }
+        return 0;
+    }
+
+    // if this job uses less than one CPU, run it at above idle priority
     //
     bool high_priority = (app_version->avg_ncpus < 1);
 
@@ -500,6 +526,9 @@ int ACTIVE_TASK::start(bool first_time) {
 
     graphics_request_queue.init(result->name);        // reset message queues
     process_control_queue.init(result->name);
+
+    bytes_sent = 0;
+    bytes_received = 0;
 
     if (!app_client_shm.shm) {
         retval = get_shmem_seg_name();
@@ -548,7 +577,10 @@ int ACTIVE_TASK::start(bool first_time) {
         //
         if (first_time || wup->project->anonymous_platform) {
             retval = setup_file(fip, fref, file_path, true, false);
-            if (retval) {
+            if (retval == ERR_IN_PROGRESS) {
+                set_task_state(PROCESS_COPY_PENDING, "start");
+                return 0;
+            } else if (retval) {
                 strcpy(buf, "Can't link app version file");
                 goto error;
             }
@@ -568,7 +600,10 @@ int ACTIVE_TASK::start(bool first_time) {
             fip = fref.file_info;
             get_pathname(fref.file_info, file_path, sizeof(file_path));
             retval = setup_file(fip, fref, file_path, true, true);
-            if (retval) {
+            if (retval == ERR_IN_PROGRESS) {
+                set_task_state(PROCESS_COPY_PENDING, "start");
+                return 0;
+            } else if (retval) {
                 strcpy(buf, "Can't link input file");
                 goto error;
             }
@@ -1086,12 +1121,13 @@ int ACTIVE_TASK::resume_or_start(bool first_time) {
             sprintf(buf, " (%s)", app_version->plan_class);
         }
         msg_printf(result->project, MSG_INFO,
-            "%s task %s using %s version %d%s",
+            "%s task %s using %s version %d%s in slot %d",
             str,
             result->name,
             app_version->app->name,
             app_version->version_num,
-            buf
+            buf,
+            slot
         );
     }
     return 0;
@@ -1172,4 +1208,3 @@ int ACTIVE_TASK::is_native_i386_app(char* exec_path) {
     return result;
 }
 #endif
-

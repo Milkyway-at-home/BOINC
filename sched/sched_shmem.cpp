@@ -184,7 +184,7 @@ int SCHED_SHMEM::scan_tables() {
     }
 
     n = 0;
-    while (!assignment.enumerate()) {
+    while (!assignment.enumerate("multi <> 0")) {
         assignments[n++] = assignment;
         if (n == MAX_ASSIGNMENTS) {
             overflow("assignments", "MAX_ASSIGNMENTS");
@@ -298,6 +298,14 @@ void SCHED_SHMEM::show(FILE* f) {
         "rs: result ID\n"
         "hr: HR class\n"
         "nr: need reliable\n"
+    );
+    fprintf(f,
+        "host fpops mean %f stddev %f\n",
+        perf_info.host_fpops_mean, perf_info.host_fpops_stddev
+    );
+    fprintf(f,
+        "host fpops 50th pctile %f 95th pctile %f\n",
+        perf_info.host_fpops_50_percentile, perf_info.host_fpops_95_percentile
     );
     fprintf(f, "ready: %d\n", ready);
     fprintf(f, "max_wu_results: %d\n", max_wu_results);

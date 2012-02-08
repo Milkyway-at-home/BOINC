@@ -51,10 +51,18 @@ CViewNotices::CViewNotices(wxNotebook* pNotebook) :
     //
     // Setup View
     //
+    wxFlexGridSizer* itemFlexGridSizer = new wxFlexGridSizer(1, 1, 0);
+    wxASSERT(itemFlexGridSizer);
+
+    itemFlexGridSizer->AddGrowableRow(0);
+    itemFlexGridSizer->AddGrowableCol(0);
+
 	m_pHtmlListPane = new CNoticeListCtrl(this);
 	wxASSERT(m_pHtmlListPane);
 
-    Initialize(m_pHtmlListPane);
+    itemFlexGridSizer->Add(m_pHtmlListPane, 1, wxGROW|wxALL, 1);
+
+    SetSizer(itemFlexGridSizer);
 }
 
 

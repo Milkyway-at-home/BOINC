@@ -16,17 +16,27 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with BOINC.  If not, see <http://www.gnu.org/licenses/>.
 
-// Remote job submission API.
+// BOINC's remote job submission system allows users to:
+// 1) manage a set of files on the server,
+//    with physical names that are isolated from other users
+// 2) submit batches of jobs
+//
+// These features can be provided by a "portal" web site
+// that is distinct from the BOINC server.
+//
+// This file contains library functions that can be used by portals.
+// It communicates (using HTTP/XML) with the BOINC server.
+//
 // Functions:
-//      boinc_estimate_batch(); esimate completion time of a batch of jobs
-//      boinc_submit_batch(): submit a batch
-//      boinc_query_batches(): get list of batches
-//      boinc_query_batch(): get detaills of a batch
-//      boinc_query_job(): get details of a job
 //      boinc_abort_batch(): abort a batch
+//      boinc_estimate_batch(); estimate completion time of a batch
 //      boinc_get_output_file(): get the URL for an output file
 //      boinc_get_output_files(): get the URL for zipped batch output
+//      boinc_query_batch(): get detaills of a batch
+//      boinc_query_batches(): get list of batches
+//      boinc_query_job(): get details of a job
 //      boinc_retire_batch(): retire a batch; delete output files
+//      boinc_submit_batch(): submit a batch
 
 //// Implementation stuff follows
 
@@ -71,7 +81,7 @@ function validate_request($req) {
 }
 
 function do_http_op($project, $xml) {
-    $ch = curl_init("$project/submit.php");
+    $ch = curl_init("$project/submit_rpc_handler.php");
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, "request=$xml");
@@ -291,6 +301,5 @@ if (0) {
         print_r($jobs);
     }
 }
-
 
 ?>

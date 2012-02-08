@@ -1162,6 +1162,7 @@ int HOST::parse(XML_PARSER& xp) {
         if (xp.parse_double("n_bwdown", n_bwdown)) continue;
         if (xp.parse_str("p_features", p_features, sizeof(p_features))) continue;
         if (xp.parse_str("virtualbox_version", virtualbox_version, sizeof(virtualbox_version))) continue;
+        if (xp.parse_bool("p_vm_extensions_disabled", p_vm_extensions_disabled)) continue;
 
         // parse deprecated fields to avoid error messages
         //
@@ -1239,6 +1240,7 @@ int HOST::parse_disk_usage(XML_PARSER& xp) {
         if (xp.match_tag("/disk_usage")) return 0;
         if (xp.parse_double("d_boinc_used_total", d_boinc_used_total)) continue;
         if (xp.parse_double("d_boinc_used_project", d_boinc_used_project)) continue;
+        if (xp.parse_double("d_project_share", d_project_share)) continue;
         log_messages.printf(MSG_NORMAL,
             "HOST::parse_disk_usage(): unrecognized: %s\n",
             xp.parsed_tag
@@ -1384,6 +1386,17 @@ DB_HOST_APP_VERSION* quota_exceeded_version() {
         if (hav.daily_quota_exceeded) return &hav;
     }
     return NULL;
+}
+
+double capped_host_fpops() {
+    double x = g_request->host.p_fpops;
+    if (x <= 0) {
+        return ssp->perf_info.host_fpops_50_percentile;
+    }
+    if (x > ssp->perf_info.host_fpops_95_percentile*1.1) {
+        return ssp->perf_info.host_fpops_95_percentile*1.1;
+    }
+    return x;
 }
 
 const char *BOINC_RCSID_ea659117b3 = "$Id$";

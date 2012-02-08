@@ -60,6 +60,7 @@ IMPLEMENT_APP(CBOINCGUIApp)
 IMPLEMENT_DYNAMIC_CLASS(CBOINCGUIApp, wxApp)
 
 BEGIN_EVENT_TABLE (CBOINCGUIApp, wxApp)
+    EVT_ACTIVATE_APP(CBOINCGUIApp::OnActivateApp)
     EVT_RPC_FINISHED(CBOINCGUIApp::OnRPCFinished)
 END_EVENT_TABLE ()
 
@@ -294,46 +295,6 @@ bool CBOINCGUIApp::OnInit() {
     wxHelpProvider::Set(new wxHelpControllerHelpProvider());
 
  
-#ifdef SANDBOX
-    // Make sure owners, groups and permissions are correct for the current setting of g_use_sandbox
-    if (!iErrorCode) {
-#if (defined(__WXMAC__) && defined(_DEBUG))     // TODO: implement this for other platforms
-        // GDB can't attach to applications which are running as a different user   
-        //  or group, so fix up data with current user and group during debugging
-        if (check_security(g_use_sandbox, true)) {
-            CreateBOINCUsersAndGroups();
-            SetBOINCDataOwnersGroupsAndPermissions();
-            SetBOINCAppOwnersGroupsAndPermissions(NULL);
-        }
-#endif
-        iErrorCode = check_security(g_use_sandbox, true);
-    }
-
-    if (iErrorCode) {
-
-        ShowApplication(true);
-
-        if (iErrorCode == -1099) {
-            strDialogMessage = 
-                _("You currently are not authorized to manage the client.\n\nTo run BOINC as this user, please:\n  - reinstall BOINC answering \"Yes\" to the question about\n     non-administrative users\n or\n  - contact your administrator to add you to the 'boinc_master'\n     user group.");
-        } else {
-        strDialogMessage.Printf(
-                _("BOINC ownership or permissions are not set properly; please reinstall BOINC.\n(Error code %d)"),
-            iErrorCode
-        );
-
-        }
-        wxMessageDialog* pDlg = new wxMessageDialog(NULL, strDialogMessage, wxT("BOINC Manager"), wxOK);
-
-        pDlg->ShowModal();
-        if (pDlg)
-            pDlg->Destroy();
-
-        return false;
-    }
-#endif      // SANDBOX
-
-
     // Enable known image types
     wxInitAllImageHandlers();
 
@@ -349,6 +310,69 @@ bool CBOINCGUIApp::OnInit() {
     // Load desired manager skin
     m_pConfig->Read(wxT("Skin"), &strDesiredSkinName, m_pSkinManager->GetDefaultSkinName());
     m_pSkinManager->ReloadSkin(strDesiredSkinName);
+
+
+#ifdef SANDBOX
+    // Make sure owners, groups and permissions are correct for the current setting of g_use_sandbox
+    char path_to_error[MAXPATHLEN];
+    path_to_error[0] = '\0';
+    
+    if (!iErrorCode) {
+#if (defined(__WXMAC__) && defined(_DEBUG))     // TODO: implement this for other platforms
+        // GDB can't attach to applications which are running as a different user   
+        //  or group, so fix up data with current user and group during debugging
+        if (check_security(g_use_sandbox, true)) {
+            CreateBOINCUsersAndGroups();
+            SetBOINCDataOwnersGroupsAndPermissions();
+            SetBOINCAppOwnersGroupsAndPermissions(NULL);
+        }
+#endif
+        iErrorCode = check_security(g_use_sandbox, true, path_to_error);
+    }
+
+    if (iErrorCode) {
+
+        ShowApplication(true);
+
+        if (iErrorCode == -1099) {
+            strDialogMessage.Printf(
+                _("You currently are not authorized to manage the client.\n\nTo run %s as this user, please:\n  - reinstall %s answering \"Yes\" to the question about\n     non-administrative users\n or\n  - contact your administrator to add you to the 'boinc_master'\n     user group."),
+                m_pSkinManager->GetAdvanced()->GetApplicationShortName().c_str(),
+                m_pSkinManager->GetAdvanced()->GetApplicationShortName().c_str()
+            );
+        } else {
+            strDialogMessage.Printf(
+                _("%s ownership or permissions are not set properly; please reinstall %s.\n(Error code %d"),
+                m_pSkinManager->GetAdvanced()->GetApplicationShortName().c_str(),
+                m_pSkinManager->GetAdvanced()->GetApplicationShortName().c_str(),
+                iErrorCode
+            );
+            if (path_to_error[0]) {
+                strDialogMessage += _(" at ");
+                strDialogMessage += wxString::FromUTF8(path_to_error);
+            }
+            strDialogMessage += _(")");
+            
+            fprintf(stderr, "%ls ownership or permissions are not set properly; please reinstall %ls.\n(Error code %d at %s)", 
+                    m_pSkinManager->GetAdvanced()->GetApplicationShortName().c_str(),
+                    m_pSkinManager->GetAdvanced()->GetApplicationShortName().c_str(),
+                    iErrorCode, path_to_error
+                );
+        }
+        wxMessageDialog* pDlg = new wxMessageDialog(
+                                    NULL, 
+                                    strDialogMessage, 
+                                    m_pSkinManager->GetAdvanced()->GetApplicationName(), 
+                                    wxOK
+                                    );
+
+        pDlg->ShowModal();
+        if (pDlg)
+            pDlg->Destroy();
+
+        return false;
+    }
+#endif      // SANDBOX
 
 
 #ifdef __WXMSW__
@@ -764,6 +788,17 @@ int CBOINCGUIApp::IdleTrackerDetach() {
 }
 
 
+void CBOINCGUIApp::OnActivateApp(wxActivateEvent& event) {
+    if (event.GetActive()) {
+        if (m_pEventLog && !m_pEventLog->IsIconized()) {
+            m_pEventLog->Raise();
+        }
+        m_pFrame->Raise();
+    }
+    event.Skip();
+}
+
+
 void CBOINCGUIApp::OnRPCFinished( CRPCFinishedEvent& event ) {
     CMainDocument*      pDoc = wxGetApp().GetDocument();
    
@@ -816,7 +851,7 @@ int CBOINCGUIApp::StartBOINCDefaultScreensaverTest() {
 // Display the Event Log, it is a modeless dialog not owned by any
 // other UI element.
 void CBOINCGUIApp::DisplayEventLog(bool bShowWindow) {
-    if (m_pEventLog ) {
+    if (m_pEventLog) {
         if (bShowWindow) {
             if (m_pEventLog->IsIconized()) {
                 m_pEventLog->Iconize(false);
@@ -968,17 +1003,20 @@ bool CBOINCGUIApp::SetActiveGUI(int iGUISelection, bool bShowWindow) {
     }
 
     // Show the new frame if needed 
-    if (m_pFrame && !m_pFrame->IsShown() && bShowWindow) {
-        m_pFrame->Show();
-        m_pFrame->Raise();
+    if (m_pFrame && bShowWindow) {
+        if (m_pEventLog) {
+            m_pEventLog->Show();
+            m_pEventLog->Raise();
 #ifdef __WXMSW__
-        ::SetForegroundWindow((HWND)m_pFrame->GetHWND());
+            ::SetForegroundWindow((HWND)m_pEventLog->GetHWND());
 #endif
-    }
+        }
 
-    // Raise the frame to the top of the Z order if needed
-    if (m_pFrame && m_pFrame->IsShown() && bShowWindow) {
+        if (!m_pFrame->IsShown()) {
+            m_pFrame->Show();
+        }
         m_pFrame->Raise();
+
 #ifdef __WXMSW__
         ::SetForegroundWindow((HWND)m_pFrame->GetHWND());
 #endif

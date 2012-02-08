@@ -67,27 +67,97 @@ double CLIENT_STATE::allowed_disk_usage(double boinc_total) {
 
 #ifndef SIM
 
-int CLIENT_STATE::project_disk_usage(PROJECT* p, double& size) {
+// populate:
+// PROJECT::disk_usage for all projects
+// GLOBAL_STATE::client_disk_usage
+// GLOBAL_STATE::total_disk_usage
+//
+int CLIENT_STATE::get_disk_usages() {
     char buf[256];
     unsigned int i;
-    double s;
+    double size;
+    PROJECT* p;
+    int retval;
 
-    get_project_dir(p, buf, sizeof(buf));
-    dir_size(buf, size);
+    client_disk_usage = 0;
+    total_disk_usage = 0;
+    for (i=0; i<projects.size(); i++) {
+        p = projects[i];
+        p->disk_usage = 0;
+        get_project_dir(p, buf, sizeof(buf));
+        retval = dir_size(buf, size);
+        if (!retval) p->disk_usage = size;
+    }
 
     for (i=0; i<active_tasks.active_tasks.size(); i++) {
         ACTIVE_TASK* atp = active_tasks.active_tasks[i];
-        if (atp->wup->project != p) continue;
         get_slot_dir(atp->slot, buf, sizeof(buf));
-        dir_size(buf, s);
-        size += s;
+        retval = dir_size(buf, size);
+        if (retval) continue;
+        atp->wup->project->disk_usage += size;
     }
-
+    for (i=0; i<projects.size(); i++) {
+        p = projects[i];
+        total_disk_usage += p->disk_usage;
+    }
+    retval = dir_size(".", size, false);
+    if (!retval) {
+        client_disk_usage = size;
+        total_disk_usage += size;
+    }
     return 0;
 }
 
-int CLIENT_STATE::total_disk_usage(double& size) {
-    return dir_size(".", size);
+// populate PROJECT::disk_share for all projects
+//
+void CLIENT_STATE::get_disk_shares() {
+    PROJECT* p;
+    unsigned int i;
+
+    double rss = 0;
+    for (i=0; i<projects.size(); i++) {
+        p = projects[i];
+        rss += p->resource_share;
+        p->disk_share = p->disk_usage;
+    }
+    if (!rss) return;
+
+    // a project is "greedy" if it's using more than its share of disk
+    //
+    double greedy_rs = 0;
+    double non_greedy_usage = 0;
+    double allowed = allowed_disk_usage(total_disk_usage);
+    for (i=0; i<projects.size(); i++) {
+        p = projects[i];
+        double rs = p->resource_share/rss;
+        if (p->disk_usage > allowed*rs) {
+            greedy_rs += p->resource_share;
+        } else {
+            non_greedy_usage += p->disk_usage;
+        }
+    }
+    if (!greedy_rs) greedy_rs = 1;      // handle projects w/ zero resource share
+
+    double greedy_allowed = allowed - non_greedy_usage;
+    if (log_flags.disk_usage_debug) {
+        msg_printf(0, MSG_INFO,
+            "[disk_usage] allowed %.2fMB used %.2fMB",
+            allowed, total_disk_usage
+        );
+    }
+    for (i=0; i<projects.size(); i++) {
+        p = projects[i];
+        double rs = p->resource_share/rss;
+        if (p->disk_usage > allowed*rs) {
+            p->disk_share = greedy_allowed*p->resource_share/greedy_rs;
+        }
+        if (log_flags.disk_usage_debug) {
+            msg_printf(p, MSG_INFO,
+                "[disk_usage] usage %.2fMB share %.2fMB",
+                p->disk_usage/MEGA, p->disk_share/MEGA
+            );
+        }
+    }
 }
 
 // See if we should suspend processing
@@ -453,12 +523,11 @@ void CLIENT_STATE::read_global_prefs(
         "   max memory usage when idle: %.2fMB",
         (host_info.m_nbytes*global_prefs.ram_max_used_idle_frac)/MEGA
     );
-    double x;
 #ifndef SIM
-    total_disk_usage(x);
+    get_disk_usages();
     msg_printf(NULL, MSG_INFO,
         "   max disk usage: %.2fGB",
-        allowed_disk_usage(x)/GIGA
+        allowed_disk_usage(total_disk_usage)/GIGA
     );
 #endif
     // max_cpus, bandwidth limits may have changed

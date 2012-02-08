@@ -18,19 +18,32 @@
 // ssim - simulator for distributed storage
 //
 // Simulates the storage of files on a dynamic set of hosts.
-//
-// The model of the host population is:
-// - hosts arrival is a Poisson process
-// - host lifetime is exponentially distributed
-// - the time needed to download n bytes of data to/from a host is
-//   U()*n/DOWNLOAD_BYTES_SEC
-//   where U() is a uniform random var
-// TODO: add a factor corresponding to host availability
 
-#define HOSTS_PER_DAY   10.
-#define HOST_LIFE_MEAN  100.*86400
-#define UPLOAD_BYTES_SEC  (5./3600)
-#define DOWNLOAD_BYTES_SEC  (5./3600)
+// usage: ssim
+//  [--policy filename]
+//  [--host_life_mean x]
+//  [--connect_interval x]
+//  [--mean_xfer_rate x]
+//  [--file_size x]
+//
+// outputs:
+//   stdout: log info
+//   summary.txt: format
+//      fault tolerance min
+//      disk_usage mean
+//      upload_mean
+//      download_mean
+
+#include <math.h>
+#include <limits.h>
+#include <stdio.h>
+#include <string.h>
+#include <set>
+
+#include "des.h"
+#include "vda_lib.h"
+
+using std::set;
 
 // We simulate policies based on coding and replication.
 //
@@ -39,21 +52,38 @@
 // When we need to reconstruct an encoded unit on the server,
 // we try to upload N_UPLOAD subunits,
 // where N <= N_UPLOAD <= M
-
-#define ENCODING_N          4
-#define ENCODING_K          2
-#define ENCODING_M          6
-#define N_UPLOAD            5
-
 // The units in an encoding can themselves be encoded.
-// There are LEVELS levels of encoding.
-
-#define ENCODING_LEVELS     1
-
+//
 // The bottom-level data units ("chunks") are stored on hosts,
 // possibly with replication
 
-#define REPLICATION_LEVEL   2
+struct PARAMS {
+    // The model of the host population is:
+    // - the population is unbounded
+    // - host lifetime is exponentially distributed
+    // - the time needed to transfer n bytes of data to/from a host is
+    //   U1*connect_interval + (U2+.5)*n/mean_xfer_rate;
+    //   where U1 and U2 are uniform random vars
+    //   (U1 is per-transfer, U2 is per-host)
+    //
+    double host_life_mean;
+    double connect_interval;
+    double mean_xfer_rate;
+    double file_size;
+    double sim_duration;
+
+    PARAMS() {
+        // default parameters
+        //
+        host_life_mean = 100.*86400;
+        connect_interval = 86400.;
+        mean_xfer_rate = .2e6;
+        file_size = 1e12;
+        sim_duration = 1000.*86400;
+    }
+} params;
+
+POLICY policy;
 
 // Terminology:
 //
@@ -74,15 +104,6 @@
 //
 // These are measured starting from the time when the file's
 // initial downloads have all succeeded or failed
-
-#include <math.h>
-#include <limits.h>
-#include <stdio.h>
-#include <set>
-
-#include "des.h"
-
-using std::set;
 
 #define EVENT_DEBUG
 #define SAMPLE_DEBUG
@@ -130,15 +151,18 @@ set<HOST*> hosts;
 //
 struct HOST : public EVENT {
     int id;
+    double transfer_rate;
     set<CHUNK_ON_HOST*> chunks;     // chunks present or downloading
     virtual void handle();
     HOST() {
-        t = sim.now + ran_exp(HOST_LIFE_MEAN);
+        t = sim.now + ran_exp(params.host_life_mean);
         id = next_host_id++;
+        transfer_rate = params.mean_xfer_rate*(drand() + .5);
         hosts.insert(this);
     }
 };
 
+#if 0
 // The host arrival process.
 // The associated EVENT is the arrival of a host
 //
@@ -149,6 +173,7 @@ struct HOST_ARRIVAL : public EVENT {
         sim.insert(this);
     }
 };
+#endif
 
 void die(const char* msg) {
     printf("%s: %s\n", now_str(), msg);
@@ -163,11 +188,15 @@ struct CHUNK_ON_HOST : public EVENT {
     CHUNK* chunk;
     char name[256];
     bool present_on_host;
+    bool transfer_wait;         // waiting to start transfer
     bool transfer_in_progress;  // upload if present_on_host, else download
     virtual void handle();
+    void start_upload();
+    void start_download();
     inline bool download_in_progress() {
         return (transfer_in_progress && !present_on_host);
     }
+    void remove();
 };
 
 #define PRESENT 0
@@ -184,7 +213,7 @@ struct DATA_UNIT {
     bool data_now_present;
     bool data_needed;
     double cost;
-    int fault_tolerance;
+    int min_failures;
         // min # of host failures that would make this unrecoverable
     char name[64];
 };
@@ -214,9 +243,10 @@ struct META_CHUNK : DATA_UNIT {
     bool have_unrecoverable_children;
     DFILE* dfile;
     bool uploading;
+    CODING coding;
 
     META_CHUNK(
-        DFILE* d, META_CHUNK* par, double size, int encoding_level, int index
+        DFILE* d, META_CHUNK* par, double size, int coding_level, int index
     );
 
     virtual void recovery_plan();
@@ -226,24 +256,54 @@ struct META_CHUNK : DATA_UNIT {
 // keeps track of a time-varying property of a file
 // (server disk usage, up/download rate, fault tolerance level)
 //
+
+typedef enum {DISK, NETWORK, FAULT_TOLERANCE} STATS_KIND;
+
 struct STATS_ITEM {
+    STATS_KIND kind;
     double value;
     double integral;
-    double max_val;
-    double max_val_time;
+    double extreme_val;
+    double extreme_val_time;
     double prev_t;
     double start_time;
     bool first;
+    char name[256];
+    FILE* f;
 
-    STATS_ITEM() {
+    void init(const char* n, const char* filename, STATS_KIND k) {
+        f = fopen(filename, "w");
+        strcpy(name, n);
+        kind = k;
         value = 0;
         integral = 0;
-        max_val = 0;
-        max_val_time = 0;
+        switch (kind) {
+        case DISK:
+        case NETWORK:
+            extreme_val = 0;
+            break;
+        case FAULT_TOLERANCE:
+            extreme_val = INT_MAX;
+            break;
+        }
+        extreme_val_time = 0;
         first = true;
     }
 
     void sample(double v, bool collecting_stats) {
+#ifdef SAMPLE_DEBUG
+        switch (kind) {
+        case DISK:
+            printf("%s: %s: %fGB -> %fGB\n", now_str(), name, value/1e9, v/1e9);
+            break;
+        case NETWORK:
+            printf("%s: %s: %fMbps -> %fMbps\n", now_str(), name, value/1e6, v/1e6);
+            break;
+        case FAULT_TOLERANCE:
+            printf("%s: %s: %.0f -> %.0f\n", now_str(), name, value, v);
+            break;
+        }
+#endif
         double old_val = value;
         value = v;
         if (!collecting_stats) return;
@@ -255,25 +315,64 @@ struct STATS_ITEM {
         double dt = sim.now - prev_t;
         prev_t = sim.now;
         integral += dt*old_val;
-        if (v > max_val) {
-            max_val = v;
-            max_val_time = sim.now;
+        switch (kind) {
+        case DISK:
+        case NETWORK:
+            if (v > extreme_val) {
+                extreme_val = v;
+                extreme_val_time = sim.now;
+            }
+            break;
+        case FAULT_TOLERANCE:
+            if (v < extreme_val) {
+                extreme_val = v;
+                extreme_val_time = sim.now;
+            }
+            break;
         }
+
+        fprintf(f, "%f %f\n", sim.now, old_val);
+        fprintf(f, "%f %f\n", sim.now, v);
     }
 
     void sample_inc(double inc, bool collecting_stats) {
         sample(value+inc, collecting_stats);
-#ifdef SAMPLE_DEBUG
-        printf("%s: sample_inc: %f %f\n", now_str(), inc, value);
-#endif
     }
 
     void print() {
         sample_inc(0, true);
         double dt = sim.now - start_time;
-        printf("    mean: %f\n", integral/dt);
-        printf("    max: %f\n", max_val);
-        printf("    time of max: %s\n", time_str(max_val_time));
+        switch (kind) {
+        case DISK:
+            printf("    mean: %fGB.  Max: %fGB at %s\n",
+                (integral/dt)/1e9, extreme_val/1e9, time_str(extreme_val_time)
+            );
+            break;
+        case NETWORK:
+            printf("    mean: %fMbps.  Max: %fMbps at %s\n",
+                (integral/dt)/1e6, extreme_val/1e6, time_str(extreme_val_time)
+            );
+            break;
+        case FAULT_TOLERANCE:
+            printf("    mean: %.2f.  Min: %.0f at %s\n",
+                integral/dt, extreme_val, time_str(extreme_val_time)
+            );
+            break;
+        }
+    }
+    void print_summary(FILE* f) {
+        double dt = sim.now - start_time;
+        switch (kind) {
+        case DISK:
+            fprintf(f, "%f\n", integral/dt);
+            break;
+        case NETWORK:
+            fprintf(f, "%f\n", integral/dt);
+            break;
+        case FAULT_TOLERANCE:
+            fprintf(f, "%f\n", extreme_val);
+            break;
+        }
     }
 };
 
@@ -284,8 +383,10 @@ struct DFILE : EVENT {
     META_CHUNK* meta_chunk;
     double size;
     int id;
+#if 0
     set<HOST*> unused_hosts;
         // hosts that don't have any chunks of this file
+#endif
     int pending_init_downloads;
         // # of initial downloads pending.
         // When this is zero, we start collecting stats for the file
@@ -297,14 +398,20 @@ struct DFILE : EVENT {
 
     DFILE(double s) {
         id = next_file_id++;
+#if 0
         unused_hosts = hosts;
+#endif
         size = s;
+        disk_usage.init("Disk usage", "disk.dat", DISK);
+        upload_rate.init("Upload rate", "upload.dat", NETWORK);
+        download_rate.init("Download rate", "download.dat", NETWORK);
+        fault_tolerance.init("Fault tolerance", "fault_tol.dat", FAULT_TOLERANCE);
     }
 
     // the creation of a file
     //
     virtual void handle() {
-        meta_chunk = new META_CHUNK(this, NULL, size, ENCODING_LEVELS, id);
+        meta_chunk = new META_CHUNK(this, NULL, size, 0, id);
 #ifdef EVENT_DEBUG
         printf("created file %d: size %f encoded size %f\n",
             id, size, disk_usage.value
@@ -321,7 +428,7 @@ struct DFILE : EVENT {
     void recover() {
         meta_chunk->recovery_plan();
         meta_chunk->recovery_action();
-        fault_tolerance.sample(meta_chunk->fault_tolerance, collecting_stats());
+        fault_tolerance.sample(meta_chunk->min_failures-1, collecting_stats());
     }
 
     void print_stats() {
@@ -334,27 +441,105 @@ struct DFILE : EVENT {
         download_rate.print();
         printf("  Fault tolerance level:\n");
         fault_tolerance.print();
+
+        FILE* f = fopen("summary.txt", "w");
+        fault_tolerance.print_summary(f);
+        disk_usage.print_summary(f);
+        upload_rate.print_summary(f);
+        download_rate.print_summary(f);
+        fclose(f);
     }
 };
 
 //////////////////// method defs ////////////////////
 
-// transfer has finished
+void CHUNK_ON_HOST::start_upload() {
+    transfer_in_progress = true;
+    transfer_wait = true;
+    t = sim.now + drand()*params.connect_interval;
+#ifdef EVENT_DEBUG
+    printf("%s: waiting to start upload of %s\n", now_str(), name);
+#endif
+    sim.insert(this);
+}
+
+void CHUNK_ON_HOST::start_download() {
+    transfer_in_progress = true;
+    transfer_wait = true;
+    t = sim.now + drand()*params.connect_interval;
+#ifdef EVENT_DEBUG
+    printf("%s: waiting to start download of %s\n", now_str(), name);
+#endif
+    sim.insert(this);
+}
+
+
+// transfer or transfer wait has finished
 //
 void CHUNK_ON_HOST::handle() {
+    if (transfer_wait) {
+        transfer_wait = false;
+        if (present_on_host) {
+#ifdef EVENT_DEBUG
+            printf("%s: starting upload of %s\n", now_str(), name);
+#endif
+            chunk->parent->dfile->upload_rate.sample_inc(
+                host->transfer_rate,
+                chunk->parent->dfile->collecting_stats()
+            );
+        } else {
+#ifdef EVENT_DEBUG
+            printf("%s: starting download of %s\n", now_str(), name);
+#endif
+            chunk->parent->dfile->download_rate.sample_inc(
+                host->transfer_rate,
+                chunk->parent->dfile->collecting_stats()
+            );
+        }
+        t = sim.now + chunk->size/host->transfer_rate;
+        sim.insert(this);
+        return;
+    }
     transfer_in_progress = false;
     if (present_on_host) {
         // it was an upload
 #ifdef EVENT_DEBUG
         printf("%s: upload of %s completed\n", now_str(), name);
 #endif
-        chunk->upload_complete();    // create new replicas if needed
+        chunk->parent->dfile->upload_rate.sample_inc(
+            -host->transfer_rate,
+            chunk->parent->dfile->collecting_stats()
+        );
+        chunk->upload_complete();
     } else {
         present_on_host = true;
 #ifdef EVENT_DEBUG
         printf("%s: download of %s completed\n", now_str(), name);
 #endif
+        chunk->parent->dfile->download_rate.sample_inc(
+            -host->transfer_rate,
+            chunk->parent->dfile->collecting_stats()
+        );
         chunk->download_complete();
+    }
+}
+
+void CHUNK_ON_HOST::remove() {
+    if (transfer_in_progress) {
+        sim.remove(this);
+        if (!transfer_wait) {
+            if (present_on_host) {
+                chunk->parent->dfile->upload_rate.sample_inc(
+                    -host->transfer_rate,
+                    chunk->parent->dfile->collecting_stats()
+                );
+            } else {
+                chunk->parent->dfile->download_rate.sample_inc(
+                    -host->transfer_rate,
+                    chunk->parent->dfile->collecting_stats()
+                );
+            }
+        }
     }
 }
 
@@ -371,9 +556,7 @@ void HOST::handle() {
     for (p = chunks.begin(); p != chunks.end(); p++) {
         CHUNK_ON_HOST* c = *p;
         c->chunk->host_failed(c);
-        if (c->transfer_in_progress) {
-            sim.remove(c);
-        }
+        c->remove();
         delete c;
     }
 }
@@ -383,7 +566,7 @@ CHUNK::CHUNK(META_CHUNK* mc, double s, int index) {
     present_on_server = true;
     size = s;
     sprintf(name, "%s.%d", parent->name, index);
-    parent->dfile->pending_init_downloads += REPLICATION_LEVEL;
+    parent->dfile->pending_init_downloads += policy.replication;
     parent->dfile->disk_usage.sample_inc(size, false);
 }
 
@@ -392,13 +575,18 @@ CHUNK::CHUNK(META_CHUNK* mc, double s, int index) {
 //
 void CHUNK::assign() {
     if (!present_on_server) return;
-    while (hosts.size() < REPLICATION_LEVEL) {
+    while ((int)(hosts.size()) < policy.replication) {
+#if 0
         if (parent->dfile->unused_hosts.size() == 0) {
             die("no more hosts!\n");
         }
         set<HOST*>::iterator i = parent->dfile->unused_hosts.begin();
         HOST* h = *i;
         parent->dfile->unused_hosts.erase(i);
+#else
+        HOST* h = new HOST;
+        sim.insert(h);
+#endif
         CHUNK_ON_HOST *c = new CHUNK_ON_HOST();
         sprintf(c->name, "chunk %s on host %d", name, h->id);
 #ifdef EVENT_DEBUG
@@ -406,15 +594,9 @@ void CHUNK::assign() {
 #endif
         c->host = h;
         c->chunk = this;
-        c->t = sim.now + (drand()+.5)*size/DOWNLOAD_BYTES_SEC;
-        hosts.insert(c);
-        parent->dfile->download_rate.sample_inc(
-            DOWNLOAD_BYTES_SEC,
-            parent->dfile->collecting_stats()
-        );
         h->chunks.insert(c);
-        c->transfer_in_progress = true;
-        sim.insert(c);
+        hosts.insert(c);
+        c->start_download();
     }
 }
 
@@ -439,16 +621,7 @@ void CHUNK::start_upload() {
         if (c->transfer_in_progress) return;
     }
     c = *(hosts.begin());
-    c->transfer_in_progress = true;
-    c->t = sim.now + (drand()+.5)*size/UPLOAD_BYTES_SEC;
-    parent->dfile->upload_rate.sample_inc(
-        UPLOAD_BYTES_SEC,
-        parent->dfile->collecting_stats()
-    );
-#ifdef EVENT_DEBUG
-    printf("%s: starting upload of %s\n", now_str(), c->name);
-#endif
-    sim.insert(c);
+    c->start_upload();
 }
 
 void CHUNK::host_failed(CHUNK_ON_HOST* p) {
@@ -469,10 +642,6 @@ void CHUNK::upload_complete() {
         );
     }
     parent->dfile->recover();
-    parent->dfile->upload_rate.sample_inc(
-        -UPLOAD_BYTES_SEC,
-        parent->dfile->collecting_stats()
-    );
 }
 
 void CHUNK::download_complete() {
@@ -480,35 +649,34 @@ void CHUNK::download_complete() {
         parent->dfile->pending_init_downloads--;
     }
     parent->dfile->recover();
-    parent->dfile->download_rate.sample_inc(
-        -DOWNLOAD_BYTES_SEC,
-        parent->dfile->collecting_stats()
-    );
 }
 
 META_CHUNK::META_CHUNK(
-    DFILE* d, META_CHUNK* par, double size, int encoding_level, int index
+    DFILE* d, META_CHUNK* par, double size, int coding_level, int index
 ) {
     dfile = d;
     parent = par;
+    coding = policy.codings[coding_level];
     if (parent) {
         sprintf(name, "%s.%d", parent->name, index);
     } else {
         sprintf(name, "%d", index);
     }
-    if (encoding_level) {
-        for (int j=0; j<ENCODING_M; j++) {
+    if (coding_level<policy.coding_levels-1) {
+        for (int j=0; j<coding.m; j++) {
             children.push_back(new META_CHUNK(
                 d,
                 this,
-                size/ENCODING_N,
-                encoding_level-1,
+                size/coding.n,
+                coding_level+1,
                 j
             ));
         }
     } else {
-        for (int j=0; j<ENCODING_M; j++) {
-            children.push_back(new CHUNK(this, size/ENCODING_N, j));
+        for (int j=0; j<coding.m; j++) {
+            children.push_back(
+                new CHUNK(this, size/coding.n, j)
+            );
         }
     }
 }
@@ -519,10 +687,10 @@ bool compare_cost(const DATA_UNIT* d1, const DATA_UNIT* d2) {
     return d1->cost < d2->cost;
 }
 
-// sort by decreasing fault tolerance
+// sort by increase min_failures
 //
-bool compare_fault_tolerance(const DATA_UNIT* d1, const DATA_UNIT* d2) {
-    return d1->fault_tolerance > d2->fault_tolerance;
+bool compare_min_failures(const DATA_UNIT* d1, const DATA_UNIT* d2) {
+    return d1->min_failures < d2->min_failures;
 }
 
 // Recovery logic: decide what to do in response to
@@ -578,20 +746,19 @@ void META_CHUNK::recovery_plan() {
 
     // based on states of children, decide what state we're in
     //
-    if (present.size() >= ENCODING_N) {
+    if ((int)(present.size()) >= coding.n) {
         status = PRESENT;
         sort(present.begin(), present.end(), compare_cost);
-        present.resize(ENCODING_N);
+        present.resize(coding.n);
         cost = 0;
-        fault_tolerance = INT_MAX;
         for (i=0; i<present.size(); i++) {
             DATA_UNIT* c= present[i];
             cost += c->cost;
             c->in_recovery_set = true;
         }
-    } else if (present.size() + recoverable.size() >= ENCODING_N) {
+    } else if ((int)(present.size() + recoverable.size()) >= coding.n) {
         status = RECOVERABLE;
-        unsigned int j = ENCODING_N - present.size();
+        unsigned int j = coding.n - present.size();
         sort(recoverable.begin(), recoverable.end(), compare_cost);
         cost = 0;
         for (i=0; i<present.size(); i++) {
@@ -604,14 +771,6 @@ void META_CHUNK::recovery_plan() {
             cost += c->cost;
         }
 
-        // compute our fault tolerance
-        //
-        sort(recoverable.begin(), recoverable.end(), compare_fault_tolerance);
-        fault_tolerance = 0;
-        for (i=0; i<j; i++) {
-            DATA_UNIT* c= recoverable[i];
-            fault_tolerance += c->fault_tolerance;
-        }
     } else {
         status = UNRECOVERABLE;
     }
@@ -630,17 +789,17 @@ void CHUNK::recovery_plan() {
     if (present_on_server) {
         status = PRESENT;
         cost = 0;
-        fault_tolerance = INT_MAX;
+        min_failures = INT_MAX;
     } else if (hosts.size() > 0) {
         status = RECOVERABLE;
         cost = size;
-        if (hosts.size() < REPLICATION_LEVEL) {
+        if ((int)(hosts.size()) < policy.replication) {
             data_needed = true;
         }
-        fault_tolerance = hosts.size();
+        min_failures = hosts.size();
     } else {
         status = UNRECOVERABLE;
-        fault_tolerance = 0;
+        min_failures = 0;
     }
 #ifdef DEBUG_RECOVERY
     printf("chunk plan %s: status %s\n", name, status_str(status));
@@ -648,6 +807,7 @@ void CHUNK::recovery_plan() {
 }
 
 void META_CHUNK::recovery_action() {
+    unsigned int i;
     if (data_now_present) {
         status = PRESENT;
     }
@@ -656,7 +816,7 @@ void META_CHUNK::recovery_action() {
         name, status_str(status), have_unrecoverable_children
     );
 #endif
-    for (unsigned i=0; i<children.size(); i++) {
+    for (i=0; i<children.size(); i++) {
         DATA_UNIT* c = children[i];
 #ifdef DEBUG_RECOVERY
         printf("  child %s status %s in rec set %d\n",
@@ -679,6 +839,50 @@ void META_CHUNK::recovery_action() {
         }
         c->recovery_action();
     }
+
+    // because of recovery action, some of our children may have changed
+    // status and fault tolerance, source may have changed too.
+    // Recompute them.
+    //
+    vector<DATA_UNIT*> recoverable;
+    vector<DATA_UNIT*> present;
+    for (i=0; i<children.size(); i++) {
+        DATA_UNIT* c = children[i];
+        switch (c->status) {
+        case PRESENT:
+            present.push_back(c);
+            break;
+        case RECOVERABLE:
+            recoverable.push_back(c);
+            break;
+        }
+    }
+    if ((int)(present.size()) >= coding.n) {
+        status = PRESENT;
+        min_failures = INT_MAX;
+    } else if ((int)(present.size() + recoverable.size()) >= coding.n) {
+        status = RECOVERABLE;
+
+        // our min_failures is the least X such that some X host failures
+        // would make this node unrecoverable
+        //
+        sort(recoverable.begin(), recoverable.end(), compare_min_failures);
+        min_failures = 0;
+        unsigned int k = coding.n - present.size();
+            // we'd need to recover K recoverable children
+        unsigned int j = recoverable.size() - k + 1;
+            // a loss of J recoverable children would make this impossible
+
+        // the loss of J recoverable children would make us unrecoverable
+        // Sum the min_failures of the J children with smallest min_failures
+        //
+        for (i=0; i<j; i++) {
+            DATA_UNIT* c = recoverable[i];
+            printf("  Min failures of %s: %d\n", c->name, c->min_failures);
+            min_failures += c->min_failures;
+        }
+        printf("  our min failures: %d\n", min_failures);
+    }
 }
 
 void CHUNK::recovery_action() {
@@ -690,7 +894,7 @@ void CHUNK::recovery_action() {
         );
         status = PRESENT;
     }
-    if (status == PRESENT && hosts.size() < REPLICATION_LEVEL) {
+    if (status == PRESENT && (int)(hosts.size()) < policy.replication) {
         assign();
     }
     if (download_in_progress()) {
@@ -708,6 +912,8 @@ void CHUNK::recovery_action() {
     } else {
         if (present_on_server) {
             present_on_server = false;
+            status = RECOVERABLE;
+            min_failures = policy.replication;
 #ifdef EVENT_DEBUG
             printf("%s: %s replicated, removing from server\n", now_str(), name);
 #endif
@@ -719,23 +925,51 @@ void CHUNK::recovery_action() {
     }
 }
 
-
 set<DFILE*> dfiles;
 
-int main() {
+int main(int argc, char** argv) {
+
+    // default policy
+    //
+    policy.replication = 2;
+    policy.coding_levels = 1;
+    policy.codings[0].n = 10;
+    policy.codings[0].k = 6;
+    policy.codings[0].m = 16;
+    policy.codings[0].n_upload = 12;
+
+    for (int i=1; i<argc; i++) {
+        if (!strcmp(argv[i], "--policy")) {
+            int retval = policy.parse(argv[++i]);
+            if (retval) exit(1);
+        } else if (!strcmp(argv[i], "--host_life_mean")) {
+            params.host_life_mean = atof(argv[++i]);
+        } else if (!strcmp(argv[i], "--connect_interval")) {
+            params.connect_interval = atof(argv[++i]);
+        } else if (!strcmp(argv[i], "--mean_xfer_rate")) {
+            params.mean_xfer_rate = atof(argv[++i]);
+        } else if (!strcmp(argv[i], "--file_size")) {
+            params.file_size = atof(argv[++i]);
+        } else {
+            fprintf(stderr, "bad arg %s\n", argv[i]);
+            exit(1);
+        }
+    }
 #if 0
     HOST_ARRIVAL *h = new HOST_ARRIVAL;
     h->t = 0;
     sim.insert(h);
 #endif
 
+#if 0
     for (int i=0; i<500; i++) {
         sim.insert(new HOST);
     }
-    DFILE* dfile = new DFILE(1e2);
+#endif
+    DFILE* dfile = new DFILE(params.file_size);
     sim.insert(dfile);
 
-    sim.simulate(200*86400);
+    sim.simulate(params.sim_duration);
 
     printf("%s: simulation finished\n", now_str());
     dfile->print_stats();

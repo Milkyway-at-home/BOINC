@@ -121,9 +121,7 @@ static inline void coproc_perf(
 
 // the following is for an app that can use anywhere from 1 to 64 threads
 //
-static inline bool app_plan_mt(
-    SCHEDULER_REQUEST& sreq, HOST_USAGE& hu
-) {
+static inline bool app_plan_mt(SCHEDULER_REQUEST&, HOST_USAGE& hu) {
     double ncpus = g_wreq->effective_ncpus;
         // number of usable CPUs, taking user prefs into account
     if (ncpus < 2) return false;
@@ -132,10 +130,10 @@ static inline bool app_plan_mt(
     hu.avg_ncpus = nthreads;
     hu.max_ncpus = nthreads;
     sprintf(hu.cmdline, "--nthreads %d", nthreads);
-    hu.projected_flops = sreq.host.p_fpops*hu.avg_ncpus*.99;
+    hu.projected_flops = capped_host_fpops()*hu.avg_ncpus*.99;
         // the .99 ensures that on uniprocessors a sequential app
         // will be used in preferences to this
-    hu.peak_flops = sreq.host.p_fpops*hu.avg_ncpus;
+    hu.peak_flops = capped_host_fpops()*hu.avg_ncpus;
     if (config.debug_version_select) {
         log_messages.printf(MSG_NORMAL,
             "[version] Multi-thread app projected %.2fGS\n",
@@ -322,6 +320,7 @@ static bool cuda_check(const COPROC_NVIDIA& c, HOST_USAGE& hu,
 
     hu.gpu_ram = min_ram;
     hu.ncudas = ndevs;
+
     hu.max_ncpus = hu.avg_ncpus = cpu_frac;
     hu.projected_flops = hu.ncudas * (1.0 - cpu_frac) * c.peak_flops + cpu_frac * g_request->host.p_fpops;
     hu.peak_flops = hu.ncudas*c.peak_flops + hu.avg_ncpus*g_request->host.p_fpops;
@@ -416,15 +415,13 @@ static inline bool app_plan_cuda(
 // Say that we'll use 1% of a CPU.
 // This will cause the client (6.7+) to run it at non-idle priority
 //
-static inline bool app_plan_nci(
-    SCHEDULER_REQUEST& sreq, HOST_USAGE& hu
-) {
-    hu.avg_ncpus = 0.01;
-    hu.max_ncpus = 0.01;
-    hu.projected_flops = 1.01 * sreq.host.p_fpops;
-        // The * 1.01 is needed to ensure that we'll send this app
+static inline bool app_plan_nci(SCHEDULER_REQUEST&, HOST_USAGE& hu) {
+    hu.avg_ncpus = .01;
+    hu.max_ncpus = .01;
+    hu.projected_flops = capped_host_fpops()*1.01;
+        // The *1.01 is needed to ensure that we'll send this app
         // version rather than a non-plan-class one
-    hu.peak_flops = 0.01 * sreq.host.p_fpops;
+    hu.peak_flops = capped_host_fpops()*.01;
     return true;
 }
 
@@ -445,8 +442,8 @@ static inline bool app_plan_sse2(
     }
     hu.avg_ncpus = 1;
     hu.max_ncpus = 1;
-    hu.projected_flops = sreq.host.p_fpops;
-    hu.peak_flops = sreq.host.p_fpops;
+    hu.projected_flops = 1.1*capped_host_fpops();
+    hu.peak_flops = capped_host_fpops();
     return true;
 }
 
@@ -484,13 +481,13 @@ static bool opencl_check(
     }
 
     coproc_perf(
-        g_request->host.p_fpops,
+        capped_host_fpops(),
         flops_scale * ndevs * cp.peak_flops,
         cpu_frac,
         hu.projected_flops,
         hu.avg_ncpus
     );
-    hu.peak_flops = ndevs*cp.peak_flops + hu.avg_ncpus*g_request->host.p_fpops;
+    hu.peak_flops = ndevs*cp.peak_flops + hu.avg_ncpus*capped_host_fpops();
     hu.max_ncpus = hu.avg_ncpus;
     return true;
 }
@@ -610,9 +607,15 @@ static inline bool app_plan_opencl(
     assert(0);
 }
 
+// handles vbox_[32|64][_mt]
+// "mt" is tailored to the needs of CERN:
+// use 1 or 2 CPUs
+
 static inline bool app_plan_vbox(
     SCHEDULER_REQUEST& sreq, char* plan_class, HOST_USAGE& hu
 ) {
+    bool can_use_multicore = true;
+
     // host must have VirtualBox 3.2 or later
     //
     if (strlen(sreq.host.virtualbox_version) == 0) return false;
@@ -624,11 +627,12 @@ static inline bool app_plan_vbox(
 
     // host must have VM acceleration in order to run multi-core jobs
     //
-    if (strstr(plan_class, "mt")
-        && (!strstr(sreq.host.p_features, "vmx")
-        && !strstr(sreq.host.p_features, "svm"))
-    ) {
-        return false;
+    if (strstr(plan_class, "mt")) {
+        if ((!strstr(sreq.host.p_features, "vmx") && !strstr(sreq.host.p_features, "svm"))
+            || sreq.host.p_vm_extensions_disabled
+        ) {
+            can_use_multicore = false;
+        }
     }
 
     // only send the version for host's primary platform.
@@ -642,20 +646,26 @@ static inline bool app_plan_vbox(
         if (strstr(plan_class, "64")) return false;
     }
 
+    double flops_scale = 1;
+    hu.avg_ncpus = 1;
+    hu.max_ncpus = 1;
     if (strstr(plan_class, "mt")) {
-        double ncpus = g_wreq->effective_ncpus;
-            // number of usable CPUs, taking user prefs into account
-        if (ncpus < 2) return false;
-        int nthreads = (int)ncpus;
-        if (nthreads > 2) nthreads = 2;
-        hu.avg_ncpus = nthreads;
-        sprintf(hu.cmdline, "--nthreads %d", nthreads);
-    } else {
-        hu.avg_ncpus = 1;
+        if (can_use_multicore) {
+            // Use number of usable CPUs, taking user prefs into account
+            double ncpus = g_wreq->effective_ncpus;
+            // CernVM on average uses between 25%-50% of a second core
+            // Total on a dual-core machine is between 65%-75%
+            if (ncpus > 1.5) ncpus = 1.5;
+            hu.avg_ncpus = ncpus;
+            hu.max_ncpus = 2.0;
+            sprintf(hu.cmdline, "--nthreads %f", ncpus);
+        }
+        // use the non-mt version rather than the mt version with 1 CPU
+        //
+        flops_scale = .99;
     }
-    hu.max_ncpus = hu.avg_ncpus;
-    hu.projected_flops = sreq.host.p_fpops*hu.avg_ncpus;
-    hu.peak_flops = sreq.host.p_fpops*hu.avg_ncpus;
+    hu.projected_flops = flops_scale * capped_host_fpops()*hu.avg_ncpus;
+    hu.peak_flops = capped_host_fpops()*hu.max_ncpus;
     if (config.debug_version_select) {
         log_messages.printf(MSG_NORMAL,
             "[version] %s app projected %.2fG\n",
@@ -780,7 +790,7 @@ bool JOB::get_score() {
     // match large jobs to fast hosts
     //
     if (config.job_size_matching) {
-        double host_stdev = (g_reply->host.p_fpops - ssp->perf_info.host_fpops_mean)/ ssp->perf_info.host_fpops_stdev;
+        double host_stdev = (capped_host_fpops() - ssp->perf_info.host_fpops_mean)/ ssp->perf_info.host_fpops_stddev;
         double diff = host_stdev - wu_result.fpops_size;
         score -= diff*diff;
     }

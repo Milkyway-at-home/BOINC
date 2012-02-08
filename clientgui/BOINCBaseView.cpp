@@ -32,13 +32,13 @@
 #include "res/sortdescending.xpm"
 
 
-IMPLEMENT_DYNAMIC_CLASS(CBOINCBaseView, wxSplitterWindow)
+IMPLEMENT_DYNAMIC_CLASS(CBOINCBaseView, wxPanel)
 
 
 CBOINCBaseView::CBOINCBaseView() {}
 
 CBOINCBaseView::CBOINCBaseView(wxNotebook* pNotebook) :
-    wxSplitterWindow(pNotebook, -1, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL)
+    wxPanel(pNotebook, -1, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL)
 {
     m_bProcessingTaskRenderEvent = false;
     m_bProcessingListRenderEvent = false;
@@ -57,6 +57,7 @@ CBOINCBaseView::CBOINCBaseView(wxNotebook* pNotebook) :
     m_SortArrows = NULL;
     
     SetName(GetViewName());
+    SetAutoLayout(TRUE);
 
 #if BASEVIEW_STRIPES    
     m_pWhiteBackgroundAttr = NULL;
@@ -66,7 +67,7 @@ CBOINCBaseView::CBOINCBaseView(wxNotebook* pNotebook) :
 
 
 CBOINCBaseView::CBOINCBaseView(wxNotebook* pNotebook, wxWindowID iTaskWindowID, int iTaskWindowFlags, wxWindowID iListWindowID, int iListWindowFlags) :
-    wxSplitterWindow(pNotebook, -1, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL)
+    wxPanel(pNotebook, -1, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL)
 {
     m_bProcessingTaskRenderEvent = false;
     m_bProcessingListRenderEvent = false;
@@ -81,14 +82,24 @@ CBOINCBaseView::CBOINCBaseView(wxNotebook* pNotebook, wxWindowID iTaskWindowID, 
     m_pListPane = NULL;
 
     SetName(GetViewName());
+    SetAutoLayout(TRUE);
+
+    wxFlexGridSizer* itemFlexGridSizer = new wxFlexGridSizer(2, 0, 0);
+    wxASSERT(itemFlexGridSizer);
+
+    itemFlexGridSizer->AddGrowableRow(0);
+    itemFlexGridSizer->AddGrowableCol(1);
 
     m_pTaskPane = new CBOINCTaskCtrl(this, iTaskWindowID, iTaskWindowFlags);
     wxASSERT(m_pTaskPane);
 
     m_pListPane = new CBOINCListCtrl(this, iListWindowID, iListWindowFlags);
     wxASSERT(m_pListPane);
+    
+    itemFlexGridSizer->Add(m_pTaskPane, 1, wxGROW|wxALL, 1);
+    itemFlexGridSizer->Add(m_pListPane, 1, wxGROW|wxALL, 1);
 
-    SplitVertically(m_pTaskPane, m_pListPane, 250);
+    SetSizer(itemFlexGridSizer);
 
     UpdateSelection();
 
@@ -723,13 +734,6 @@ void CBOINCBaseView::PostUpdateSelection(){
     wxASSERT(m_pTaskPane);
     m_pTaskPane->UpdateControls();
     Layout();
-
-    // Adjust the width of the task pane so that it can be fully displayed.
-    //
-    if (IsSplit()) {
-        wxSize sz = m_pTaskPane->GetVirtualSize();
-        SetSashPosition(sz.GetWidth(), true);
-    }
 }
 
 
@@ -767,13 +771,13 @@ void CBOINCBaseView::UpdateWebsiteSelection(long lControlGroup, PROJECT* project
         if (m_pListPane->GetSelectedItemCount()) {
             if (project) {
                 // Create the web sites task group
-                pGroup = new CTaskItemGroup( _("Web sites") );
+                pGroup = new CTaskItemGroup( _("Project web pages") );
                 m_TaskGroups.push_back( pGroup );
 
                 // Default project url
                 pItem = new CTaskItem(
-                    wxString(project->project_name.c_str(), wxConvUTF8), 
-                    wxT(""), 
+                    wxString("Home page", wxConvUTF8), 
+                    wxString(project->project_name.c_str(), wxConvUTF8) + wxT(" web site"), 
                     wxString(project->master_url, wxConvUTF8),
                     ID_TASK_PROJECT_WEB_PROJDEF_MIN
                 );

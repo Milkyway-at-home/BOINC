@@ -37,26 +37,27 @@
 #endif
 
 #include "cpp.h"
-#include "parse.h"
-#include "str_util.h"
-#include "str_replace.h"
-#include "util.h"
 #include "error_numbers.h"
 #include "filesys.h"
+#include "parse.h"
+#include "str_replace.h"
+#include "str_util.h"
+#include "util.h"
 #ifdef _WIN32
 #include "run_app_windows.h"
 #endif
 
+#include "async_file.h"
+#include "client_msgs.h"
+#include "cs_notice.h"
+#include "cs_trickle.h"
 #include "file_names.h"
 #include "hostinfo.h"
 #include "hostinfo_network.h"
-#include "network.h"
 #include "http_curl.h"
-#include "client_msgs.h"
-#include "shmem.h"
+#include "network.h"
 #include "sandbox.h"
-#include "cs_notice.h"
-#include "cs_trickle.h"
+#include "shmem.h"
 
 #include "client_state.h"
 
@@ -405,12 +406,6 @@ int CLIENT_STATE::init() {
     if (coprocs.none() ) {
         msg_printf(NULL, MSG_INFO, "No usable GPUs found");
     }
-	for (int j=1; j<coprocs.n_rsc; j++) {
-		COPROC& cp = coprocs.coprocs[j];
-		if (cp.have_opencl) {
-			msg_printf(NULL, MSG_INFO, "%s GPU is OpenCL-capable", cp.type);
-		}
-	}
 
     set_no_rsc_config();
 
@@ -635,15 +630,17 @@ void CLIENT_STATE::do_io_or_sleep(double x) {
     struct timeval tv;
     set_now();
     double end_time = now + x;
-    int loops = 0;
+    //int loops = 0;
 
     while (1) {
+        bool action = do_async_file_ops();
+
         curl_fds.zero();
         gui_rpc_fds.zero();
         http_ops->get_fdset(curl_fds);
         all_fds = curl_fds;
         gui_rpcs.get_fdset(gui_rpc_fds, all_fds);
-        double_to_timeval(x, tv);
+        double_to_timeval(action?0:x, tv);
         n = select(
             all_fds.max_fd+1,
             &all_fds.read_fds, &all_fds.write_fds, &all_fds.exc_fds,
@@ -659,8 +656,9 @@ void CLIENT_STATE::do_io_or_sleep(double x) {
         http_ops->got_select(all_fds, x);
         gui_rpcs.got_select(all_fds);
 
-        if (n==0) break;
+        if (!action && n==0) break;
 
+#if 0
         // Limit number of times thru this loop.
         // Can get stuck in while loop, if network isn't available,
         // DNS lookups tend to eat CPU cycles.
@@ -672,6 +670,7 @@ void CLIENT_STATE::do_io_or_sleep(double x) {
 #endif
             break;
         }
+#endif
 
         set_now();
         if (now > end_time) break;
@@ -1546,7 +1545,7 @@ bool CLIENT_STATE::update_results() {
             break;
         case RESULT_FILES_UPLOADING:
             if (rp->is_upload_done()) {
-                rp->ready_to_report = true;
+                rp->set_ready_to_report();
                 rp->completed_time = gstate.now;
                 rp->project->last_upload_start = 0;
                 rp->set_state(RESULT_FILES_UPLOADED, "CS::update_results");
@@ -1564,7 +1563,7 @@ bool CLIENT_STATE::update_results() {
             break;
         case RESULT_ABORTED:
             if (!rp->ready_to_report) {
-                rp->ready_to_report = true;
+                rp->set_ready_to_report();
                 rp->completed_time = now;
                 action = true;
             }
@@ -1634,7 +1633,7 @@ int CLIENT_STATE::report_result_error(RESULT& res, const char* format, ...) {
         return 0;
     }
 
-    res.ready_to_report = true;
+    res.set_ready_to_report();
     res.completed_time = now;
 
     va_list va;

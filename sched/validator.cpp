@@ -87,8 +87,6 @@ bool update_credited_job = false;
 bool credit_from_wu = false;
 bool credit_from_runtime = false;
 double max_runtime = 0;
-double fpops_50_percentile; // used if credit_from_runtime
-double fpops_95_percentile;
 bool no_credit = false;
 
 WORKUNIT* g_wup;
@@ -410,16 +408,16 @@ int handle_wu(
                                 );
                                 break;
                             }
-                            double fpops = host.p_fpops;
-                            if (fpops <= 0) fpops = fpops_50_percentile;
-                            if (fpops > fpops_95_percentile) {
-                                fpops = fpops_95_percentile;
-                            }
                             double runtime = result.elapsed_time;
                             if (runtime <=0 || runtime > max_runtime) {
                                 runtime = max_runtime;
                             }
-                            credit = (fpops * runtime) * COBBLESTONE_SCALE;
+                            credit = result.flops_estimate * runtime * COBBLESTONE_SCALE;
+                            log_messages.printf(MSG_NORMAL,
+                                "[WU#%d][RESULT#%d] credit_from_runtime %.2f = %.0fs * %.2fGFLOPS\n",
+                                wu.id, result.id,
+                                credit, runtime, result.flops_estimate/1e9
+                            );
                             break;
                         }
                     }
@@ -695,6 +693,7 @@ int main(int argc, char** argv) {
       "  --max_granted_credit X  Grant no more than this amount of credit to a result\n"
       "  --update_credited_job   Add record to credited_job table after granting credit\n"
       "  --credit_from_wu        Credit is specified in WU XML\n"
+      "  --credit_from_runtime X  Grant credit based on runtime (max X seconds)and estimated FLOPS\n"
       "  --no_credit             Don't grant credit\n"
       "  --sleep_interval n      Set sleep-interval to n\n"
       "  -d n, --debug_level n   Set log verbosity level, 1-4\n"
@@ -780,21 +779,9 @@ int main(int argc, char** argv) {
     );
 
     if (credit_from_runtime) {
-        DB_HOST host;
-        retval = host.fpops_percentile(50, fpops_50_percentile);
-        if (retval) {
-            log_messages.printf(MSG_CRITICAL, "fpops_percentile failed: %d\n", retval);
-            return retval;
-        }
-        retval = host.fpops_percentile(95, fpops_95_percentile);
-        if (retval) {
-            log_messages.printf(MSG_CRITICAL, "fpops_percentile failed: %d\n", retval);
-            return retval;
-        }
-
-        log_messages.printf(MSG_NORMAL, "default FLOPS: %f\n", fpops_50_percentile);
-        log_messages.printf(MSG_NORMAL, "max FLOPS: %f\n", fpops_95_percentile);
-        log_messages.printf(MSG_NORMAL, "max runtime: %f\n", max_runtime);
+        log_messages.printf(MSG_NORMAL,
+            "using credit from runtime, max runtime: %f\n", max_runtime
+        );
     }
 
     if (wu_id_modulus) {

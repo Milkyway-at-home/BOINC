@@ -48,7 +48,6 @@ for($i=0;$i<$Nplatform;$i++){
  }
 mysql_free_result($result);
 
-
 /***************************************************\
  *  Action: process form input for changes
  \***************************************************/
@@ -85,7 +84,6 @@ if( !empty($_POST) ) {
         }
 
 
-        /* Minimum version limit */
         $field="weight_".$id;
         $new_v= $_POST[$field] + 0;
         $old_v=$item->weight;
@@ -133,20 +131,26 @@ if( !empty($_POST) ) {
 
 admin_page_head("Manage Applications");
 
-if(isset($commands)) echo $commands;
+if (strlen($commands)) {
+    echo "The following updates were done: $commands
+        <p>
+        <b>You must stop and restart the project
+        for these changes to take effect</b>.
+";
+}
 
 
 $self=$_SERVER['PHP_SELF'];
 echo "<form action='$self' method='POST'>\n";
 
 
-start_table("align='center'");
+start_table();
 echo "<TR><TH>ID #</TH>
       <TH>Name and description<br><span class=note>Click for details</span></TH>
       <TH>Created</TH>
-      <TH>minimum<br>client<br>version</TH>
+      <TH>minimum app version for HR</th>
       <TH>weight</TH>
-      <TH>homogeneous<br>redundancy<br>type (0=none)</TH>
+      <TH>homogeneous redundancy type (0=none)</TH>
       <TH>deprecated?</TH>
        </TR>\n";
 

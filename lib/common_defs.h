@@ -139,6 +139,8 @@ enum SUSPEND_REASON {
     // process exceeded limits; send "abort" message, waiting to exit
 #define PROCESS_QUIT_PENDING    8
     // we've sent it a "quit" message, waiting to exit
+#define PROCESS_COPY_PENDING    10
+    // waiting for async file copies to finish
 
 // states in which the process has exited
 #define PROCESS_EXITED          2
@@ -179,7 +181,6 @@ struct VERSION_INFO {
 #define CLIENT_AUTH_FILENAME        "client_auth.xml"
 #define LOCK_FILE_NAME              "lockfile"
 #define GRAPHICS_APP_FILENAME       "graphics_app"
-#define ASSIGNED_WU_STR             "asgn"
 #define GUI_RPC_PASSWD_FILE         "gui_rpc_auth.cfg"
 #define SS_CONFIG_FILE              "ss_config.xml"
 

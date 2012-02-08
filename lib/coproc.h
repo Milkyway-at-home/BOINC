@@ -76,6 +76,8 @@
 #include "cal_boinc.h"
 #include "cl_boinc.h"
 
+#define DEFER_ON_GPU_AVAIL_RAM  0
+
 #define MAX_COPROC_INSTANCES 64
 #define MAX_RSC 8
     // max # of processing resources types
@@ -131,6 +133,8 @@ struct OPENCL_DEVICE_PROP {
     int device_num;                     // temp used in scan process
     double peak_flops;                  // temp used in scan process
     COPROC_USAGE is_used;               // temp used in scan process
+    double opencl_available_ram;        // temp used in scan process
+    int opencl_device_index;            // temp used in scan process
 
 #ifndef _USING_FCGI_
     void write_xml(MIOFILE&);
@@ -181,10 +185,14 @@ struct COPROC {
     int device_num;     // temp used in scan process
     cl_device_id opencl_device_ids[MAX_COPROC_INSTANCES];
     int opencl_device_count;
+    int opencl_device_indexes[MAX_COPROC_INSTANCES];
+
     bool running_graphics_app[MAX_COPROC_INSTANCES];
         // is this GPU running a graphics app (NVIDIA only)
-    double available_ram_temp[MAX_COPROC_INSTANCES];
+#if DEFER_ON_GPU_AVAIL_RAM
+   double available_ram_temp[MAX_COPROC_INSTANCES];
         // used during job scheduling
+#endif
 
     double last_print_time;
     

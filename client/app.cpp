@@ -58,14 +58,16 @@
 #include "file_names.h"
 #include "parse.h"
 #include "shmem.h"
-#include "str_util.h"
 #include "str_replace.h"
+#include "str_util.h"
 #include "util.h"
 
-#include "client_state.h"
+#include "async_file.h"
 #include "client_msgs.h"
+#include "client_state.h"
 #include "procinfo.h"
 #include "sandbox.h"
+
 #include "app.h"
 
 using std::max;
@@ -77,6 +79,9 @@ int gpu_suspend_reason;
 double non_boinc_cpu_usage;
 
 ACTIVE_TASK::~ACTIVE_TASK() {
+    if (async_copy) {
+        remove_async_copy(async_copy);
+    }
 }
 
 ACTIVE_TASK::ACTIVE_TASK() {
@@ -121,6 +126,8 @@ ACTIVE_TASK::ACTIVE_TASK() {
     overdue_checkpoint = false;
     last_deadline_miss_time = 0;
     strcpy(web_graphics_url, "");
+    strcpy(remote_desktop_addr, "");
+    async_copy = NULL;
 }
 
 // preempt this task;
@@ -593,6 +600,12 @@ int ACTIVE_TASK::write_gui(MIOFILE& fout) {
             web_graphics_url
         );
     }
+    if (strlen(remote_desktop_addr)) {
+        fout.printf(
+            "   <remote_desktop_addr>%s</remote_desktop_addr>\n",
+            remote_desktop_addr
+        );
+    }
     fout.printf("</active_task>\n");
     return 0;
 }
@@ -972,6 +985,7 @@ static const char* task_state_name(int val) {
     case PROCESS_ABORTED: return "ABORTED";
     case PROCESS_COULDNT_START: return "COULDNT_START";
     case PROCESS_QUIT_PENDING: return "QUIT_PENDING";
+    case PROCESS_COPY_PENDING: return "COPY_PENDING";
     }
     return "Unknown";
 }

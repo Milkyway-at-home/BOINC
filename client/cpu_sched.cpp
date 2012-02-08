@@ -471,22 +471,14 @@ static RESULT* earliest_deadline_result(int rsc_type) {
         if (rp->non_cpu_intensive()) continue;
         PROJECT* p = rp->project;
 
-        bool only_deadline_misses = true;
-
         // treat projects with DCF>90 as if they had deadline misses
         //
         if (p->duration_correction_factor < 90.0) {
-            int d = p->rsc_pwf[rsc_type].deadlines_missed_copy;
-            if (!d) {
+            if (p->rsc_pwf[rsc_type].deadlines_missed_copy <= 0) {
                 continue;
             }
-        } else {
-            only_deadline_misses = false;
         }
 
-        if (only_deadline_misses && !rp->rr_sim_misses_deadline) {
-            continue;
-        }
         bool new_best = false;
         if (best_result) {
             if (rp->report_deadline < best_result->report_deadline) {
@@ -653,9 +645,10 @@ void PROJECT::compute_sched_priority() {
     // than those with positive resource share
     //
     if (resource_share == 0) {
-        sched_priority = -1e6 - rec_frac;
+        sched_priority = -1e3 - rec_frac;
+    } else {
+        sched_priority = - rec_frac/resource_share_frac;
     }
-    sched_priority = - rec_frac/resource_share_frac;
 }
 
 // called from the scheduler's job-selection loop;
@@ -1139,7 +1132,9 @@ static inline void confirm_current_assignment(
                 cp->type, j, rp->name
             );
         }
+#if DEFER_ON_GPU_AVAIL_RAM
         cp->available_ram_temp[j] -= rp->avp->gpu_ram;
+#endif
     }
 }
 
@@ -1158,13 +1153,15 @@ static inline bool get_fractional_assignment(
         if ((cp->usage[i] || cp->pending_usage[i])
             && (cp->usage[i] + cp->pending_usage[i] + usage <= 1)
         ) {
+#if DEFER_ON_GPU_AVAIL_RAM
             if (rp->avp->gpu_ram > cp->available_ram_temp[i]) {
                 defer_sched = true;
                 continue;
             }
+            cp->available_ram_temp[i] -= rp->avp->gpu_ram;
+#endif
             rp->coproc_indices[0] = i;
             cp->usage[i] += usage;
-            cp->available_ram_temp[i] -= rp->avp->gpu_ram;
             if (log_flags.coproc_debug) {
                 msg_printf(rp->project, MSG_INFO,
                     "[coproc] Assigning %f of %s instance %d to %s",
@@ -1182,13 +1179,15 @@ static inline bool get_fractional_assignment(
             continue;
         }
         if (!cp->usage[i]) {
+#if DEFER_ON_GPU_AVAIL_RAM
             if (rp->avp->gpu_ram > cp->available_ram_temp[i]) {
                 defer_sched = true;
                 continue;
             }
+            cp->available_ram_temp[i] -= rp->avp->gpu_ram;
+#endif
             rp->coproc_indices[0] = i;
             cp->usage[i] += usage;
-            cp->available_ram_temp[i] -= rp->avp->gpu_ram;
             if (log_flags.coproc_debug) {
                 msg_printf(rp->project, MSG_INFO,
                     "[coproc] Assigning %f of %s free instance %d to %s",
@@ -1222,10 +1221,18 @@ static inline bool get_integer_assignment(
             continue;
         }
         if (!cp->usage[i]) {
+#if DEFER_ON_GPU_AVAIL_RAM
             if (rp->avp->gpu_ram > cp->available_ram_temp[i]) {
                 defer_sched = true;
+                if (log_flags.coproc_debug) {
+                    msg_printf(rp->project, MSG_INFO,
+                        "[coproc]  task %s needs %.0fMB RAM, %s GPU %d has %.0fMB available",
+                        rp->name, rp->avp->gpu_ram/MEGA, cp->type, i, cp->available_ram_temp[i]/MEGA
+                    );
+                }
                 continue;
             };
+#endif
             nfree++;
         }
     }
@@ -1254,10 +1261,14 @@ static inline bool get_integer_assignment(
         }
         if (!cp->usage[i]
             && !cp->pending_usage[i]
+#if DEFER_ON_GPU_AVAIL_RAM
             && (rp->avp->gpu_ram <= cp->available_ram_temp[i])
+#endif
         ) {
             cp->usage[i] = 1;
+#if DEFER_ON_GPU_AVAIL_RAM
             cp->available_ram_temp[i] -= rp->avp->gpu_ram;
+#endif
             rp->coproc_indices[n++] = i;
             if (log_flags.coproc_debug) {
                 msg_printf(rp->project, MSG_INFO,
@@ -1276,10 +1287,14 @@ static inline bool get_integer_assignment(
             continue;
         }
         if (!cp->usage[i]
+#if DEFER_ON_GPU_AVAIL_RAM
             && (rp->avp->gpu_ram <= cp->available_ram_temp[i])
+#endif
         ) {
             cp->usage[i] = 1;
+#if DEFER_ON_GPU_AVAIL_RAM
             cp->available_ram_temp[i] -= rp->avp->gpu_ram;
+#endif
             rp->coproc_indices[n++] = i;
             if (log_flags.coproc_debug) {
                 msg_printf(rp->project, MSG_INFO,
@@ -1308,6 +1323,7 @@ static inline void mark_as_defer_sched(RESULT* rp) {
     gstate.request_schedule_cpus("insufficient GPU RAM");
 }
 
+#if DEFER_ON_GPU_AVAIL_RAM
 static void copy_available_ram(COPROC& cp, const char* name) {
     int rt = rsc_index(name);
     if (rt > 0) {
@@ -1316,6 +1332,7 @@ static void copy_available_ram(COPROC& cp, const char* name) {
         }
     }
 }
+#endif
 
 static inline void assign_coprocs(vector<RESULT*>& jobs) {
     unsigned int i;
@@ -1323,12 +1340,14 @@ static inline void assign_coprocs(vector<RESULT*>& jobs) {
     double usage;
 
     coprocs.clear_usage();
+#if DEFER_ON_GPU_AVAIL_RAM
     if (coprocs.have_nvidia()) {
         copy_available_ram(coprocs.nvidia, GPU_TYPE_NVIDIA);
     }
     if (coprocs.have_ati()) {
         copy_available_ram(coprocs.ati, GPU_TYPE_ATI);
     }
+#endif
 
     // fill in pending usage
     //
@@ -1837,7 +1856,7 @@ ACTIVE_TASK* CLIENT_STATE::lookup_active_task_by_result(RESULT* rep) {
     return NULL;
 }
 
-// find total resource shares of all projects
+// find total resource shares of all CPU-intensive projects
 //
 double CLIENT_STATE::total_resource_share() {
     double x = 0;

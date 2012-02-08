@@ -102,7 +102,7 @@ int PERS_FILE_XFER::create_xfer() {
         char pathname[256];
         get_pathname(fip, pathname, sizeof(pathname));
 
-        if (!fip->verify_file(true, false)) {
+        if (!fip->verify_file(true, false, true)) {
             retval = fip->set_permissions();
             fip->status = FILE_PRESENT;
             pers_xfer_done = true;
@@ -117,7 +117,7 @@ int PERS_FILE_XFER::create_xfer() {
             return 0;
         } else {
             // Mark file as not present but don't delete it.
-            // It might partly downloaded.
+            // It might be partly downloaded.
             //
             fip->status = FILE_NOT_PRESENT;
         }
@@ -141,7 +141,7 @@ int PERS_FILE_XFER::create_xfer() {
         }
 
         fxp->file_xfer_retval = retval;
-        if (retval == ERR_FILE_NOT_FOUND) {
+        if (retval == ERR_HTTP_PERMANENT) {
             permanent_failure(retval);
         } else {
             transient_failure(retval);
@@ -170,10 +170,9 @@ int PERS_FILE_XFER::create_xfer() {
 // If it has finished or failed:
 //      handle the success or failure
 //      remove the FILE_XFER from gstate.file_xfers and delete it
+// Return true if it finished
 //
 bool PERS_FILE_XFER::poll() {
-    int retval;
-
     if (pers_xfer_done) {
         return false;
     }
@@ -199,8 +198,8 @@ bool PERS_FILE_XFER::poll() {
             return false;
         }
         last_time = gstate.now;
-        retval = create_xfer();
-        return (retval == 0);
+        create_xfer();
+        return false;
     }
 
     // copy bytes_xferred for use in GUI
@@ -250,8 +249,7 @@ bool PERS_FILE_XFER::poll() {
             permanent_failure(fxp->file_xfer_retval);
             break;
         case ERR_NOT_FOUND:
-        case ERR_FILE_NOT_FOUND:
-        case HTTP_STATUS_NOT_FOUND:     // won't happen - converted in http_curl.C
+        case ERR_HTTP_PERMANENT:
             if (is_upload) {
                 // if we get a "not found" on an upload,
                 // the project must not have a file_upload_handler.

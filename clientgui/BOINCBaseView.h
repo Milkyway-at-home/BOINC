@@ -38,7 +38,7 @@
 
 class CBOINCTaskCtrl;
 class CBOINCListCtrl;
-class PROJECT;
+struct PROJECT;
 
 
 class CTaskItem : wxObject {
@@ -53,6 +53,7 @@ public:
     ~CTaskItem() {};
 
     wxString                m_strName;
+    wxString                m_strNameEllipsed;
     wxString                m_strDescription;
     wxInt32                 m_iEventID;
 
@@ -97,7 +98,7 @@ private:
 typedef bool     (*ListSortCompareFunc)(int, int);
 
 
-class CBOINCBaseView : public wxSplitterWindow {
+class CBOINCBaseView : public wxPanel {
     DECLARE_DYNAMIC_CLASS( CBOINCBaseView )
 
 public:

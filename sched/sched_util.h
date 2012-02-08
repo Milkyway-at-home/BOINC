@@ -55,6 +55,15 @@ extern int dir_hier_url(
 
 extern void compute_avg_turnaround(HOST& host, double turnaround);
 
+struct PERF_INFO {
+    double host_fpops_mean;
+    double host_fpops_stddev;
+    double host_fpops_50_percentile;
+    double host_fpops_95_percentile;
+
+    int get_from_db();
+};
+
 // returns zero if we get lock on file with file descriptor fd.
 // returns < 0 if error
 // returns PID > 0 if another process has lock
@@ -81,6 +90,8 @@ inline int generalized_app_version_id(int avid, int appid) {
 extern bool is_arg(const char*, const char*);
 
 extern bool app_plan_uses_gpu(const char* plan_class);
+
+extern int restrict_wu_to_user(DB_WORKUNIT& wu, int userid);
 
 #ifdef GCL_SIMULATOR
 extern void simulator_signal_handler(int signum);

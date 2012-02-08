@@ -47,14 +47,11 @@ CViewResources::CViewResources(wxNotebook* pNotebook) :
 {
 	m_BOINCwasEmpty=false;
 
-    wxPanel* pPanel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0);
-	wxASSERT(pPanel);
-
 	wxGridSizer* itemGridSizer = new wxGridSizer(2, 0, 3);
     wxASSERT(itemGridSizer);
 
 	// create pie chart ctrl for total disk usage
-	m_pieCtrlTotal = new wxPieCtrl(pPanel, ID_PIECTRL_RESOURCEUTILIZATIONVIEWTOTAL, wxDefaultPosition, wxDefaultSize);
+	m_pieCtrlTotal = new wxPieCtrl(this, ID_PIECTRL_RESOURCEUTILIZATIONVIEWTOTAL, wxDefaultPosition, wxDefaultSize);
 	wxASSERT(m_pieCtrlTotal);
 
     // setup the legend
@@ -75,7 +72,7 @@ CViewResources::CViewResources(wxNotebook* pNotebook) :
 
     
     // create pie chart ctrl for BOINC disk usage
-	m_pieCtrlBOINC = new wxPieCtrl(pPanel, ID_PIECTRL_RESOURCEUTILIZATIONVIEW, wxDefaultPosition, wxDefaultSize);
+	m_pieCtrlBOINC = new wxPieCtrl(this, ID_PIECTRL_RESOURCEUTILIZATIONVIEW, wxDefaultPosition, wxDefaultSize);
 	wxASSERT(m_pieCtrlBOINC);
 
     //setup the legend
@@ -98,10 +95,7 @@ CViewResources::CViewResources(wxNotebook* pNotebook) :
     itemGridSizer->Add(m_pieCtrlTotal, 1, wxGROW|wxALL,1);
     itemGridSizer->Add(m_pieCtrlBOINC, 1, wxGROW|wxALL,1);
 
-    pPanel->SetSizer(itemGridSizer);
-    pPanel->Layout();
-
-    Initialize(pPanel);
+    SetSizer(itemGridSizer);
 
     UpdateSelection();
 }
@@ -171,6 +165,24 @@ bool CViewResources::OnRestoreState(wxConfigBase* /*pConfig*/) {
     return true;
 }
 
+void hsv2rgb(double h, double s, double v, double& r, double& g, double& b) {
+    double m, n, f;
+    int i = floor(h);
+    f = h - i;
+    if (!(i&1)) f = 1 - f;
+    m = v * (1 - s);
+    n = v * (1 - s*f);
+    switch (i) {
+    case 6:
+    case 0: r = v; g = n; b = m; return;
+    case 1: r = n; g = v; b = m; return;
+    case 2: r = m; g = v; b = n; return;
+    case 3: r = m; g = n; b = v; return;
+    case 4: r = n; g = m; b = v; return;
+    case 5: r = v; g = m; b = n; return;
+    }
+}
+
 void CViewResources::OnListRender( wxTimerEvent& WXUNUSED(event) ) {
     CMainDocument* pDoc = wxGetApp().GetDocument();
     wxString diskspace;
@@ -216,10 +228,15 @@ void CViewResources::OnListRender( wxTimerEvent& WXUNUSED(event) ) {
 				wxPiePart part;
                 part.SetLabel(projectname + wxT(": ") + diskspace);
 				part.SetValue(usage);
-                unsigned char r=128+(rand()&127);
-                unsigned char g=128+(rand()&127);
-                unsigned char b=128+(rand()&127);
-                part.SetColour(wxColour(r, g, b));
+                double h = (double)i/(double)pDoc->disk_usage.projects.size();
+                double r, g, b;
+                double v = .5 + (i % 3)*.2;
+                    // cycle through 3 different brightnesses
+                hsv2rgb(h*6, .5, v, r, g, b);
+                unsigned char cr = (unsigned char) (r*256);
+                unsigned char cg = (unsigned char) (g*256);
+                unsigned char cb = (unsigned char) (b*256);
+                part.SetColour(wxColour(cr, cg, cb));
 				m_pieCtrlBOINC->m_Series.Add(part);
 			}
 			m_pieCtrlBOINC->Refresh();

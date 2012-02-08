@@ -214,6 +214,25 @@ void compute_avg_turnaround(HOST& host, double turnaround) {
     host.avg_turnaround = new_avg;
 }
 
+int PERF_INFO::get_from_db() {
+    int retval, n;
+    DB_HOST host;
+
+    host_fpops_mean = 2.2e9;
+    host_fpops_stddev = .7e9;
+    host_fpops_50_percentile = 3.3e9;
+    host_fpops_95_percentile = 3.3e9;
+
+    retval = host.count(n);
+    if (retval) return retval;
+    if (n < 10) return 0;
+    retval = host.fpops_mean(host_fpops_mean);
+    retval = host.fpops_stddev(host_fpops_stddev);
+    retval = host.fpops_percentile(50, host_fpops_50_percentile);
+    retval = host.fpops_percentile(95, host_fpops_95_percentile);
+    return 0;
+}
+
 // Request lock on the given file with given fd.  Returns:
 // 0 if we get lock
 // PID (>0) if another process has lock
@@ -283,6 +302,48 @@ bool app_plan_uses_gpu(const char* plan_class) {
     return false;
 }
 
+// Arrange that further results for this workunit
+// will be sent only to hosts with the given user ID.
+// This could be used, for example, so that late workunits
+// are sent only to cloud or cluster resources
+//
+int restrict_wu_to_user(DB_WORKUNIT& wu, int userid) {
+    DB_RESULT result;
+    DB_ASSIGNMENT asg;
+    char buf[256];
+    int retval;
+
+    // mark unsent results as DIDNT_NEED
+    //
+    sprintf(buf, "workunitid=%d and server_state=%d",
+        wu.id, RESULT_SERVER_STATE_UNSENT
+    );
+    while (result.enumerate(buf)) {
+        char buf2[256];
+        sprintf(buf2, "server_state=%d, outcome=%d",
+            RESULT_SERVER_STATE_OVER,
+            RESULT_OUTCOME_DIDNT_NEED
+        );
+        result.update_field(buf2);
+    }
+
+    // mark the WU as TRANSITION_NO_NEW_RESULTS
+    //
+    sprintf(buf, "transitioner_flags=%d", TRANSITION_NO_NEW_RESULTS);
+    retval = wu.update_field(buf);
+    if (retval) return retval;
+
+    // create an assignment record
+    //
+    asg.clear();
+    asg.create_time = time(0);
+    asg.target_id = userid;
+    asg.target_type = ASSIGN_USER;
+    asg.multi = 0;
+    asg.workunitid = wu.id;
+    retval = asg.insert();
+    return retval;
+}
 
 #ifdef GCL_SIMULATOR
 

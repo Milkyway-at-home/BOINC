@@ -23,6 +23,8 @@
 #include "BOINCBaseView.h"
 #include "BOINCTaskCtrl.h"
 
+#define TASKPANEWIDTH 200
+#define TASKBUTTONWIDTH (TASKPANEWIDTH - 55)
 
 IMPLEMENT_DYNAMIC_CLASS(CBOINCTaskCtrl, wxScrolledWindow)
 
@@ -31,12 +33,12 @@ CBOINCTaskCtrl::CBOINCTaskCtrl() {}
 
 
 CBOINCTaskCtrl::CBOINCTaskCtrl(CBOINCBaseView* pView, wxWindowID iTaskWindowID, wxInt32 iTaskWindowFlags) :
-    wxScrolledWindow(pView, iTaskWindowID, wxDefaultPosition, wxSize(200, -1), iTaskWindowFlags)
+    wxScrolledWindow(pView, iTaskWindowID, wxDefaultPosition, wxSize(TASKPANEWIDTH, -1), iTaskWindowFlags)
 {
     m_pParent = pView;
     m_pSizer = NULL;
 
-    SetVirtualSize( 200, 1000 );
+    SetVirtualSize( TASKPANEWIDTH, 1000 );
     EnableScrolling(false, true);
     SetScrollRate( 0, 10 );
 
@@ -131,13 +133,18 @@ wxInt32 CBOINCTaskCtrl::EnableTask( CTaskItem* pItem ) {
 
 wxInt32 CBOINCTaskCtrl::UpdateTask( CTaskItem* pItem, wxString strName, wxString strDescription ) {
     if (pItem->m_pButton) {
+        if (!pItem->m_strName.Cmp(strName) && 
+            !pItem->m_strDescription.Cmp(strDescription)) {
+            return 0;
+        }
         pItem->m_strName = strName;
+        pItem->m_strNameEllipsed = pItem->m_strName;
+        EllipseStringIfNeeded(pItem->m_strNameEllipsed);
         pItem->m_strDescription = strDescription;
-
-        pItem->m_pButton->SetLabel( strName );
+        pItem->m_pButton->SetLabel( pItem->m_strNameEllipsed );
         pItem->m_pButton->SetHelpText( strDescription );
 #if wxUSE_TOOLTIPS
-        pItem->m_pButton->SetToolTip( strDescription );
+        pItem->m_pButton->SetToolTip(pItem->m_strDescription);
 #endif
     }
     return 0;
@@ -180,7 +187,9 @@ wxInt32 CBOINCTaskCtrl::UpdateControls() {
             pItem = pGroup->m_Tasks[j];
             if (!pItem->m_pButton) {
                 pItem->m_pButton = new wxButton;
-                pItem->m_pButton->Create(this, pItem->m_iEventID, pItem->m_strName, wxDefaultPosition, wxDefaultSize, 0);
+                pItem->m_strNameEllipsed = pItem->m_strName;
+                EllipseStringIfNeeded(pItem->m_strNameEllipsed);
+                pItem->m_pButton->Create(this, pItem->m_iEventID, pItem->m_strNameEllipsed, wxDefaultPosition, wxSize(TASKBUTTONWIDTH, -1), 0);
                 pItem->m_pButton->SetHelpText(pItem->m_strDescription);
 #if wxUSE_TOOLTIPS
                 pItem->m_pButton->SetToolTip(pItem->m_strDescription);
@@ -241,3 +250,26 @@ bool CBOINCTaskCtrl::OnRestoreState(wxConfigBase* pConfig) {
     return true;
 }
 
+
+void CBOINCTaskCtrl::EllipseStringIfNeeded(wxString& s) {
+    int w, h;
+    int maxWidth = TASKBUTTONWIDTH - 10;
+    
+    GetTextExtent(s, &w, &h);
+    
+    // Adapted from ellipis code in wxRendererGeneric::DrawHeaderButtonContents()
+    if (w > maxWidth) {
+        int ellipsisWidth;
+        GetTextExtent( wxT("..."), &ellipsisWidth, NULL);
+        if (ellipsisWidth > maxWidth) {
+            s.Clear();
+            w = 0;
+        } else {
+            do {
+                s.Truncate( s.length() - 1 );
+                GetTextExtent( s, &w, &h);
+            } while (((w + ellipsisWidth) > maxWidth) && s.length() );
+            s.append( wxT("...") );
+        }
+    }
+}

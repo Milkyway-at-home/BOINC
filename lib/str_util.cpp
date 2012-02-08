@@ -312,37 +312,38 @@ int parse_command_line(char* p, char** argv) {
 // remove whitespace from start and end of a string
 //
 void strip_whitespace(char *str) {
-    int n;
-    while (1) {
-        if (!str[0]) break;
-        if (!isascii(str[0])) break;
-        if (!isspace(str[0])) break;
-        strcpy_overlap(str, str+1);
+    char *s = str;
+    while (*s) {
+        if (!isascii(*s)) break;
+        if (!isspace(*s)) break;
+        s++;
     }
-    while (1) {
-        n = (int)strlen(str);
-        if (n == 0) break;
-        if (!isascii(str[n-1])) break;
-        if (!isspace(str[n-1])) break;
-        str[n-1] = 0;
+    if (s != str) strcpy_overlap(str, s);
+
+    int n = strlen(str);
+    while (n>0) {
+        n--;
+        if (!isascii(str[n])) break;
+        if (!isspace(str[n])) break;
+        str[n] = 0;
     }
 }
 
 void strip_whitespace(string& str) {
-    int n;
     while (1) {
         if (str.length() == 0) break;
         if (!isascii(str[0])) break;
         if (!isspace(str[0])) break;
         str.erase(0, 1);
     }
-    while (1) {
-        n = (int)str.length();
-        if (n == 0) break;
+
+    int n = (int) str.length();
+    while (n>0) {
         if (!isascii(str[n-1])) break;
         if (!isspace(str[n-1])) break;
-        str.erase(n-1, 1);
+        n--;
     }
+    str.erase(n, str.length()-n);
 }
 
 char* time_to_string(double t) {
@@ -503,7 +504,6 @@ const char* boincerror(int which_error) {
         case ERR_LISTEN: return "listen() failed";
         case ERR_TIMEOUT: return "timeout";
         case ERR_PROJECT_DOWN: return "project down";
-        case ERR_HTTP_ERROR: return "HTTP error";
         case ERR_RESULT_START: return "result start failed";
         case ERR_RESULT_DOWNLOAD: return "result download failed";
         case ERR_RESULT_UPLOAD: return "result upload failed";
@@ -537,7 +537,8 @@ const char* boincerror(int which_error) {
         case ERR_ABORTED_BY_PROJECT: return "Aborted by project";
         case ERR_GETGRNAM: return "getgrnam() failed";
         case ERR_CHOWN: return "chown() failed";
-        case ERR_FILE_NOT_FOUND: return "file not found";
+        case ERR_HTTP_PERMANENT: return "permanent HTTP error";
+        case ERR_HTTP_TRANSIENT: return "transient HTTP error";
         case ERR_BAD_FILENAME: return "file name is empty or has '..'";
         case ERR_TOO_MANY_EXITS: return "application exited too many times";
         case ERR_RMDIR: return "rmdir() failed";

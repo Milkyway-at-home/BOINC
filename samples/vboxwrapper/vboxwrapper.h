@@ -1,6 +1,6 @@
 // This file is part of BOINC.
 // http://boinc.berkeley.edu
-// Copyright (C) 2010 University of California
+// Copyright (C) 2010-2012 University of California
 //
 // BOINC is free software; you can redistribute it and/or modify it
 // under the terms of the GNU Lesser General Public License
@@ -29,6 +29,7 @@
 #define JOB_FILENAME "vbox_job.xml"
 #define CHECKPOINT_FILENAME "vbox_checkpoint.txt"
 #define PORTFORWARD_FILENAME "vbox_port_forward.xml"
+#define REMOTEDESKTOP_FILENAME "vbox_remote_desktop.xml"
 #define POLL_PERIOD 1.0
 
 #endif
