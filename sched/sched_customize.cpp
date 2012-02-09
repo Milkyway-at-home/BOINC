@@ -251,6 +251,15 @@ static inline bool app_plan_ati(
         return false;
     }
 
+    if (c.attribs.target >= CAL_TARGET_7XX) {
+        if (config.debug_version_select) {
+            log_messages.printf(MSG_NORMAL,
+                                "[version] Not accepting CAL version for newer than RV770\n"
+                );
+            return false;
+        }
+    }
+
     if (!strcmp(plan_class, "ati14")) {
         if (!ati_check(c, hu,
             ati_version_int(1, 4, 0),
