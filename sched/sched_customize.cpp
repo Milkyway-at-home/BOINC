@@ -613,6 +613,14 @@ static inline bool app_plan_opencl(
     const char* cuda_str = NULL;
 
     if (cpnv.count > 0 && ((nvidia_str = strstr(plan_class, "nvidia")) || (cuda_str = strstr(plan_class, "cuda")))) {
+        if ((cpnv.display_driver_version > NVIDIA_OPENCL_MIN_DRIVER_VERSION) && cuda_str) {
+            if (config.debug_version_select) {
+                log_messages.printf(MSG_NORMAL,
+                                    "[version] Nvidia driver is new enough, rejecting old cuda_opencl\n");
+            }
+
+            return false;
+        }
 
         // Making a mess to work around Nvidia compiler bug on 266.xx
         // and 277.xx or so. Keep shipping the 0.82 cuda_opencl
