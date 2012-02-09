@@ -157,7 +157,7 @@ static inline bool app_plan_mt(SCHEDULER_REQUEST& sreq, HOST_USAGE& hu) {
 
 GPU_REQUIREMENTS ati_requirements;
 
-static bool ati_check(COPROC_ATI& c, HOST_USAGE& hu,
+static bool ati_check(const COPROC_ATI& c, HOST_USAGE& hu,
     int min_driver_version,
     bool need_amd_libs,
     double min_ram,
@@ -552,7 +552,6 @@ static inline bool app_plan_opencl(
 ) {
     if (strstr(plan_class, "nvidia") || strstr(plan_class, "cuda")) {
         const COPROC_NVIDIA& cp = sreq.coprocs.nvidia;
-        bool base_cl = false;
 
         if (!cp.have_opencl) {
             // older clients do not report any information about
@@ -562,7 +561,7 @@ static inline bool app_plan_opencl(
             // I think we can't get here.
             if (config.debug_version_select) {
                 log_messages.printf(MSG_NORMAL,
-                                    "[version] Host lacks OpenCL, trying fallback capability checks\n");
+                                    "[version] Host lacks OpenCL, trying Nvidia fallback capability checks\n");
             }
 
             return cuda_check(cp, hu,
@@ -571,6 +570,13 @@ static inline bool app_plan_opencl(
                               384*MEGA,
                               1, 0.05, 1);
         } else {
+            bool base_cl = opencl_check(cp, hu,
+                                        101,
+                                        256 * MEGA,
+                                        1,
+                                        0.1,
+                                        0.2);
+
             const char* nbody = strstr(plan_class, "nbody");
             if (nbody) {
                 bool needsDouble = (strstr(nbody, "double") != NULL);
@@ -578,28 +584,41 @@ static inline bool app_plan_opencl(
             } else {
                 return base_cl && check_separation_opencl_features(cp);
             }
-
         }
     } else if (strstr(plan_class, "amd")) {
-        const COPROC& cp = sreq.coprocs.ati;
-        bool base_cl = opencl_check(
-            cp, hu,
-            101,
-            256 * MEGA,
-            1,
-            0.1,
-            0.2);
+        const COPROC_ATI& cp = sreq.coprocs.ati;
 
-        const char* nbody = strstr(plan_class, "nbody");
-        if (nbody) {
-            bool needsDouble = (strstr(nbody, "double") != NULL);
-            return base_cl && check_nbody_opencl_features(cp, needsDouble);
+        if (!cp.have_opencl) {
+            if (config.debug_version_select) {
+                log_messages.printf(MSG_NORMAL,
+                                    "[version] Host lacks OpenCL, trying AMD fallback capability checks\n");
+            }
+
+            return ati_check(cp, hu,
+                             ati_version_int(1, 4, 900),
+                             false,
+                             ATI_MIN_RAM,
+                             1, 0.05,
+                             0.23);
         } else {
-            return base_cl && check_separation_opencl_features(cp);
+            bool base_cl = opencl_check(cp, hu,
+                                        101,
+                                        256 * MEGA,
+                                        1,
+                                        0.1,
+                                        0.2);
+
+            const char* nbody = strstr(plan_class, "nbody");
+            if (nbody) {
+                bool needsDouble = (strstr(nbody, "double") != NULL);
+                return base_cl && check_nbody_opencl_features(cp, needsDouble);
+            } else {
+                return base_cl && check_separation_opencl_features(cp);
+            }
         }
     } else {
         log_messages.printf(MSG_CRITICAL,
-                            "Unknown plan class: %s\n", plan_class
+                            "Unknown plan class: '%s'\n", plan_class
             );
         return false;
     }
