@@ -586,7 +586,7 @@ static inline bool app_plan_opencl(
                 return base_cl && check_separation_opencl_features(cp);
             }
         }
-    } else if (strstr(plan_class, "amd") || strstr(plan_class, "ati") {
+    } else if (strstr(plan_class, "amd") || strstr(plan_class, "ati")) {
         const COPROC_ATI& cp = sreq.coprocs.ati;
 
         if (!cp.have_opencl) {
@@ -596,7 +596,7 @@ static inline bool app_plan_opencl(
             }
 
             return ati_check(cp, hu,
-                             ati_version_int(1, 4, 900),
+                             ati_version_int(1, 4, 1353),
                              false,
                              ATI_MIN_RAM,
                              1, 0.05,
