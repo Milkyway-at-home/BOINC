@@ -248,6 +248,7 @@ GPU_REQUIREMENTS cuda_requirements;
 #define CUDA3_MIN_CUDA_VERSION          3000
 #define CUDA3_MIN_DRIVER_VERSION        19500
 #define CUDA_OPENCL_MIN_DRIVER_VERSION  26019
+#define NVIDIA_OPENCL_MIN_DRIVER_VERSION  28000
 
 
 
@@ -566,7 +567,7 @@ static inline bool app_plan_opencl(
 
             return cuda_check(cp, hu,
                               130, 0,
-                              0, CUDA_OPENCL_MIN_DRIVER_VERSION,
+                              0, NVIDIA_OPENCL_MIN_DRIVER_VERSION,
                               384*MEGA,
                               1, 0.05, 1);
         } else {
@@ -585,7 +586,7 @@ static inline bool app_plan_opencl(
                 return base_cl && check_separation_opencl_features(cp);
             }
         }
-    } else if (strstr(plan_class, "amd")) {
+    } else if (strstr(plan_class, "amd") || strstr(plan_class, "ati") {
         const COPROC_ATI& cp = sreq.coprocs.ati;
 
         if (!cp.have_opencl) {
