@@ -207,6 +207,41 @@ static bool ati_check(const COPROC_ATI& c, HOST_USAGE& hu,
     return true;
 }
 
+// check version is OK for current separation stuff
+static bool catalyst_version_check(const COPROC_ATI& cp, bool opencl)
+{
+    int calVer = cp.version_num;
+
+    if (cp.attribs.target == CAL_TARGET_770 || cp.attribs.target == CAL_TARGET_7XX)
+    {
+        if (opencl)
+        {
+            // 11.4 <= catalyst <= 11.9 or catalyst >= 12.1
+            return   (calVer >= ati_version_int(1, 4, 1353) && calVer <= ati_version_int(1, 4, 1546))
+                  || (calVer >= ati_version_int(1, 4, 1664));
+        }
+        else
+        {
+            // 11.2 <= catalyst <= 11.9
+            return (calVer >= ati_version_int(1, 4, 1016) && calVer <= ati_version_int(1, 4, 1546));
+        }
+    }
+    else
+    {
+        if (opencl)
+        {
+            // catalyst >= 11.4
+            return (calVer >= ati_version_int(1, 4, 1353));
+        }
+        else
+        {
+            // 11.2 <= catalyst <= 11.9
+            return (calVer >= ati_version_int(1, 4, 1016) && calVer <= ati_version_int(1, 4, 1546));
+        }
+    }
+}
+
+
 #define ATI_MIN_RAM 250*MEGA
 static inline bool app_plan_ati(
     SCHEDULER_REQUEST& sreq, char* plan_class, HOST_USAGE& hu
@@ -224,6 +259,18 @@ static inline bool app_plan_ati(
             1, 0.05,
             0.23
         )) {
+            return false;
+        }
+
+        if (!catalyst_version_check(c, false)) {
+            if (config.debug_version_select) {
+                log_messages.printf(MSG_NORMAL,
+                                    "[version] Catalyst driver version %d is not OK for CAL application with this GPU.\n",
+                                    c.version_num
+                    );
+            }
+
+            add_no_work_message("Catalyst driver version is not OK for CAL application with this GPU");
             return false;
         }
     }
@@ -551,10 +598,11 @@ static bool check_nbody_opencl_features(const COPROC& coproc, bool requireDouble
 static inline bool app_plan_opencl(
     const SCHEDULER_REQUEST& sreq, const char* plan_class, HOST_USAGE& hu
 ) {
-    if (strstr(plan_class, "nvidia") || strstr(plan_class, "cuda")) {
-        const COPROC_NVIDIA& cp = sreq.coprocs.nvidia;
+    const COPROC_ATI& cpati = sreq.coprocs.ati;
+    const COPROC_NVIDIA& cpnv = sreq.coprocs.nvidia;
 
-        if (!cp.have_opencl) {
+     if (cpnv.count > 0 && (strstr(plan_class, "nvidia") || strstr(plan_class, "cuda"))) {
+        if (!cpnv.have_opencl) {
             // older clients do not report any information about
             // OpenCL We can fallback to older style checks We'll only
             // do this for existing separation/nvidia stuff since we
@@ -565,13 +613,13 @@ static inline bool app_plan_opencl(
                                     "[version] Host lacks OpenCL, trying Nvidia fallback capability checks\n");
             }
 
-            return cuda_check(cp, hu,
+            return cuda_check(cpnv, hu,
                               130, 0,
                               0, NVIDIA_OPENCL_MIN_DRIVER_VERSION,
                               384*MEGA,
                               1, 0.05, 1);
         } else {
-            bool base_cl = opencl_check(cp, hu,
+            bool base_cl = opencl_check(cpnv, hu,
                                         101,
                                         256 * MEGA,
                                         1,
@@ -581,28 +629,36 @@ static inline bool app_plan_opencl(
             const char* nbody = strstr(plan_class, "nbody");
             if (nbody) {
                 bool needsDouble = (strstr(nbody, "double") != NULL);
-                return base_cl && check_nbody_opencl_features(cp, needsDouble);
+                return base_cl && check_nbody_opencl_features(cpnv, needsDouble);
             } else {
-                return base_cl && check_separation_opencl_features(cp);
+                return base_cl && check_separation_opencl_features(cpnv);
             }
         }
-    } else if (strstr(plan_class, "amd") || strstr(plan_class, "ati")) {
-        const COPROC_ATI& cp = sreq.coprocs.ati;
+     } else if (cpati.count > 0 && (strstr(plan_class, "amd") || strstr(plan_class, "ati"))) {
+         if (!catalyst_version_check(cpati, true)) {
+             log_messages.printf(MSG_NORMAL,
+                                 "[version] Catalyst driver version %d is not OK for OpenCL application with this GPU.\n",
+                                 cpati.version_num
+                 );
 
-        if (!cp.have_opencl) {
-            if (config.debug_version_select) {
+             add_no_work_message("Catalyst driver version is not OK for OpenCL application with this GPU");
+             return false;
+         }
+
+         if (!cpati.have_opencl) {
+             if (config.debug_version_select) {
                 log_messages.printf(MSG_NORMAL,
                                     "[version] Host lacks OpenCL, trying AMD fallback capability checks\n");
             }
 
-            return ati_check(cp, hu,
+            return ati_check(cpati, hu,
                              ati_version_int(1, 4, 1353),
                              false,
                              ATI_MIN_RAM,
                              1, 0.05,
                              0.23);
         } else {
-            bool base_cl = opencl_check(cp, hu,
+            bool base_cl = opencl_check(cpati, hu,
                                         101,
                                         256 * MEGA,
                                         1,
@@ -612,9 +668,9 @@ static inline bool app_plan_opencl(
             const char* nbody = strstr(plan_class, "nbody");
             if (nbody) {
                 bool needsDouble = (strstr(nbody, "double") != NULL);
-                return base_cl && check_nbody_opencl_features(cp, needsDouble);
+                return base_cl && check_nbody_opencl_features(cpati, needsDouble);
             } else {
-                return base_cl && check_separation_opencl_features(cp);
+                return base_cl && check_separation_opencl_features(cpati);
             }
         }
     } else {
