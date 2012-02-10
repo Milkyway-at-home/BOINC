@@ -668,6 +668,16 @@ static inline bool app_plan_opencl(
             }
         }
      } else if (cpati.count > 0 && (strstr(plan_class, "amd") || strstr(plan_class, "ati"))) {
+        if (cpati.attribs.target <= CAL_TARGET_7XX) {
+            log_messages.printf(MSG_NORMAL,
+                                "[version] CAL target %d does not support OpenCL\n", cpati.attribs.target
+
+                );
+
+            add_no_work_message("ATI GPU R600 (R38xx) does not support OpenCL");
+            return false;
+        }
+
          if (!catalyst_version_check(cpati, true)) {
              log_messages.printf(MSG_NORMAL,
                                  "[version] Catalyst driver version %d is not OK for OpenCL application with this GPU.\n",
@@ -796,10 +806,6 @@ bool app_plan(SCHEDULER_REQUEST& sreq, char* plan_class, HOST_USAGE& hu) {
         return app_plan_ati(sreq, plan_class, hu);
     } else if (strstr(plan_class, "cuda")) {
         return app_plan_cuda(sreq, plan_class, hu);
-    } else if (!strcmp(plan_class, "nci")) {
-        return app_plan_nci(sreq, hu);
-    } else if (strstr(plan_class, "vbox")) {
-        return app_plan_vbox(sreq, plan_class, hu);
     } else if (!strcmp(plan_class, "sse2")) {
         return app_plan_sse2(sreq, hu);
     }
