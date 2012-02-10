@@ -244,7 +244,7 @@ static bool catalyst_version_check(const COPROC_ATI& cp, bool opencl)
 
 #define ATI_MIN_RAM 250*MEGA
 static inline bool app_plan_ati(
-    SCHEDULER_REQUEST& sreq, char* plan_class, HOST_USAGE& hu
+    SCHEDULER_REQUEST& sreq, const char* plan_class, HOST_USAGE& hu
 ) {
     COPROC_ATI& c = sreq.coprocs.ati;
     if (!c.count) {
@@ -717,8 +717,8 @@ static inline bool app_plan_opencl(
             }
         }
     } else {
-        log_messages.printf(MSG_CRITICAL,
-                            "Unknown plan class: '%s'\n", plan_class
+        log_messages.printf(MSG_NORMAL,
+                            "All OpenCL options failed for plan class: '%s'\n", plan_class
             );
         return false;
     }
@@ -797,15 +797,13 @@ static inline bool app_plan_vbox(
 // app planning function.
 // See http://boinc.berkeley.edu/trac/wiki/AppPlan
 //
-bool app_plan(SCHEDULER_REQUEST& sreq, char* plan_class, HOST_USAGE& hu) {
+bool app_plan(SCHEDULER_REQUEST& sreq, const char* plan_class, HOST_USAGE& hu) {
     if (!strcmp(plan_class, "mt")) {
         return app_plan_mt(sreq, hu);
     } else if (strstr(plan_class, "opencl")) {
         return app_plan_opencl(sreq, plan_class, hu);
     } else if (strstr(plan_class, "ati")) {
         return app_plan_ati(sreq, plan_class, hu);
-    } else if (strstr(plan_class, "cuda")) {
-        return app_plan_cuda(sreq, plan_class, hu);
     } else if (!strcmp(plan_class, "sse2")) {
         return app_plan_sse2(sreq, hu);
     }
