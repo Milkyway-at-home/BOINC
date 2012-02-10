@@ -550,7 +550,7 @@ static bool opencl_check(
 }
 
 static bool check_fp64_exts(const char* cl_exts) {
-    if (!strstr(cl_exts, "cl_khr_fp64") || !strstr(cl_exts, "cl_amd_fp64")) {
+    if (!strstr(cl_exts, "cl_khr_fp64") && !strstr(cl_exts, "cl_amd_fp64")) {
         if (config.debug_version_select) {
             log_messages.printf(MSG_NORMAL,
                                 "[version] Host lacks double precision OpenCL extensions\n");
