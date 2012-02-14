@@ -304,7 +304,9 @@ GPU_REQUIREMENTS cuda_requirements;
 #define CUDA3_MIN_CUDA_VERSION          3000
 #define CUDA3_MIN_DRIVER_VERSION        19500
 #define CUDA_OPENCL_MIN_DRIVER_VERSION  26019
-#define NVIDIA_OPENCL_MIN_DRIVER_VERSION  28000
+//#define NVIDIA_OPENCL_MIN_DRIVER_VERSION  27500
+#define NVIDIA_OPENCL_MIN_DRIVER_VERSION  26019
+#define NVIDIA_OPENCL_MIN_CUDA_VERSION  4000
 
 
 
@@ -342,10 +344,6 @@ static bool cuda_check(const COPROC_NVIDIA& c, HOST_USAGE& hu,
     double cpu_frac,    // fraction of FLOPS performed by CPU
     double flops_scale
 ) {
-
-    if (!nv_compute_capability_check(c)) {
-        return false;
-    }
 
     cuda_requirements.update(min_driver_version, min_ram);
 
@@ -524,9 +522,19 @@ static bool opencl_check(
     }
 
     if (cp.opencl_prop.opencl_device_version_int < min_opencl_device_version) {
+        if (config.debug_version_select) {
+            log_messages.printf(MSG_NORMAL,
+                                "[version] OpenCL device version too low (%d)\n", cp.opencl_prop.opencl_device_version_int);
+        }
+
         return false;
     }
     if (cp.opencl_prop.global_mem_size < min_global_mem_size) {
+        if (config.debug_version_select) {
+            log_messages.printf(MSG_NORMAL,
+                                "[version] OpenCL device global memory size too low (%lu < %lu)\n", cp.opencl_prop.global_mem_size, min_global_mem_size);
+        }
+
         return false;
     }
 
@@ -613,6 +621,7 @@ static inline bool app_plan_opencl(
     const char* cuda_str = NULL;
 
     if (cpnv.count > 0 && ((nvidia_str = strstr(plan_class, "nvidia")) || (cuda_str = strstr(plan_class, "cuda")))) {
+
         if ((cpnv.display_driver_version > NVIDIA_OPENCL_MIN_DRIVER_VERSION) && cuda_str) {
             if (config.debug_version_select) {
                 log_messages.printf(MSG_NORMAL,
@@ -622,10 +631,20 @@ static inline bool app_plan_opencl(
             return false;
         }
 
+        bool nvTooOld;
+
+        if (cpnv.display_driver_version != 0) {
+            nvTooOld = (cpnv.display_driver_version < NVIDIA_OPENCL_MIN_DRIVER_VERSION);
+        } else if (cpnv.cuda_version != 0) {
+            nvTooOld = (cpnv.cuda_version < NVIDIA_OPENCL_MIN_CUDA_VERSION);
+        } else {
+            nvTooOld = true;
+        }
+
         // Making a mess to work around Nvidia compiler bug on 266.xx
         // and 277.xx or so. Keep shipping the 0.82 cuda_opencl
         // vs. the new 1.00 opencl_nvidia one for older drivers
-        if ((cpnv.display_driver_version < NVIDIA_OPENCL_MIN_DRIVER_VERSION) && nvidia_str) {
+        if (nvTooOld && nvidia_str) {
             add_no_work_message("Rejecting newer opencl_nvidia application due to older Nvidia drivers");
             if (config.debug_version_select) {
                 log_messages.printf(MSG_NORMAL,
