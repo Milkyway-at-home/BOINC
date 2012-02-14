@@ -532,7 +532,7 @@ static bool opencl_check(
     if (cp.opencl_prop.global_mem_size < min_global_mem_size) {
         if (config.debug_version_select) {
             log_messages.printf(MSG_NORMAL,
-                                "[version] OpenCL device global memory size too low (%lu < %lu)\n", cp.opencl_prop.global_mem_size, min_global_mem_size);
+                                "[version] OpenCL device global memory size too low (%lu < %f)\n", cp.opencl_prop.global_mem_size, min_global_mem_size);
         }
 
         return false;
@@ -617,43 +617,8 @@ static inline bool app_plan_opencl(
 ) {
     const COPROC_ATI& cpati = sreq.coprocs.ati;
     const COPROC_NVIDIA& cpnv = sreq.coprocs.nvidia;
-    const char* nvidia_str = NULL;
-    const char* cuda_str = NULL;
 
-    if (cpnv.count > 0 && ((nvidia_str = strstr(plan_class, "nvidia")) || (cuda_str = strstr(plan_class, "cuda")))) {
-
-        if ((cpnv.display_driver_version > NVIDIA_OPENCL_MIN_DRIVER_VERSION) && cuda_str) {
-            if (config.debug_version_select) {
-                log_messages.printf(MSG_NORMAL,
-                                    "[version] Nvidia driver is new enough, rejecting old cuda_opencl\n");
-            }
-
-            return false;
-        }
-
-        bool nvTooOld;
-
-        if (cpnv.display_driver_version != 0) {
-            nvTooOld = (cpnv.display_driver_version < NVIDIA_OPENCL_MIN_DRIVER_VERSION);
-        } else if (cpnv.cuda_version != 0) {
-            nvTooOld = (cpnv.cuda_version < NVIDIA_OPENCL_MIN_CUDA_VERSION);
-        } else {
-            nvTooOld = true;
-        }
-
-        // Making a mess to work around Nvidia compiler bug on 266.xx
-        // and 277.xx or so. Keep shipping the 0.82 cuda_opencl
-        // vs. the new 1.00 opencl_nvidia one for older drivers
-        if (nvTooOld && nvidia_str) {
-            add_no_work_message("Rejecting newer opencl_nvidia application due to older Nvidia drivers");
-            if (config.debug_version_select) {
-                log_messages.printf(MSG_NORMAL,
-                                    "[version] Nvidia driver too old, rejecting opencl_nvidia class\n");
-            }
-
-            return false;
-        }
-
+    if (cpnv.count > 0 && (strstr(plan_class, "nvidia") || strstr(plan_class, "cuda"))) {
         if (!cpnv.have_opencl) {
             // older clients do not report any information about
             // OpenCL We can fallback to older style checks We'll only
