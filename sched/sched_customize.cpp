@@ -230,8 +230,8 @@ static bool catalyst_version_check(const COPROC_ATI& cp, bool opencl)
     {
         if (opencl)
         {
-            // catalyst >= 11.4
-            return (calVer >= ati_version_int(1, 4, 1353));
+            // catalyst >= 11.6
+            return (calVer >= ati_version_int(1, 4, 1417));
         }
         else
         {
