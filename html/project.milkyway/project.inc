@@ -19,10 +19,10 @@ define("LANGUAGE_FILE", "languages.txt");
 define("STYLESHEET", "white.css");
 define("FORUM_QA_MERGED_MODE", false); // Set to true to merge Message boards and Q&A section
 define("COPYRIGHT_HOLDER", "AstroInformatics Group");
-define("SYS_ADMIN_EMAIL", "arsenm2@rpi.edu");
+define("SYS_ADMIN_EMAIL", "newbym2@rpi.edu");
 
 define("FORUM_MODERATION_EMAIL", "arsenm2@rpi.edu|blogger@rochester.rr.com");
-define("UOTD_ADMIN_EMAIL", "arsenm2@rpi.edu");
+define("UOTD_ADMIN_EMAIL", "newbym2@rpi.edu");
 
 define("USE_PHPMAILER", true);
 define("PHPMAILER_HOST", "cs.rpi.edu");
@@ -35,7 +35,7 @@ define("EMAIL_FROM_NAME", "Milkyway@Home");
 
 // Email addresses separated by pipe ( | ) that will receive user reported
 // offensive forum posts.
-define("POST_REPORT_EMAILS", "arsenm2@rpi.edu|blogger@rochester.rr.com");
+define("POST_REPORT_EMAILS", "newbym2@rpi.edu|blogger@rochester.rr.com");
 
 // set the following if SVN requires specific configuration (e.g. proxy)
 // Used on ops/index.php.
