@@ -21,7 +21,7 @@ define("FORUM_QA_MERGED_MODE", false); // Set to true to merge Message boards an
 define("COPYRIGHT_HOLDER", "AstroInformatics Group");
 define("SYS_ADMIN_EMAIL", "newbym2@rpi.edu");
 
-define("FORUM_MODERATION_EMAIL", "arsenm2@rpi.edu|blogger@rochester.rr.com");
+define("FORUM_MODERATION_EMAIL", "newbym2@rpi.edu|blogger@rochester.rr.com");
 define("UOTD_ADMIN_EMAIL", "newbym2@rpi.edu");
 
 define("USE_PHPMAILER", true);
