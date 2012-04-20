@@ -66,6 +66,7 @@ struct SCHED_CONFIG {
     bool non_cpu_intensive;
     bool verify_files_on_app_start;
     int homogeneous_redundancy;
+    bool hr_allocate_slots;
     bool ignore_upload_certificates;
     bool dont_generate_upload_certificates;
     int uldl_dir_fanout;        // fanout of ul/dl dirs; 0 if none
@@ -95,6 +96,7 @@ struct SCHED_CONFIG {
     char httpd_user[256];
         // user name under which web server runs (default: apache)
     bool enable_assignment;
+    bool enable_vda;
     bool enable_assignment_multi;
     bool job_size_matching;
     bool dont_send_jobs;
@@ -103,6 +105,7 @@ struct SCHED_CONFIG {
 
     vector<regex_t> *ban_cpu;
     vector<regex_t> *ban_os;
+    vector<int> dont_search_host_for_userid;
     int daily_result_quota;         // max results per day is this * mult
     double default_disk_max_used_gb;
     double default_disk_max_used_pct;
@@ -152,15 +155,20 @@ struct SCHED_CONFIG {
         // rather than trying the 32-bit version to see if it's faster.
         // Do this only if you're sure that your 64-bit versions are
         // always faster than the corresponding 32-bit versions
+    double version_select_random_factor;
+        // in deciding what version is fastest,
+        // multiply projected FLOPS by a random var with mean 1 and this stddev.
     int report_max;
     bool request_time_stats_log;
     bool resend_lost_results;
     int sched_debug_level;
+    int scheduler_log_buffer;
     char sched_lockfile_dir[256];
     bool send_result_abort;
     char symstore[256];
     bool user_filter;
         // send a job to a user only if wu.batch == user.id
+        // DEPRECATED: use assignment instead
     bool workload_sim;
         // Do workload simulation in deciding whether to send a result
 
@@ -181,8 +189,11 @@ struct SCHED_CONFIG {
     bool debug_resend;
     bool debug_send;
     bool debug_user_messages;
+    bool debug_vda;
     bool debug_version_select;
 
+    char debug_req_reply_dir[256];  // keep sched_request and sched_reply
+                                    // in files in this directory
     int parse(FILE*);
     int parse_aux(FILE*);
     int parse_file(const char *dir = 0);

@@ -35,7 +35,7 @@ function handle_main($user) {
     page_head("Job submission and control");
 
     $first = true;
-    $batches = BoincBatch::enum("user_id = $user->id");
+    $batches = BoincBatch::enum("user_id = $user->id order by id desc");
 
     foreach ($batches as $batch) {
         if ($batch->state < BATCH_STATE_COMPLETE) {
@@ -118,7 +118,10 @@ function handle_main($user) {
         end_table();
     }
 
-    echo "<p><a href=submit.php>Return to job control page</a>\n";
+    echo "<p>
+        <a href=sandbox.php><strong> File sandbox </strong></a>
+        | <a href=lammps.php><strong> Job submission </strong></a>
+        | <a href=submit.php><strong> Job control </strong></a>";
     page_tail();
 }
 

@@ -54,6 +54,8 @@ struct LOG_FLAGS {
         // show shared-mem message from apps
     bool app_msg_send;
         // show shared-mem message to apps
+    bool async_file_debug;
+        // show asynchronous file operations (copy, MD5, decompress)
     bool benchmark_debug;
         // debug CPU benchmarks
     bool checkpoint_debug;
@@ -97,8 +99,8 @@ struct LOG_FLAGS {
         // also show actions of garbage collector
     bool statefile_debug;
         // show when and why state file is written
-    bool std_debug;
-        // changes to short-term debt
+    bool suspend_debug;
+        // details of processing and network suspend/resume
     bool task_debug;
         // task start and control details, and when apps checkpoint
     bool time_debug;
@@ -182,7 +184,6 @@ struct CONFIG {
     bool use_certs;
     bool use_certs_only;
         // overrides use_certs
-    bool zero_debts;
 
     CONFIG();
     void defaults();

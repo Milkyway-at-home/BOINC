@@ -162,7 +162,7 @@ CMacSystemMenu::~CMacSystemMenu() {
 
 
 // Set the System Menu Icon from XPM data
-bool CMacSystemMenu::SetIcon(const wxIcon& icon) {
+bool CMacSystemMenu::SetMacMenuIcon(const wxIcon& icon) {
     wxBitmap theBits;
 
     // For unknown reasons, menus won't work if we call BuildMenu() directly 

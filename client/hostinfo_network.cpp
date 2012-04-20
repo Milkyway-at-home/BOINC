@@ -19,6 +19,7 @@
 
 #ifdef _WIN32
 #include "boinc_win.h"
+#define getpid _getpid
 #else 
 #include "config.h"
 #include <cstdio>
@@ -51,7 +52,6 @@
 #include "file_names.h"
 #include "client_msgs.h"
 #include "error_numbers.h"
-#include "mac_address.h"
 
 #include "hostinfo.h"
 
@@ -86,14 +86,16 @@ int HOST_INFO::get_local_network_info() {
     return 0;
 }
 
-// make a random string using host info.
+// make a random string using time of day and host info.
 // Not recommended for password generation;
 // use as a last resort if more secure methods fail
 //
 void HOST_INFO::make_random_string(const char* salt, char* out) {
     char buf[1024];
 
-    sprintf(buf, "%f%s%s%f%s", dtime(), domain_name, ip_addr, d_free, salt);
+    sprintf(buf, "%d%.15e%s%s%f%s",
+        getpid(), dtime(), domain_name, ip_addr, d_free, salt
+    );
     md5_block((const unsigned char*) buf, (int)strlen(buf), out);
 }
 
@@ -101,26 +103,6 @@ void HOST_INFO::make_random_string(const char* salt, char* out) {
 // Should be unique across hosts with very high probability
 //
 void HOST_INFO::generate_host_cpid() {
-// Assume that get_mac_addresses can be ported to any unix system.
-// If not, it can return false.
-//
-#if defined(__linux__) || defined(_WIN32) || defined(__APPLE__ ) || defined(__unix)
-    char buffer[8192] = "";
-        // must be big enough to accommodate aa:bb:cc:dd:ee:ff
-        // times the number of network interfaces,
-        // plus the domain name, IP addr, and OS name.
-        // 8K should suffice
-
-    if (!get_mac_addresses(buffer) || ! strcmp(buffer, "")) {
-        make_random_string("", host_cpid);
-        return;
-    }
-    strcat(buffer, domain_name);
-    strcat(buffer, ip_addr);
-    strcat(buffer, os_name);
-    md5_block((unsigned char*)buffer, (int)strlen(buffer), host_cpid);
-#else
     make_random_string("", host_cpid);
-#endif
 }
 

@@ -162,9 +162,9 @@ void TIME_PREFS::clear() {
     week.clear();
 }
 
-bool TIME_PREFS::suspended() const {
-    time_t now = time(0);
-    struct tm* tmp = localtime(&now);
+bool TIME_PREFS::suspended(double now) {
+    time_t t = (time_t)now;
+    struct tm* tmp = localtime(&t);
     double hour = (tmp->tm_hour * 3600 + tmp->tm_min * 60 + tmp->tm_sec) / 3600.;
     int day = tmp->tm_wday;
 
@@ -219,7 +219,7 @@ void GLOBAL_PREFS::defaults() {
     hangup_if_dialed = false;
     dont_verify_images = false;
     work_buf_min_days = 0.1;
-    work_buf_additional_days = 0.25;
+    work_buf_additional_days = 0.5;
     max_ncpus_pct = 0;
     max_ncpus = 0;
     cpu_scheduling_period_minutes = 60;

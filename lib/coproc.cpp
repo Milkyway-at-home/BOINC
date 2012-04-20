@@ -286,7 +286,7 @@ void COPROCS::summary_string(char* buf, int len) {
 
     strcpy(buf, "");
     if (nvidia.count) {
-        int mem = (int)(nvidia.prop.dtotalGlobalMem/MEGA);
+        int mem = (int)(nvidia.prop.totalGlobalMem/MEGA);
         sprintf(buf2, "[CUDA|%s|%d|%dMB|%d]",
             nvidia.prop.name, nvidia.count, mem, nvidia.display_driver_version
         );
@@ -397,8 +397,7 @@ void COPROC_NVIDIA::write_xml(MIOFILE& f, bool include_request) {
         "   <peak_flops>%f</peak_flops>\n"
         "   <cudaVersion>%d</cudaVersion>\n"
         "   <drvVersion>%d</drvVersion>\n"
-        "   <deviceHandle>%p</deviceHandle>\n"
-        "   <totalGlobalMem>%u</totalGlobalMem>\n"
+        "   <totalGlobalMem>%f</totalGlobalMem>\n"
         "   <sharedMemPerBlock>%u</sharedMemPerBlock>\n"
         "   <regsPerBlock>%d</regsPerBlock>\n"
         "   <warpSize>%d</warpSize>\n"
@@ -416,8 +415,7 @@ void COPROC_NVIDIA::write_xml(MIOFILE& f, bool include_request) {
         peak_flops,
         cuda_version,
         display_driver_version,
-        prop.deviceHandle,
-        (unsigned int)prop.totalGlobalMem,
+        prop.totalGlobalMem,
         (unsigned int)prop.sharedMemPerBlock,
         prop.regsPerBlock,
         prop.warpSize,
@@ -482,7 +480,7 @@ int COPROC_NVIDIA::parse(XML_PARSER& xp) {
 				set_peak_flops();
             }
             if (!available_ram) {
-                available_ram = prop.dtotalGlobalMem;
+                available_ram = prop.totalGlobalMem;
             }
             return 0;
         }
@@ -498,10 +496,7 @@ int COPROC_NVIDIA::parse(XML_PARSER& xp) {
         if (xp.parse_int("drvVersion", display_driver_version)) continue;
         if (xp.parse_str("name", prop.name, sizeof(prop.name))) continue;
         if (xp.parse_int("deviceHandle", prop.deviceHandle)) continue;
-        if (xp.parse_double("totalGlobalMem", prop.dtotalGlobalMem)) {
-            prop.totalGlobalMem = (int)prop.dtotalGlobalMem;
-            continue;
-        }
+        if (xp.parse_double("totalGlobalMem", prop.totalGlobalMem)) continue;
         if (xp.parse_int("sharedMemPerBlock", (int&)prop.sharedMemPerBlock)) continue;
         if (xp.parse_int("regsPerBlock", prop.regsPerBlock)) continue;
         if (xp.parse_int("warpSize", prop.warpSize)) continue;
@@ -572,6 +567,12 @@ void COPROC_NVIDIA::set_peak_flops() {
                 cores_per_proc = 48;
                 break;
             }
+            break;
+        case 3:
+        default:
+            flops_per_clock = 2;
+            cores_per_proc = 192;
+            break;
         }
         // clock rate is scaled down by 1000
         //

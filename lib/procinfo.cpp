@@ -94,7 +94,6 @@ void procinfo_app(
             // look for child processes
             //
             add_child_totals(pi, pm, i);
-            return;
         }
         if (graphics_exec_file && !strcmp(p.command, graphics_exec_file)) {
             p.is_boinc_app = true;
@@ -125,11 +124,26 @@ void procinfo_non_boinc(PROCINFO& pi, PROC_MAP& pm) {
         if (p.is_boinc_app) continue;
         if (p.is_low_priority) continue;
 
+        // count VirtualBox process as BOINC;
+        // on some systems they use nontrivial CPU time
+        // TODO: do this only if we're running a vbox app
+        //
+        if (strstr(p.command, "VBoxSVC")) continue;
+        if (strstr(p.command, "VBoxXPCOMIPCD")) continue;
+
+#if 0
+        if (p.user_time > .1) {
+            fprintf(stderr, "non-boinc: %s (%d) %f %f\n", p.command, p.id, p.user_time, p.kernel_time);
+        }
+#endif
         pi.kernel_time += p.kernel_time;
         pi.user_time += p.user_time;
         pi.swap_size += p.swap_size;
         pi.working_set_size += p.working_set_size;
     }
+#if 0
+    fprintf(stderr, "total non-boinc: %f %f\n", pi.user_time, pi.kernel_time);
+#endif
 }
 
 double process_tree_cpu_time(int pid) {
@@ -140,6 +154,7 @@ double process_tree_cpu_time(int pid) {
     retval = procinfo_setup(pm);
     if (retval) return 0;
 
+    pi.clear();
     pi.id = pid;
     procinfo_app(pi, NULL, pm, NULL);
     return pi.user_time + pi.kernel_time;

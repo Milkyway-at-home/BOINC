@@ -122,6 +122,7 @@ struct PROC_RESOURCES {
     }
 
     // should we consider scheduling this job?
+    // (i.e add it to the runnable list; not actually run it)
     //
     bool can_schedule(RESULT* rp, ACTIVE_TASK* atp) {
         double wss;
@@ -159,7 +160,7 @@ struct PROC_RESOURCES {
         }
     }
 
-    // we've decided to run this - update bookkeeping
+    // we've decided to add this to the runnable list; update bookkeeping
     //
     void schedule(RESULT* rp, ACTIVE_TASK* atp, const char* description) {
         if (log_flags.cpu_sched_debug) {
@@ -439,16 +440,12 @@ RESULT* first_coproc_result(int rsc_type) {
         if (!rs && bs) {
             continue;
         }
-        if (rp->received_time < best->received_time) {
+
+        // else used "arrived first" order
+        //
+        if (rp->index < best->index) {
             best = rp;
             best_prio = prio;
-        } else if (rp->received_time == best->received_time) {
-            // make it deterministic by looking at name
-            //
-            if (strcmp(rp->name, best->name) > 0) {
-                best = rp;
-                best_prio = prio;
-            }
         }
     }
     return best;
@@ -473,7 +470,7 @@ static RESULT* earliest_deadline_result(int rsc_type) {
 
         // treat projects with DCF>90 as if they had deadline misses
         //
-        if (p->duration_correction_factor < 90.0) {
+        if (!p->dont_use_dcf && p->duration_correction_factor < 90.0) {
             if (p->rsc_pwf[rsc_type].deadlines_missed_copy <= 0) {
                 continue;
             }
@@ -567,7 +564,7 @@ static void update_rec() {
         if (log_flags.priority_debug) {
             double dt = gstate.now - gstate.debt_interval_start;
             msg_printf(p, MSG_INFO,
-                "[debt] recent est credit: %.2fG in %.2f sec, %f + %f ->%f",
+                "[prio] recent est credit: %.2fG in %.2f sec, %f + %f ->%f",
                 x, dt, old, p->pwf.rec-old, p->pwf.rec
             );
         }
@@ -934,7 +931,7 @@ static inline bool in_run_list(vector<RESULT*>& run_list, ACTIVE_TASK* atp) {
 // if find a MT job J, and X < ncpus, move J before all non-MT jobs
 // But don't promote a MT job ahead of a job in EDF
 //
-// This is needed because there may always be a 1-CPU jobs
+// This is needed because there may always be a 1-CPU job
 // in the middle of its time-slice, and MT jobs could starve.
 //
 static void promote_multi_thread_jobs(vector<RESULT*>& runnable_jobs) {
@@ -1466,7 +1463,7 @@ bool CLIENT_STATE::enforce_run_list(vector<RESULT*>& run_list) {
     unsigned int i;
     vector<ACTIVE_TASK*> preemptable_tasks;
     int retval;
-    double ncpus_used=0, ncpus_used_non_gpu=0;
+    double ncpus_used=0;
     ACTIVE_TASK* atp;
 
     bool action = false;
@@ -1562,19 +1559,31 @@ bool CLIENT_STATE::enforce_run_list(vector<RESULT*>& run_list) {
     // and prune those that can't be assigned
     //
     assign_coprocs(run_list);
+    bool scheduled_mt = false;
 
     // prune jobs that don't fit in RAM or that exceed CPU usage limits.
     // Mark the rest as SCHEDULED
     //
-    bool running_multithread = false;
     for (i=0; i<run_list.size(); i++) {
         RESULT* rp = run_list[i];
         atp = lookup_active_task_by_result(rp);
 
-        if (!rp->uses_coprocs()) {
-            // see if we're already using too many CPUs to run this job
-            //
-            if (ncpus_used >= ncpus) {
+        // if we're already using all the CPUs,
+        // don't allow additional CPU jobs;
+        // allow GPU jobs if the resulting CPU load is at most ncpus+1
+        //
+        if (ncpus_used >= ncpus) {
+            if (rp->uses_coprocs()) {
+                if (ncpus_used + rp->avp->avg_ncpus > ncpus+1) {
+                    if (log_flags.cpu_sched_debug) {
+                        msg_printf(rp->project, MSG_INFO,
+                            "[cpu_sched_debug] skipping GPU job %s; CPU committed",
+                            rp->name
+                        );
+                    }
+                    continue;
+                }
+            } else {
                 if (log_flags.cpu_sched_debug) {
                     msg_printf(rp->project, MSG_INFO,
                         "[cpu_sched_debug] all CPUs used (%.2f >= %d), skipping %s",
@@ -1584,46 +1593,19 @@ bool CLIENT_STATE::enforce_run_list(vector<RESULT*>& run_list) {
                 }
                 continue;
             }
+        }
 
-            // Don't run a multithread app if usage would be #CPUS+1 or more.
-            // Multithread apps don't run well on an overcommitted system.
-            // Allow usage of #CPUS + fraction,
-            // so that a GPU app and a multithread app can run together.
-            //
-            if (rp->avp->avg_ncpus > 1) {
-                if (ncpus_used_non_gpu && (ncpus_used_non_gpu + rp->avp->avg_ncpus >= ncpus+1)) {
-                    // the "ncpus_used &&" is to allow running a job that uses
-                    // more than ncpus (this can happen in pathological cases)
-
-                    if (log_flags.cpu_sched_debug) {
-                        msg_printf(rp->project, MSG_INFO,
-                            "[cpu_sched_debug] not enough CPUs for multithread job, skipping %s",
-                            rp->name
-                        );
-                    }
-                    continue;
+        // don't overcommit CPUs if a MT job is scheduled
+        //
+        if (scheduled_mt || (rp->avp->avg_ncpus > 1)) {
+            if (ncpus_used + rp->avp->avg_ncpus > ncpus) {
+                if (log_flags.cpu_sched_debug) {
+                    msg_printf(rp->project, MSG_INFO,
+                        "[cpu_sched_debug] avoid MT overcommit: skipping %s",
+                        rp->name
+                    );
                 }
-                running_multithread = true;
-            } else {
-                // here for a single-thread app.
-                // Don't run if we're running a multithread app,
-                // and running this app would overcommit CPUs.
-                //
-                if (running_multithread) {
-                    if (ncpus_used + 1 > ncpus) {
-                        if (log_flags.cpu_sched_debug) {
-                            msg_printf(rp->project, MSG_INFO,
-                                "[cpu_sched_debug] avoiding overcommit with multithread job, skipping %s",
-                                rp->name
-                            );
-                        }
-                        continue;
-                    }
-                } else {
-                    if (ncpus_used >= ncpus) {
-                        continue;
-                    }
-                }
+                continue;
             }
         }
 
@@ -1638,9 +1620,9 @@ bool CLIENT_STATE::enforce_run_list(vector<RESULT*>& run_list) {
             if (atp) {
                 atp->too_large = true;
             }
-            if (log_flags.mem_usage_debug) {
+            if (log_flags.cpu_sched_debug || log_flags.mem_usage_debug) {
                 msg_printf(rp->project, MSG_INFO,
-                    "[mem_usage] enforce: result %s can't run, too big %.2fMB > %.2fMB",
+                    "[cpu_sched_debug] enforce: result %s can't run, too big %.2fMB > %.2fMB",
                     rp->name,  wss/MEGA, ram_left/MEGA
                 );
             }
@@ -1659,9 +1641,8 @@ bool CLIENT_STATE::enforce_run_list(vector<RESULT*>& run_list) {
             atp = get_task(rp);
         }
 
-        // don't count CPU usage by GPU jobs
-        if (!rp->uses_coprocs()) {
-            ncpus_used_non_gpu += rp->avp->avg_ncpus;
+        if (rp->avp->avg_ncpus > 1) {
+            scheduled_mt = true;
         }
         ncpus_used += rp->avp->avg_ncpus;
         atp->next_scheduler_state = CPU_SCHED_SCHEDULED;
@@ -2007,6 +1988,7 @@ void CLIENT_STATE::set_ncpus() {
 // completion time for this project's results
 //
 void PROJECT::update_duration_correction_factor(ACTIVE_TASK* atp) {
+    if (dont_use_dcf) return;
     RESULT* rp = atp->result;
     double raw_ratio = atp->elapsed_time/rp->estimated_duration_uncorrected();
     double adj_ratio = atp->elapsed_time/rp->estimated_duration();

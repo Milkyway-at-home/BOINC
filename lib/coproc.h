@@ -263,9 +263,7 @@ struct COPROC {
 struct CUDA_DEVICE_PROP {
   char  name[256];
   int   deviceHandle;
-  unsigned int totalGlobalMem;
-    // not used on the server; dtotalGlobalMem is used instead
-    // (since some boards have >= 4GB)
+  double totalGlobalMem;
   int   sharedMemPerBlock;
   int   regsPerBlock;
   int   warpSize;
@@ -280,13 +278,13 @@ struct CUDA_DEVICE_PROP {
   int   textureAlignment;
   int   deviceOverlap;
   int   multiProcessorCount;
-  double dtotalGlobalMem;   // not defined in client
 };
 
 struct COPROC_NVIDIA : public COPROC {
     int cuda_version;  // CUDA runtime version
     int display_driver_version;
     CUDA_DEVICE_PROP prop;
+    COPROC_USAGE is_used;               // temp used in scan process
 
 #ifndef _USING_FCGI_
     void write_xml(MIOFILE&, bool include_request);
@@ -294,7 +292,7 @@ struct COPROC_NVIDIA : public COPROC {
     COPROC_NVIDIA(): COPROC(GPU_TYPE_NVIDIA){}
     void get(
         bool use_all,
-        std::vector<std::string>&, std::vector<std::string>&,
+        std::vector<std::string>&,
         std::vector<int>& ignore_devs
     );
     void description(char*);
@@ -323,13 +321,15 @@ struct COPROC_ATI : public COPROC {
     bool amdrt_detected;
     CALdeviceattribs attribs; 
     CALdeviceinfo info;
+    COPROC_USAGE is_used;               // temp used in scan process
+
 #ifndef _USING_FCGI_
     void write_xml(MIOFILE&, bool include_request);
 #endif
     COPROC_ATI(): COPROC(GPU_TYPE_ATI){}
     void get(
         bool use_all,
-        std::vector<std::string>&, std::vector<std::string>&,
+        std::vector<std::string>&,
         std::vector<int>& ignore_devs
     );
     void description(char*);
@@ -356,7 +356,6 @@ struct COPROCS {
     );
     void get_opencl(
         bool use_all, 
-        std::vector<std::string>& descs, 
         std::vector<std::string> &warnings,
         std::vector<int>& ignore_nvidia_dev, 
         std::vector<int>& ignore_ati_dev
@@ -367,6 +366,9 @@ struct COPROCS {
         std::vector<std::string>& warnings
     );
     int parse(XML_PARSER&);
+#ifdef __APPLE__
+    void get_ati_mem_size_from_opengl();
+#endif
     void summary_string(char* buf, int len);
 
     // Copy a coproc set, possibly setting usage to zero.

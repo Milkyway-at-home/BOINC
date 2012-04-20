@@ -213,7 +213,10 @@ function show_user_info_private($user) {
     );
     row2(tra("User ID")."<br/><span class=\"note\">".tra("Used in community functions")."</span>", $user->id);
     if (!no_computing()) {
-        row2(tra("Weak account key")."<br/><span class=\"note\">".tra("Provides %1limited access%2 to your account", "<a href=\"weak_auth.php\">", "</a> ")."</span>", weak_auth($user));
+        row2(
+            tra("Account keys"),
+            "<a href=\"weak_auth.php\">".tra("View")."</a>"
+        );
     }
 
     row1("<a name=\"prefs\"></a>".tra("Preferences"));
@@ -312,7 +315,9 @@ function show_user_summary_public($user) {
     row2(tra("User ID"), $user->id);
     row2(tra("%1 member since", PROJECT), date_str($user->create_time));
     row2(tra("Country"), $user->country);
-    if (strlen($user->url)) {
+    // don't show URL if user has no recent credit (spam suppression)
+    //
+    if (strlen($user->url) && $user->expavg_credit > 1) {
         row2(tra("URL"), "<a href=\"http://$user->url\">http://$user->url</a>");
     }
     if (!no_computing()) {
@@ -434,6 +439,22 @@ function is_banned_email_addr($email_addr) {
         }
     }
     return false;
+}
+
+function is_valid_user_name($name, &$reason) {
+    if (trim($name) !== $name) {
+        $reason = tra("user name cannot have leading or trailing white space");
+        return false;
+    }
+    if (strlen($name) == 0) {
+        $reason = tra("user name must be nonempty");
+        return false;
+    }
+    if (sanitize_tags($name) !== $name) {
+        $reason = tra("user name may not contain HTML tags");
+        return false;
+    }
+    return true;
 }
 
 // the following DB-escapes its args

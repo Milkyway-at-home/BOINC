@@ -50,22 +50,23 @@ inline void dont_need_message(
 bool need_this_resource(
     HOST_USAGE& host_usage, APP_VERSION* avp, CLIENT_APP_VERSION* cavp
 ) {
-    if (g_wreq->rsc_spec_request) {
-        if (host_usage.ncudas) {
-            if (!g_wreq->need_cuda()) {
-                dont_need_message("CUDA", avp, cavp);
-                return false;
-            }
-        } else if (host_usage.natis) {
-            if (!g_wreq->need_ati()) {
-                dont_need_message("ATI", avp, cavp);
-                return false;
-            }
-        } else {
-            if (!g_wreq->need_cpu()) {
-                dont_need_message("CPU", avp, cavp);
-                return false;;
-            }
+    if (!g_wreq->rsc_spec_request) {
+        return true;
+    }
+    if (host_usage.ncudas) {
+        if (!g_wreq->need_cuda()) {
+            dont_need_message("CUDA", avp, cavp);
+            return false;
+        }
+    } else if (host_usage.natis) {
+        if (!g_wreq->need_ati()) {
+            dont_need_message("ATI", avp, cavp);
+            return false;
+        }
+    } else {
+        if (!g_wreq->need_cpu()) {
+            dont_need_message("CPU", avp, cavp);
+            return false;;
         }
     }
     return true;
@@ -237,7 +238,7 @@ CLIENT_APP_VERSION* get_app_version_anonymous(
 
 #define ET_RATIO_LIMIT  10.
     // if the FLOPS estimate based on elapsed time
-    // exceeds project_flops by more than this factor, cap it.
+    // exceeds projected_flops by more than this factor, cap it.
     // The host may have received a bunch of short jobs recently
 
 // input:
@@ -488,10 +489,12 @@ static BEST_APP_VERSION* check_homogeneous_app_version(
     return &bav;
 }
 
-// return BEST_APP_VERSION for the given job and host, or NULL if none
+// return the app version with greatest projected FLOPS
+// for the given job and host, or NULL if none is available
 //
-// check_req: check whether we still need work for the resource
-// This check is not done for:
+// check_req: if set, return only app versions that use resources
+//  for which the work request is nonzero.
+//  This check is not done for:
 //    - assigned jobs
 //    - resent jobs
 // reliable_only: use only versions for which this host is "reliable"
@@ -694,6 +697,15 @@ BEST_APP_VERSION* get_app_version(
                 g_wreq->outdated_client = true;
                 continue;
             }
+            if (av.max_core_version && g_request->core_client_version > av.max_core_version) {
+                if (config.debug_version_select) {
+                    log_messages.printf(MSG_NORMAL,
+                        "[version] [AV#%d] client version %d > max core version %d\n",
+                        av.id, g_request->core_client_version, av.max_core_version
+                    );
+                }
+                continue;
+            }
             if (strlen(av.plan_class)) {
                 if (!app_plan(*g_request, av.plan_class, host_usage)) {
                     if (config.debug_version_select) {
@@ -785,7 +797,7 @@ BEST_APP_VERSION* get_app_version(
 
             // skip versions for resources we don't need
             //
-            if (!need_this_resource(host_usage, &av, NULL)) {
+            if (check_req && !need_this_resource(host_usage, &av, NULL)) {
                 continue;
             }
 
@@ -798,7 +810,10 @@ BEST_APP_VERSION* get_app_version(
             // pick the fastest version.
             // Throw in a random factor in case the estimates are off.
             //
-            double r = 1 + .1*rand_normal();
+            double r = 1;
+            if (config.version_select_random_factor) {
+                r += config.version_select_random_factor*rand_normal();
+            }
             if (r*host_usage.projected_flops > bavp->host_usage.projected_flops) {
                 bavp->host_usage = host_usage;
                 bavp->avp = &av;

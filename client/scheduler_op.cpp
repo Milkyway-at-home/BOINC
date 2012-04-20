@@ -373,6 +373,9 @@ int SCHEDULER_OP::parse_master_file(PROJECT* p, vector<std::string> &urls) {
     // couldn't find any scheduler URLs in the master file?
     //
     if ((int) urls.size() == 0) {
+        msg_printf(p, MSG_INTERNAL_ERROR,
+            "No scheduler URLs found in master file\n"
+        );
         p->sched_rpc_pending = 0;
         return ERR_XML_PARSE;
     }
@@ -542,6 +545,7 @@ void SCHEDULER_REPLY::clear() {
     message_ack = false;
     project_is_down = false;
     send_full_workload = false;
+    dont_use_dcf = false;
     send_time_stats_log = 0;
     send_job_log = 0;
     messages.clear();
@@ -871,6 +875,8 @@ int SCHEDULER_REPLY::parse(FILE* in, PROJECT* project) {
         } else if (xp.parse_bool("verify_files_on_app_start", project->verify_files_on_app_start)) {
             continue;
         } else if (xp.parse_bool("send_full_workload", send_full_workload)) {
+            continue;
+        } else if (xp.parse_bool("dont_use_dcf", dont_use_dcf)) {
             continue;
         } else if (xp.parse_int("send_time_stats_log", send_time_stats_log)){
             continue;

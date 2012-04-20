@@ -137,6 +137,12 @@ function page_head(
     $stylesheet = URL_BASE.STYLESHEET;
     $rssname = PROJECT . " RSS 2.0";
     $rsslink = URL_BASE."rss_main.php";
+    if (defined('STYLESHEET2')) {
+        $stylesheet2 = URL_BASE.STYLESHEET2;
+    } else {
+        $stylesheet2 = null;
+    }
+
 
     header("Content-type: text/html; charset=utf-8");
     if (!$caching) {
@@ -159,6 +165,11 @@ function page_head(
     }
     echo "<link rel=stylesheet type=\"text/css\" href=\"".URL_BASE."main.css\" media=\"all\">
         <link rel=stylesheet type=\"text/css\" href=\"$stylesheet\">
+    ";
+    if ($stylesheet2) {
+        echo "<link rel=stylesheet type=\"text/css\" href=\"$stylesheet2\">\n";
+    }
+    echo "
         <link rel=alternate type=\"application/rss+xml\" title=\"$rssname\" href=\"$rsslink\">
         </head>
     ";
@@ -536,7 +547,7 @@ function close_output_buffer($filename) {
 }
 
 function html_info() {
-    return "<br><a href=\"bbcode.php\"><span class=\"smalltext\">".tra("Use BBCode tags to format your text")."</span></a>\n";
+    return "<br><a href=bbcode.php target=new><span class=smalltext>".tra("Use BBCode tags to format your text")."</span></a>\n";
 }
 
 // strip slashes if magic quotes in effect
@@ -823,11 +834,7 @@ function sanitize_local_url($x) {
 // strip HTML tags
 //
 function sanitize_tags($x) {
-    if (function_exists('filter_var')) {
-        return filter_var($x, FILTER_SANITIZE_STRING);
-    } else {
-        return strip_tags($x);
-    }
+    return strip_tags($x);
 }
 
 function sanitize_numeric($x) {

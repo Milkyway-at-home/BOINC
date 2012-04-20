@@ -387,12 +387,15 @@ sys.path.insert(0, os.path.join('%s', 'py'))
     map(lambda (s): install(builddir('sched',s), dir('bin',s)),
         [ 'make_work', 'feeder', 'transitioner', 'transitioner_catchup.php',
           'sample_bitwise_validator', 'sample_trivial_validator',
-          'file_deleter', 'sample_dummy_assimilator',
+          'file_deleter', 'antique_file_deleter',
+          'sample_dummy_assimilator',
           'sample_assimilator', 'sample_work_generator',
           'single_job_assimilator',
           'assimilator.py', 'pymw_assimilator.py',
           'update_stats', 'db_dump', 'db_purge', 'show_shmem', 'census',
           'delete_file', 'get_file', 'put_file' ])
+    map(lambda (s): install(builddir('vda',s), dir('bin',s)),
+        [ 'vda', 'vdad' ])
     map(lambda (s): install(srcdir('tools',s), dir('bin',s)),
         [ 'appmgr', 'create_work', 'xadd', 'dbcheck_files_exist', 'run_in_ops',
           'update_versions', 'parse_config', 'grep_logs', 'db_query',
@@ -597,6 +600,8 @@ class Project:
             _check_vars(kwargs)
             each_app = True
         elif progname == 'file_deleter':
+            _check_vars(kwargs)
+        elif progname == 'antique_file_deleter':
             _check_vars(kwargs)
         elif progname == 'sample_dummy_assimilator':
             _check_vars(kwargs)

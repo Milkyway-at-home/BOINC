@@ -1745,6 +1745,7 @@ int DB_WORK_ITEM::enumerate(
             "select high_priority r1.id, r1.priority, r1.server_state, r1.report_deadline, workunit.* from result r1 force index(ind_res_st), workunit, app "
             " where r1.server_state=%d and r1.workunitid=workunit.id "
             " and workunit.appid=app.id and app.deprecated=0 "
+            " and workunit.transitioner_flags=0 "
             " %s "
             " %s "
             "limit %d",
@@ -1786,6 +1787,7 @@ int DB_WORK_ITEM::enumerate_all(
             "select high_priority r1.id, r1.priority, r1.server_state, r1.report_deadline, workunit.* from result r1 force index(ind_res_st), workunit force index(primary), app"
             " where r1.server_state=%d and r1.workunitid=workunit.id and r1.id>%d "
             " and workunit.appid=app.id and app.deprecated=0 "
+            " and workunit.transitioner_flags=0 "
             " %s "
             "limit %d",
             RESULT_SERVER_STATE_UNSENT,
@@ -2319,10 +2321,12 @@ int DB_FILESET_SCHED_TRIGGER_ITEM_SET::select_by_name_state(
     return 0;
 }
 
-int DB_FILESET_SCHED_TRIGGER_ITEM_SET::contains_trigger(const char* fileset_name) {
+int DB_FILESET_SCHED_TRIGGER_ITEM_SET::contains_trigger(
+    const char* fileset_name
+) {
     // iterate over item vector
-    for(unsigned int i=0; i<items.size(); ++i) {
-        if(strcmp(items[i].fileset.name, fileset_name) == 0) {
+    for (unsigned int i=0; i<items.size(); ++i) {
+        if (strcmp(items[i].fileset.name, fileset_name) == 0) {
             // return 1-indexed position for boolean tests
             return i+1;
         }
@@ -2332,20 +2336,20 @@ int DB_FILESET_SCHED_TRIGGER_ITEM_SET::contains_trigger(const char* fileset_name
 
 void DB_VDA_FILE::db_print(char* buf){
     sprintf(buf,
+        "create_time=%f, "
         "dir='%s', "
         "name='%s', "
         "size=%f, "
-        "chunk_size=%f, "
-        "created=%f, "
         "need_update=%d, "
-        "inited=%d",
+        "initialized=%d, "
+        "retrieving=%d",
+        create_time,
         dir,
         name,
         size,
-        chunk_size,
-        created,
         need_update?1:0,
-        inited?1:0
+        initialized?1:0,
+        retrieving?1:0
     );
 }
 
@@ -2353,44 +2357,53 @@ void DB_VDA_FILE::db_parse(MYSQL_ROW &r) {
     int i=0;
     clear();
     id = atoi(r[i++]);
+    create_time = atof(r[i++]);
     strcpy(dir, r[i++]);
     strcpy(name, r[i++]);
     size = atof(r[i++]);
-    chunk_size = atof(r[i++]);
-    created = atof(r[i++]);
     need_update = (atoi(r[i++]) != 0);
-    inited = (atoi(r[i++]) != 0);
+    initialized = (atoi(r[i++]) != 0);
+    retrieving = (atoi(r[i++]) != 0);
 }
 
 void DB_VDA_CHUNK_HOST::db_print(char* buf) {
     sprintf(buf,
+        "create_time=%f, "
         "vda_file_id=%d, "
         "host_id=%d, "
         "name='%s', "
+        "size=%f, "
         "present_on_host=%d, "
         "transfer_in_progress=%d, "
         "transfer_wait=%d, "
-        "transition_time=%f ",
+        "transfer_request_time=%f, "
+        "transfer_send_time=%f ",
+        create_time,
         vda_file_id,
         host_id,
         name,
+        size,
         present_on_host,
         transfer_in_progress,
         transfer_wait,
-        transition_time
+        transfer_request_time,
+        transfer_send_time
     );
 }
 
 void DB_VDA_CHUNK_HOST::db_parse(MYSQL_ROW &r) {
     int i=0;
     clear();
+    create_time = atof(r[i++]);
     vda_file_id = atoi(r[i++]);
     host_id = atoi(r[i++]);
     strcpy(name, r[i++]);
+    size = atof(r[i++]);
     present_on_host = (atoi(r[i++]) != 0);
     transfer_in_progress = (atoi(r[i++]) != 0);
     transfer_wait = (atoi(r[i++]) != 0);
-    transition_time = atof(r[i++]);
+    transfer_request_time = atof(r[i++]);
+    transfer_send_time = atof(r[i++]);
 }
 
 const char *BOINC_RCSID_ac374386c8 = "$Id$";

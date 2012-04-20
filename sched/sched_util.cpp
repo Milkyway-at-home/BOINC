@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with BOINC.  If not, see <http://www.gnu.org/licenses/>.
 
+// Utility functions for server software (not just scheduler)
 
 #include "config.h"
 #include <cstdlib>
@@ -307,15 +308,17 @@ bool app_plan_uses_gpu(const char* plan_class) {
 // This could be used, for example, so that late workunits
 // are sent only to cloud or cluster resources
 //
-int restrict_wu_to_user(DB_WORKUNIT& wu, int userid) {
+int restrict_wu_to_user(WORKUNIT& _wu, int userid) {
     DB_RESULT result;
     DB_ASSIGNMENT asg;
+    DB_WORKUNIT wu;
+    wu = _wu;
     char buf[256];
     int retval;
 
     // mark unsent results as DIDNT_NEED
     //
-    sprintf(buf, "workunitid=%d and server_state=%d",
+    sprintf(buf, "where workunitid=%d and server_state=%d",
         wu.id, RESULT_SERVER_STATE_UNSENT
     );
     while (result.enumerate(buf)) {

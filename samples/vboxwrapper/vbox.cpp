@@ -124,7 +124,7 @@ int VBOX_VM::initialize() {
             fprintf(
                 stderr,
                 "%s Failed to modify the search path.\n",
-                boinc_msg_prefix(buf, sizeof(buf))
+                vboxwrapper_msg_prefix(buf, sizeof(buf))
             );
         }
     }
@@ -144,7 +144,7 @@ int VBOX_VM::initialize() {
             fprintf(
                 stderr,
                 "%s Failed to modify the search path.\n",
-                boinc_msg_prefix(buf, sizeof(buf))
+                vboxwrapper_msg_prefix(buf, sizeof(buf))
             );
         }
 
@@ -169,7 +169,7 @@ int VBOX_VM::initialize() {
             fprintf(
                 stderr,
                 "%s Creating VBoxSVC.exe failed! (%d).\n",
-                boinc_msg_prefix(buf, sizeof(buf)),
+                vboxwrapper_msg_prefix(buf, sizeof(buf)),
                 GetLastError()
             );
         }
@@ -182,7 +182,7 @@ int VBOX_VM::initialize() {
             fprintf(
                 stderr,
                 "%s Failed to modify the VBOX_USER_HOME path.\n",
-                boinc_msg_prefix(buf, sizeof(buf))
+                vboxwrapper_msg_prefix(buf, sizeof(buf))
             );
         }
 #endif
@@ -191,7 +191,7 @@ int VBOX_VM::initialize() {
     return 0;
 }
 
-int VBOX_VM::run() {
+int VBOX_VM::run(double elapsed_time) {
     int retval;
 
     retval = initialize();
@@ -218,6 +218,19 @@ int VBOX_VM::run() {
     // various other functions will work.
     vm_name = vm_master_name;
 
+    // Check to see if the VM is already in a running state, if so, poweroff.
+    poll(false);
+    if (online) {
+        poweroff();
+    }
+
+    // If our last checkpoint time is greater than 0, restore from the previously
+    // saved snapshot
+    if (elapsed_time) {
+        restoresnapshot();
+    }
+
+    // Start the VM
     retval = start();
     if (retval) return retval;
 
@@ -234,7 +247,7 @@ int VBOX_VM::start() {
     fprintf(
         stderr,
         "%s Starting virtual machine.\n",
-        boinc_msg_prefix(buf, sizeof(buf))
+        vboxwrapper_msg_prefix(buf, sizeof(buf))
     );
     command = "startvm \"" + vm_name + "\" --type headless";
     retval = vbm_popen(command, output, "start VM");
@@ -242,7 +255,7 @@ int VBOX_VM::start() {
 
     // Wait for up to 5 minutes for the VM to switch states.  A system
     // under load can take a while.  Since the poll function can wait for up
-    // to a minute to execute a command we need to make this time based instead
+    // to 45 seconds to execute a command we need to make this time based instead
     // of interation based.
     timeout = dtime() + 300;
     do {
@@ -251,57 +264,99 @@ int VBOX_VM::start() {
         boinc_sleep(1.0);
     } while (timeout >= dtime());
 
-    if (!online) {
+    if (online) {
+        fprintf(
+            stderr,
+            "%s Successfully started virtual machine.\n",
+            vboxwrapper_msg_prefix(buf, sizeof(buf))
+        );
+        retval = BOINC_SUCCESS;
+    } else {
         fprintf(
             stderr,
             "%s VM did not start in a timely fashion, aborting job.\n",
-            boinc_msg_prefix(buf, sizeof(buf))
+            vboxwrapper_msg_prefix(buf, sizeof(buf))
         );
-        return ERR_EXEC;
+        retval = ERR_EXEC;
     }
 
-    return 0;
+    return retval;
 }
 
 int VBOX_VM::stop() {
     string command;
     string output;
-    double timeout;
     char buf[256];
-    int retval;
+    int retval = 0;
 
     fprintf(
         stderr,
         "%s Stopping virtual machine.\n",
-        boinc_msg_prefix(buf, sizeof(buf))
+        vboxwrapper_msg_prefix(buf, sizeof(buf))
     );
     if (online) {
         command = "controlvm \"" + vm_name + "\" savestate";
-        retval = vbm_popen(command, output, "stop VM");
+        retval = vbm_popen(command, output, "stop VM", true, false);
         if (retval) return retval;
 
-        // Wait for up to 5 minutes for the VM to switch states.  A system
-        // under load can take a while.  Since the poll function can wait for up
-        // to a minute to execute a command we need to make this time based instead
-        // of interation based.
-        timeout = dtime() + 300;
-        do {
-            poll(false);
-            if (!online) break;
-            boinc_sleep(1.0);
-        } while (timeout >= dtime());
+        poll(false);
 
-        if (online) {
+        if (!online) {
+            fprintf(
+                stderr,
+                "%s Successfully stopped virtual machine.\n",
+                vboxwrapper_msg_prefix(buf, sizeof(buf))
+            );
+            retval = BOINC_SUCCESS;
+        } else {
             fprintf(
                 stderr,
                 "%s VM did not stop in a timely fashion.\n",
-                boinc_msg_prefix(buf, sizeof(buf))
+                vboxwrapper_msg_prefix(buf, sizeof(buf))
             );
-            return ERR_EXEC;
+            retval = ERR_EXEC;
         }
     }
 
-    return 0;
+    return retval;
+}
+
+int VBOX_VM::poweroff() {
+    string command;
+    string output;
+    char buf[256];
+    int retval = 0;
+
+    fprintf(
+        stderr,
+        "%s Powering off virtual machine.\n",
+        vboxwrapper_msg_prefix(buf, sizeof(buf))
+    );
+    if (online) {
+        command = "controlvm \"" + vm_name + "\" poweroff";
+        retval = vbm_popen(command, output, "poweroff VM", true, false);
+        if (retval) return retval;
+
+        poll(false);
+
+        if (!online) {
+            fprintf(
+                stderr,
+                "%s Successfully powered off virtual machine.\n",
+                vboxwrapper_msg_prefix(buf, sizeof(buf))
+            );
+            retval = BOINC_SUCCESS;
+        } else {
+            fprintf(
+                stderr,
+                "%s VM did not poweroff in a timely fashion.\n",
+                vboxwrapper_msg_prefix(buf, sizeof(buf))
+            );
+            retval = ERR_EXEC;
+        }
+    }
+
+    return retval;
 }
 
 int VBOX_VM::pause() {
@@ -328,8 +383,86 @@ int VBOX_VM::resume() {
     return 0;
 }
 
+int VBOX_VM::createsnapshot(double elapsed_time, double checkpoint_cpu_time) {
+    string command;
+    string output;
+    char buf[256];
+    int retval;
+
+    fprintf(
+        stderr,
+        "%s Creating new snapshot for virtual machine.\n",
+        vboxwrapper_msg_prefix(buf, sizeof(buf))
+    );
+
+    // Pause VM - Try and avoid the live snapshot and trigger an online
+    // snapshot instead.
+    pause();
+
+    // Create new snapshot
+    sprintf(buf, "%d", (int)elapsed_time);
+    command = "snapshot \"" + vm_name + "\" ";
+    command += "take boinc_";
+    command += buf;
+    retval = vbm_popen(command, output, "create new snapshot");
+    if (retval) return retval;
+
+    // Resume VM
+    resume();
+
+    // Set the suspended flag back to false before deleting the stale
+    // snapshot
+    poll(false);
+
+    // Delete stale snapshot, if one exists
+    if (checkpoint_cpu_time) {
+        sprintf(buf, "%d", (int)checkpoint_cpu_time);
+        command = "snapshot \"" + vm_name + "\" ";
+        command += "delete boinc_";
+        command += buf;
+        retval = vbm_popen(command, output, "delete stale snapshot", true, false);
+        if (retval) {
+            if (retval != ERR_TIMEOUT) return retval;
+        }
+    }
+
+    fprintf(
+        stderr,
+        "%s Checkpoint completed.\n",
+        vboxwrapper_msg_prefix(buf, sizeof(buf))
+    );
+
+    return 0;
+}
+
+int VBOX_VM::restoresnapshot() {
+    string command;
+    string output;
+    char buf[256];
+    int retval;
+
+    fprintf(
+        stderr,
+        "%s Restore from previously saved snapshot.\n",
+        vboxwrapper_msg_prefix(buf, sizeof(buf))
+    );
+
+    command = "snapshot \"" + vm_name + "\" ";
+    command += "restorecurrent ";
+    retval = vbm_popen(command, output, "restore current snapshot");
+    if (retval) return retval;
+
+    fprintf(
+        stderr,
+        "%s Restore completed.\n",
+        vboxwrapper_msg_prefix(buf, sizeof(buf))
+    );
+
+    return 0;
+}
+
 void VBOX_VM::cleanup() {
-    stop();
+    poweroff();
     deregister_vm();
 
     // Give time enough for external processes to finish the cleanup process
@@ -377,6 +510,15 @@ void VBOX_VM::poll(bool log_state) {
                 online = true;
             } else if (vmstate == "restoring") {
                 online = true;
+            } else if (vmstate == "livesnapshotting") {
+                online = true;
+            } else if (vmstate == "deletingsnapshotlive") {
+                online = true;
+            } else if (vmstate == "deletingsnapshotlivepaused") {
+                online = true;
+            } else if (vmstate == "aborted") {
+                online = false;
+                crashed = true;
             } else if (vmstate == "gurumeditation") {
                 online = false;
                 crashed = true;
@@ -386,7 +528,7 @@ void VBOX_VM::poll(bool log_state) {
                     fprintf(
                         stderr,
                         "%s Virtual machine is no longer is a running state. It is in '%s'.\n",
-                        boinc_msg_prefix(buf, sizeof(buf)),
+                        vboxwrapper_msg_prefix(buf, sizeof(buf)),
                         vmstate.c_str()
                     );
                 }
@@ -463,7 +605,7 @@ int VBOX_VM::register_vm() {
     fprintf(
         stderr,
         "%s Registering virtual machine. (%s) \n",
-        boinc_msg_prefix(buf, sizeof(buf)),
+        vboxwrapper_msg_prefix(buf, sizeof(buf)),
         vm_name.c_str()
     );
 
@@ -484,7 +626,7 @@ int VBOX_VM::register_vm() {
     fprintf(
         stderr,
         "%s Modifying virtual machine.\n",
-        boinc_msg_prefix(buf, sizeof(buf))
+        vboxwrapper_msg_prefix(buf, sizeof(buf))
     );
     command  = "modifyvm \"" + vm_name + "\" ";
     command += "--cpus " + vm_cpu_count + " ";
@@ -511,7 +653,7 @@ int VBOX_VM::register_vm() {
         fprintf(
             stderr,
             "%s Disabling hardware acceleration support for virtualization.\n",
-            boinc_msg_prefix(buf, sizeof(buf))
+            vboxwrapper_msg_prefix(buf, sizeof(buf))
         );
         command  = "modifyvm \"" + vm_name + "\" ";
         command += "--hwvirtex off ";
@@ -525,7 +667,7 @@ int VBOX_VM::register_vm() {
     fprintf(
         stderr,
         "%s Adding storage controller to virtual machine.\n",
-        boinc_msg_prefix(buf, sizeof(buf))
+        vboxwrapper_msg_prefix(buf, sizeof(buf))
     );
     command  = "storagectl \"" + vm_name + "\" ";
     command += "--name \"IDE Controller\" ";
@@ -551,7 +693,7 @@ int VBOX_VM::register_vm() {
     fprintf(
         stderr,
         "%s Adding virtual disk drive to virtual machine.\n",
-        boinc_msg_prefix(buf, sizeof(buf))
+        vboxwrapper_msg_prefix(buf, sizeof(buf))
     );
     command  = "storageattach \"" + vm_name + "\" ";
     command += "--storagectl \"IDE Controller\" ";
@@ -578,8 +720,8 @@ int VBOX_VM::register_vm() {
                 stderr,
                 "%s Creating virtual floppy image failed.\n"
                 "%s Error Code '%d' Error Message '%s'\n",
-                boinc_msg_prefix(buf, sizeof(buf)),
-                boinc_msg_prefix(buf, sizeof(buf)),
+                vboxwrapper_msg_prefix(buf, sizeof(buf)),
+                vboxwrapper_msg_prefix(buf, sizeof(buf)),
                 pFloppy->error,
                 pFloppy->errorStr.c_str()
             );
@@ -589,7 +731,7 @@ int VBOX_VM::register_vm() {
         fprintf(
             stderr,
             "%s Adding virtual floppy disk drive to virtual machine.\n",
-            boinc_msg_prefix(buf, sizeof(buf))
+            vboxwrapper_msg_prefix(buf, sizeof(buf))
         );
         command  = "storageattach \"" + vm_name + "\" ";
         command += "--storagectl \"Floppy Controller\" ";
@@ -619,7 +761,7 @@ int VBOX_VM::register_vm() {
             fprintf(
                 stderr,
                 "%s Enabling virtual machine firewall rules.\n",
-                boinc_msg_prefix(buf, sizeof(buf))
+                vboxwrapper_msg_prefix(buf, sizeof(buf))
             );
 
             // Add new firewall rule
@@ -639,13 +781,13 @@ int VBOX_VM::register_vm() {
         fprintf(
             stderr,
             "%s Enabling remote desktop for virtual machine.\n",
-            boinc_msg_prefix(buf, sizeof(buf))
+            vboxwrapper_msg_prefix(buf, sizeof(buf))
         );
         if (!is_extpack_installed()) {
             fprintf(
                 stderr,
                 "%s Required extension pack not installed, remote desktop not enabled.\n",
-                boinc_msg_prefix(buf, sizeof(buf))
+                vboxwrapper_msg_prefix(buf, sizeof(buf))
             );
         } else {
             retval = get_remote_desktop_port();
@@ -670,7 +812,7 @@ int VBOX_VM::register_vm() {
         fprintf(
             stderr,
             "%s Enabling shared directory for virtual machine.\n",
-            boinc_msg_prefix(buf, sizeof(buf))
+            vboxwrapper_msg_prefix(buf, sizeof(buf))
         );
         command  = "sharedfolder add \"" + vm_name + "\" ";
         command += "--name \"shared\" ";
@@ -694,7 +836,7 @@ int VBOX_VM::deregister_vm() {
     fprintf(
         stderr,
         "%s Deregistering virtual machine.\n",
-        boinc_msg_prefix(buf, sizeof(buf))
+        vboxwrapper_msg_prefix(buf, sizeof(buf))
     );
 
 
@@ -703,7 +845,7 @@ int VBOX_VM::deregister_vm() {
     fprintf(
         stderr,
         "%s Discarding saved state of virtual machine.\n",
-        boinc_msg_prefix(buf, sizeof(buf))
+        vboxwrapper_msg_prefix(buf, sizeof(buf))
     );
     command  = "discardstate \"" + vm_name + "\" ";
 
@@ -714,7 +856,7 @@ int VBOX_VM::deregister_vm() {
     fprintf(
         stderr,
         "%s Removing storage controller(s) from virtual machine.\n",
-        boinc_msg_prefix(buf, sizeof(buf))
+        vboxwrapper_msg_prefix(buf, sizeof(buf))
     );
     command  = "storagectl \"" + vm_name + "\" ";
     command += "--name \"IDE Controller\" ";
@@ -735,7 +877,7 @@ int VBOX_VM::deregister_vm() {
     fprintf(
         stderr,
         "%s Removing virtual machine from VirtualBox.\n",
-        boinc_msg_prefix(buf, sizeof(buf))
+        vboxwrapper_msg_prefix(buf, sizeof(buf))
     );
     command  = "unregistervm \"" + vm_name + "\" ";
     command += "--delete ";
@@ -747,7 +889,7 @@ int VBOX_VM::deregister_vm() {
     fprintf(
         stderr,
         "%s Removing virtual disk drive from VirtualBox.\n",
-        boinc_msg_prefix(buf, sizeof(buf))
+        vboxwrapper_msg_prefix(buf, sizeof(buf))
     );
     command  = "closemedium disk \"" + virtual_machine_slot_directory + "/" + image_filename + "\" ";
 
@@ -1004,7 +1146,7 @@ int VBOX_VM::get_system_log(string& log) {
         fprintf(
             stderr,
             "%s Could not find the Hypervisor System Log at '%s'.\n",
-            boinc_msg_prefix(buf, sizeof(buf)),
+            vboxwrapper_msg_prefix(buf, sizeof(buf)),
             virtualbox_system_log_src.c_str()
         );
         retval = ERR_NOT_FOUND;
@@ -1219,7 +1361,7 @@ int VBOX_VM::set_network_access(bool enabled) {
         fprintf(
             stderr,
             "%s Enabling network access for virtual machine.\n",
-            boinc_msg_prefix(buf, sizeof(buf))
+            vboxwrapper_msg_prefix(buf, sizeof(buf))
         );
         command  = "modifyvm \"" + vm_name + "\" ";
         command += "--cableconnected1 on ";
@@ -1230,7 +1372,7 @@ int VBOX_VM::set_network_access(bool enabled) {
         fprintf(
             stderr,
             "%s Disabling network access for virtual machine.\n",
-            boinc_msg_prefix(buf, sizeof(buf))
+            vboxwrapper_msg_prefix(buf, sizeof(buf))
         );
         command  = "modifyvm \"" + vm_name + "\" ";
         command += "--cableconnected1 off ";
@@ -1247,16 +1389,17 @@ int VBOX_VM::set_cpu_usage_fraction(double x) {
     char buf[256];
     int retval;
 
-    // the arg to modifyvm is percentage
+    // the arg to controlvm is percentage
     //
     fprintf(
         stderr,
-        "%s Setting cpu throttle for virtual machine.\n",
-        boinc_msg_prefix(buf, sizeof(buf))
+        "%s Setting cpu throttle for virtual machine. (%d%%)\n",
+        vboxwrapper_msg_prefix(buf, sizeof(buf)),
+        (int)x
     );
-    sprintf(buf, "%d", (int)(x*100.));
-    command  = "modifyvm \"" + vm_name + "\" ";
-    command += "--cpuexecutioncap ";
+    sprintf(buf, "%d", (int)x);
+    command  = "controlvm \"" + vm_name + "\" ";
+    command += "cpuexecutioncap ";
     command += buf;
     command += " ";
 
@@ -1277,7 +1420,7 @@ int VBOX_VM::set_network_max_bytes_sec(double x) {
     fprintf(
         stderr,
         "%s Setting network throttle for virtual machine.\n",
-        boinc_msg_prefix(buf, sizeof(buf))
+        vboxwrapper_msg_prefix(buf, sizeof(buf))
     );
     sprintf(buf, "%d", (int)(x*8./1000.));
     command  = "modifyvm \"" + vm_name + "\" ";
@@ -1306,7 +1449,7 @@ int VBOX_VM::write_floppy(std::string& data) {
     return 1;
 }
 
-void VBOX_VM::reset_vm_process_priority() {
+void VBOX_VM::lower_vm_process_priority() {
 #ifndef _WIN32
     if (vm_pid) {
         setpriority(PRIO_PROCESS, vm_pid, PROCESS_IDLE_PRIORITY);
@@ -1318,12 +1461,25 @@ void VBOX_VM::reset_vm_process_priority() {
 #endif
 }
 
+void VBOX_VM::reset_vm_process_priority() {
+#ifndef _WIN32
+    if (vm_pid) {
+        setpriority(PRIO_PROCESS, vm_pid, PROCESS_MEDIUM_PRIORITY);
+    }
+#else
+    if (vm_pid_handle) {
+        SetPriorityClass(vm_pid_handle, NORMAL_PRIORITY_CLASS);
+    }
+#endif
+}
+
 // If there are errors we can recover from, process them here.
 //
 int VBOX_VM::vbm_popen(string& arguments, string& output, const char* item, bool log_error, bool retry_failures) {
     int retval = 0;
-    char buf[256];
     int retry_count = 0;
+    double sleep_interval = 1.0;
+    char buf[256];
     string retry_notes;
 
     do {
@@ -1344,13 +1500,21 @@ int VBOX_VM::vbm_popen(string& arguments, string& output, const char* item, bool
             //
             // If we detect that condition retry the desired command.
             //
-            if ((output.find("VBOX_E_INVALID_OBJECT_STATE") != string::npos) &&
-                (output.find("already locked") != string::npos))
-            {
+            // Experiments performed by jujube suggest changing the sleep interval to an exponential
+            // style backoff would increase our chances of success in situations where the previous
+            // lock is held by a previous instance of vboxmanage whos instance data hasn't been
+            // cleaned up within vboxsvc yet.
+            //
+            // Error Code: VBOX_E_INVALID_OBJECT_STATE (0x80bb0007) 
+            //
+            if (0x80bb0007 == retval) {
                 if (retry_notes.find("Another VirtualBox management") == string::npos) {
                     retry_notes += "Another VirtualBox management application has locked the session for\n";
                     retry_notes += "this virtual machine. BOINC cannot properly monitor this virtual machine\n";
                     retry_notes += "and so this job will be aborted.\n\n";
+                }
+                if (retry_count) {
+                    sleep_interval *= 2;
                 }
             }
             
@@ -1358,10 +1522,10 @@ int VBOX_VM::vbm_popen(string& arguments, string& output, const char* item, bool
             if (!retry_failures) break;
 
             // Timeout?
-            if (retry_count >= 6) break;
+            if (retry_count >= 5) break;
 
             retry_count++;
-            boinc_sleep(5.0);
+            boinc_sleep(sleep_interval);
         }
     }
     while (retval);
@@ -1388,7 +1552,7 @@ int VBOX_VM::vbm_popen(string& arguments, string& output, const char* item, bool
         fprintf(
             stderr,
             "%s Error in %s for VM: %d\nArguments:\n%s\nOutput:\n%s\n",
-            boinc_msg_prefix(buf, sizeof(buf)),
+            vboxwrapper_msg_prefix(buf, sizeof(buf)),
             item,
             retval,
             arguments.c_str(),
@@ -1404,6 +1568,9 @@ int VBOX_VM::vbm_popen(string& arguments, string& output, const char* item, bool
 int VBOX_VM::vbm_popen_raw(string& arguments, string& output) {
     char buf[256];
     string command;
+    size_t errcode_start;
+    size_t errcode_end;
+    string errcode;
     int retval = 0;
 
     // Initialize command line
@@ -1423,9 +1590,6 @@ int VBOX_VM::vbm_popen_raw(string& arguments, string& output) {
     DWORD dwCount = 0;
     unsigned long ulExitCode = 0;
     unsigned long ulExitTimeout = 0;
-    size_t errcode_start;
-    size_t errcode_end;
-    string errcode;
 
     memset(&si, 0, sizeof(si));
     memset(&pi, 0, sizeof(pi));
@@ -1443,7 +1607,7 @@ int VBOX_VM::vbm_popen_raw(string& arguments, string& output) {
         fprintf(
             stderr,
             "%s CreatePipe failed! (%d).\n",
-            boinc_msg_prefix(buf, sizeof(buf)),
+            vboxwrapper_msg_prefix(buf, sizeof(buf)),
             GetLastError()
         );
         goto CLEANUP;
@@ -1472,7 +1636,7 @@ int VBOX_VM::vbm_popen_raw(string& arguments, string& output) {
         fprintf(
             stderr,
             "%s CreateProcess failed! (%d).\n",
-            boinc_msg_prefix(buf, sizeof(buf)),
+            vboxwrapper_msg_prefix(buf, sizeof(buf)),
             GetLastError()
         );
         goto CLEANUP;
@@ -1500,14 +1664,10 @@ int VBOX_VM::vbm_popen_raw(string& arguments, string& output) {
         if (ulExitCode != STILL_ACTIVE) break;
 
         // Timeout?
-        if (ulExitTimeout >= 60000) {
-            fprintf(
-                stderr,
-                "%s Process Timeout!.\n",
-                boinc_msg_prefix(buf, sizeof(buf))
-            );
-
+        if (ulExitTimeout >= 45000) {
             TerminateProcess(pi.hProcess, EXIT_FAILURE);
+            ulExitCode = 0;
+            retval = ERR_TIMEOUT;
             Sleep(1000);
         }
 
@@ -1535,6 +1695,7 @@ CLEANUP:
 
         // If something couldn't be found, just return ERR_FOPEN
         if (!retval) retval = ERR_FOPEN;
+
     }
 
 #else
@@ -1550,7 +1711,7 @@ CLEANUP:
         fprintf(
             stderr,
             "%s vbm_popen popen failed! errno = %d\n",
-            boinc_msg_prefix(buf, sizeof(buf)),
+            vboxwrapper_msg_prefix(buf, sizeof(buf)),
             errno
         );
         retval = ERR_FOPEN;
@@ -1562,6 +1723,17 @@ CLEANUP:
 
         // Close stream
         pclose(fp);
+
+        // Determine the real error code by parsing the output
+        errcode_start = output.find("(0x");
+        if (errcode_start) {
+            errcode_start += 1;
+            errcode_end = output.find(")", errcode_start);
+            errcode = output.substr(errcode_start, errcode_end - errcode_start);
+
+            sscanf(errcode.c_str(), "%x", &retval);
+        }
+
         retval = 0;
     }
 

@@ -112,6 +112,7 @@ void PROJECT::init() {
     send_time_stats_log = 0;
     send_job_log = 0;
     send_full_workload = false;
+    dont_use_dcf = false;
     suspended_via_gui = false;
     dont_request_more_work = false;
     detach_when_done = false;
@@ -240,6 +241,7 @@ int PROJECT::parse_state(XML_PARSER& xp) {
         if (xp.parse_int("send_time_stats_log", send_time_stats_log)) continue;
         if (xp.parse_int("send_job_log", send_job_log)) continue;
         if (xp.parse_bool("send_full_workload", send_full_workload)) continue;
+        if (xp.parse_bool("dont_use_dcf", dont_use_dcf)) continue;
         if (xp.parse_bool("non_cpu_intensive", non_cpu_intensive)) continue;
         if (xp.parse_bool("verify_files_on_app_start", verify_files_on_app_start)) continue;
         if (xp.parse_bool("suspended_via_gui", suspended_via_gui)) continue;
@@ -376,7 +378,7 @@ int PROJECT::write_state(MIOFILE& out, bool gui_rpc) {
         "    <sched_rpc_pending>%d</sched_rpc_pending>\n"
         "    <send_time_stats_log>%d</send_time_stats_log>\n"
         "    <send_job_log>%d</send_job_log>\n"
-        "%s%s%s%s%s%s%s%s%s%s%s%s%s",
+        "%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
         master_url,
         project_name,
         symstore,
@@ -411,6 +413,7 @@ int PROJECT::write_state(MIOFILE& out, bool gui_rpc) {
         master_url_fetch_pending?"    <master_url_fetch_pending/>\n":"",
         trickle_up_pending?"    <trickle_up_pending/>\n":"",
         send_full_workload?"    <send_full_workload/>\n":"",
+        dont_use_dcf?"    <dont_use_dcf/>\n":"",
         non_cpu_intensive?"    <non_cpu_intensive/>\n":"",
         verify_files_on_app_start?"    <verify_files_on_app_start/>\n":"",
         suspended_via_gui?"    <suspended_via_gui/>\n":"",
@@ -442,6 +445,9 @@ int PROJECT::write_state(MIOFILE& out, bool gui_rpc) {
         }
         if (no_rsc_pref[j]) {
             out.printf("    <no_rsc_pref>%s</no_rsc_pref>\n", rsc_name(j));
+        }
+        if (j>0 && gui_rpc && (ncoprocs_excluded[j] == rsc_work_fetch[j].ninstances)) {
+            out.printf("    <no_rsc_config>%s</no_rsc_config>\n", rsc_name(j));
         }
     }
     if (ams_resource_share >= 0) {
@@ -539,6 +545,7 @@ void PROJECT::copy_state_fields(PROJECT& p) {
     }
     pwf = p.pwf;
     send_full_workload = p.send_full_workload;
+    dont_use_dcf = p.dont_use_dcf;
     send_time_stats_log = p.send_time_stats_log;
     send_job_log = p.send_job_log;
     non_cpu_intensive = p.non_cpu_intensive;
@@ -867,9 +874,11 @@ FILE_INFO::FILE_INFO() {
 }
 
 FILE_INFO::~FILE_INFO() {
+#ifndef SIM
     if (async_verify) {
         remove_async_verify(async_verify);
     }
+#endif
 }
 
 void FILE_INFO::reset() {
@@ -878,17 +887,26 @@ void FILE_INFO::reset() {
     error_msg = "";
 }
 
-// Set the appropriate permissions depending on whether
-// it's an executable file
-// This doesn't seem to exist in Windows
+// Set file ownership if using account-based sandbox;
+// set permissions depending on whether it's an executable file.
 //
-int FILE_INFO::set_permissions() {
+// If "path" is non-null, use it instead of the file's
+// path in the project directory
+// (this is used for files copied into a slot directory)
+//
 #ifdef _WIN32
-    return 0;
+int FILE_INFO::set_permissions(const char*) {
+    return 0;       // Not relevant in Windows.
+}
 #else
+int FILE_INFO::set_permissions(const char* path) {
     int retval;
-    char pathname[256];
-    get_pathname(this, pathname, sizeof(pathname));
+    char pathname[1024];
+    if (path) {
+        strcpy(pathname, path);
+    } else {
+        get_pathname(this, pathname, sizeof(pathname));
+    }
 
     if (g_use_sandbox) {
         // give exec permissions for user, group and others but give
@@ -925,8 +943,8 @@ int FILE_INFO::set_permissions() {
         }
     }
     return retval;
-#endif
 }
+#endif
 
 int FILE_INFO::parse(XML_PARSER& xp) {
     char buf2[1024];
@@ -1005,7 +1023,13 @@ int FILE_INFO::parse(XML_PARSER& xp) {
         if (xp.parse_double("nbytes", nbytes)) continue;
         if (xp.parse_double("gzipped_nbytes", gzipped_nbytes)) continue;
         if (xp.parse_double("max_nbytes", max_nbytes)) continue;
-        if (xp.parse_int("status", status)) continue;
+        if (xp.parse_int("status", status)) {
+            // on startup, VERIFY_PENDING is meaningless
+            if (status == FILE_VERIFY_PENDING) {
+                status = FILE_NOT_PRESENT;
+            }
+            continue;
+        }
         if (xp.parse_bool("executable", executable)) continue;
         if (xp.parse_bool("uploaded", uploaded)) continue;
         if (xp.parse_bool("sticky", sticky)) continue;
@@ -1159,7 +1183,7 @@ int FILE_INFO::write_gui(MIOFILE& out) {
 // delete physical underlying file associated with FILE_INFO
 //
 int FILE_INFO::delete_file() {
-    char path[256];
+    char path[1024];
 
     get_pathname(this, path, sizeof(path));
     int retval = delete_project_owned_file(path, true);
@@ -1246,6 +1270,21 @@ int FILE_INFO::merge_info(FILE_INFO& new_info) {
         strcpy(xml_signature, new_info.xml_signature);
     }
 
+    // If the file is supposed to be executable and is PRESENT,
+    // make sure it's actually executable.
+    // This deals with cases where somehow a file didn't
+    // get protected right when it was initially downloaded.
+    //
+    if (status == FILE_PRESENT && new_info.executable) {
+        int retval = set_permissions();
+        if (retval) {
+            msg_printf(project, MSG_INTERNAL_ERROR,
+                "merge_info(): failed to change permissions of %s", name
+            );
+        }
+        return retval;
+    }
+
     return 0;
 }
 
@@ -1286,7 +1325,7 @@ void FILE_INFO::failure_message(string& s) {
 #define BUFSIZE 16384
 int FILE_INFO::gzip() {
     char buf[BUFSIZE];
-    char inpath[256], outpath[256];
+    char inpath[1024], outpath[1024];
 
     get_pathname(this, inpath, sizeof(inpath));
     strcpy(outpath, inpath);
@@ -1315,14 +1354,17 @@ int FILE_INFO::gzip() {
 //
 int FILE_INFO::gunzip(char* md5_buf) {
     unsigned char buf[BUFSIZE];
-    char inpath[256], outpath[256];
+    char inpath[1024], outpath[1024], tmppath[1024];
     md5_state_t md5_state;
 
     md5_init(&md5_state);
     get_pathname(this, outpath, sizeof(outpath));
     strcpy(inpath, outpath);
     strcat(inpath, ".gz");
-    FILE* out = boinc_fopen(outpath, "wb");
+    strcpy(tmppath, outpath);
+    char* p = strrchr(tmppath, '/');
+    strcpy(p+1, "decompress_temp");
+    FILE* out = boinc_fopen(tmppath, "wb");
     if (!out) return ERR_FOPEN;
     gzFile in = gzopen(inpath, "rb");
     while (1) {
@@ -1345,6 +1387,7 @@ int FILE_INFO::gunzip(char* md5_buf) {
 
     gzclose(in);
     fclose(out);
+    boinc_rename(tmppath, outpath);
     delete_project_owned_file(inpath, true);
     return 0;
 }
@@ -1786,6 +1829,7 @@ void RESULT::clear() {
     coproc_missing = false;
     report_immediately = false;
     schedule_backoff = 0;
+    strcpy(schedule_backoff_reason, "");
 }
 
 // parse a <result> element from scheduling server.
@@ -2019,7 +2063,15 @@ int RESULT::write_gui(MIOFILE& out) {
     if (report_immediately) out.printf("    <report_immediately/>\n");
     if (edf_scheduled) out.printf("    <edf_scheduled/>\n");
     if (coproc_missing) out.printf("    <coproc_missing/>\n");
-    if (schedule_backoff > gstate.now) out.printf("    <scheduler_wait/>\n");
+    if (schedule_backoff > gstate.now) {
+        out.printf("    <scheduler_wait/>\n");
+        if (strlen(schedule_backoff_reason)) {
+            out.printf(
+                "    <scheduler_wait_reason>%s</scheduler_wait_reason>\n",
+                schedule_backoff_reason
+            );
+        }
+    }
     if (avp->needs_network && gstate.network_suspended) out.printf("    <network_wait/>\n");
     ACTIVE_TASK* atp = gstate.active_tasks.lookup_result(this);
     if (atp) {
@@ -2029,18 +2081,26 @@ int RESULT::write_gui(MIOFILE& out) {
         // only need to compute this string once
         //
         if (avp->gpu_usage.rsc_type) {
-            sprintf(resources,
-                "%.2f CPUs + %.2f %s GPUs",
-                avp->avg_ncpus,
-                avp->gpu_usage.usage,
-                rsc_name(avp->gpu_usage.rsc_type)
-            );
+            if (avp->gpu_usage.usage == 1) {
+                sprintf(resources,
+                    "%.3g CPUs + 1 %s GPU",
+                    avp->avg_ncpus,
+                    rsc_name(avp->gpu_usage.rsc_type)
+                );
+            } else {
+                sprintf(resources,
+                    "%.3g CPUs + %.3g %s GPUs",
+                    avp->avg_ncpus,
+                    avp->gpu_usage.usage,
+                    rsc_name(avp->gpu_usage.rsc_type)
+                );
+            }
         } else if (avp->missing_coproc) {
-            sprintf(resources, "%.2f CPUs + %s GPU (missing)",
+            sprintf(resources, "%.3g CPUs + %s GPU (missing)",
                 avp->avg_ncpus, avp->missing_coproc_name
             );
         } else if (!project->non_cpu_intensive && (avp->avg_ncpus != 1)) {
-            sprintf(resources, "%.2f CPUs", avp->avg_ncpus);
+            sprintf(resources, "%.3g CPUs", avp->avg_ncpus);
         } else {
             strcpy(resources, " ");
         }
@@ -2253,4 +2313,3 @@ double RUN_MODE::delay() {
         return 0;
     }
 }
-

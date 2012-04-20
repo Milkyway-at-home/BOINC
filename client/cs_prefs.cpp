@@ -190,7 +190,7 @@ int CLIENT_STATE::check_suspend_processing() {
         if (!global_prefs.run_if_user_active && user_active) {
             return SUSPEND_REASON_USER_ACTIVE;
         }
-        if (global_prefs.cpu_times.suspended()) {
+        if (global_prefs.cpu_times.suspended(now)) {
             return SUSPEND_REASON_TIME_OF_DAY;
         }
         if (global_prefs.suspend_if_no_recent_input) {
@@ -296,10 +296,12 @@ void CLIENT_STATE::check_suspend_network() {
     file_xfers_suspended = false;
     network_suspend_reason = 0;
 
+    // don't start network ops if system is shutting down
+    //
     if (os_requested_suspend) {
         network_suspend_reason = SUSPEND_REASON_OS;
         network_suspended = true;
-        return;
+        goto done;
     }
 
     // no network traffic if we're allowing unsigned apps
@@ -308,7 +310,7 @@ void CLIENT_STATE::check_suspend_network() {
         network_suspended = true;
         file_xfers_suspended = true;
         network_suspend_reason = SUSPEND_REASON_USER_REQ;
-        return;
+        goto done;
     }
 
     // was there a recent GUI RPC that needs network?
@@ -319,11 +321,12 @@ void CLIENT_STATE::check_suspend_network() {
 
     switch(network_run_mode.get_current()) {
     case RUN_MODE_ALWAYS: 
-        return;
+        goto done;
     case RUN_MODE_NEVER:
         file_xfers_suspended = true;
         if (!recent_rpc) network_suspended = true;
         network_suspend_reason = SUSPEND_REASON_USER_REQ;
+        goto done;
     }
 
     if (global_prefs.daily_xfer_limit_mb && global_prefs.daily_xfer_period_days) {
@@ -343,7 +346,7 @@ void CLIENT_STATE::check_suspend_network() {
         if (!recent_rpc) network_suspended = true;
         network_suspend_reason = SUSPEND_REASON_USER_ACTIVE;
     }
-    if (global_prefs.net_times.suspended()) {
+    if (global_prefs.net_times.suspended(now)) {
         file_xfers_suspended = true;
         if (!recent_rpc) network_suspended = true;
         network_suspend_reason = SUSPEND_REASON_TIME_OF_DAY;
@@ -352,6 +355,13 @@ void CLIENT_STATE::check_suspend_network() {
         file_xfers_suspended = true;
         if (!recent_rpc) network_suspended = true;
         network_suspend_reason = SUSPEND_REASON_EXCLUSIVE_APP_RUNNING;
+    }
+
+done:
+    if (log_flags.suspend_debug) {
+        msg_printf(0, MSG_INFO, "[suspend] net_susp %d file_xfer_susp %d reason %d",
+            network_suspended, file_xfers_suspended, network_suspend_reason
+        );
     }
 }
 

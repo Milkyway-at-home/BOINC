@@ -85,6 +85,7 @@ struct TASK {
     bool multi_process;
 
     // dynamic stuff follows
+    double current_cpu_time;
     double final_cpu_time;
     double starting_cpu;
         // how much CPU time was used by tasks before this in the job file
@@ -126,10 +127,19 @@ struct TASK {
         if (fraction_done_filename.size() == 0) return 0;
         FILE* f = fopen(fraction_done_filename.c_str(), "r");
         if (!f) return 0;
-        double frac;
-        int n = fscanf(f, "%lf", &frac);
+
+        // read the last line of the file
+        //
+        fseek(f, -32, SEEK_END);
+        double temp, frac = 0;
+        while (!feof(f)) {
+            char buf[256];
+            char* p = fgets(buf, 256, f);
+            if (p == NULL) break;
+            int n = sscanf(buf, "%lf", &temp);
+            if (n == 1) frac = temp;
+        }
         fclose(f);
-        if (n != 1) return 0;
         if (frac < 0) return 0;
         if (frac > 1) return 1;
         return frac;
@@ -206,6 +216,7 @@ int TASK::parse(XML_PARSER& xp) {
     char buf[8192];
 
     weight = 1;
+    current_cpu_time = 0;
     final_cpu_time = 0;
     stat_first = true;
     pid = 0;
@@ -572,6 +583,9 @@ bool TASK::poll(int& status) {
         if (exit_code != STILL_ACTIVE) {
             status = exit_code;
             final_cpu_time = cpu_time();
+            if (final_cpu_time < current_cpu_time) {
+                final_cpu_time = current_cpu_time;
+            }
             return true;
         }
     }
@@ -581,7 +595,11 @@ bool TASK::poll(int& status) {
 
     wpid = wait4(pid, &status, WNOHANG, &ru);
     if (wpid) {
+        getrusage(RUSAGE_CHILDREN, &ru);
         final_cpu_time = (float)ru.ru_utime.tv_sec + ((float)ru.ru_utime.tv_usec)/1e+6;
+        if (final_cpu_time < current_cpu_time) {
+            final_cpu_time = current_cpu_time;
+        }
         return true;
     }
 #endif
@@ -618,7 +636,8 @@ void TASK::resume() {
 }
 
 double TASK::cpu_time() {
-    return process_tree_cpu_time(pid);
+    current_cpu_time = process_tree_cpu_time(pid);
+    return current_cpu_time;
 }
 
 void poll_boinc_messages(TASK& task) {

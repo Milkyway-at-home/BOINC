@@ -610,6 +610,10 @@ int CLIENT_STATE::init() {
     //
     check_too_large_jobs();
 
+    // initialize project priorities (for the GUI, in case we're suspended)
+    //
+    project_priority_init(false);
+
     initialized = true;
     return 0;
 }
@@ -1526,6 +1530,7 @@ bool CLIENT_STATE::update_results() {
             rp->set_state(RESULT_FILES_DOWNLOADING, "CS::update_results");
             action = true;
             break;
+#ifndef SIM
         case RESULT_FILES_DOWNLOADING:
             retval = input_files_available(rp, false);
             if (!retval) {
@@ -1543,6 +1548,7 @@ bool CLIENT_STATE::update_results() {
                 action = true;
             }
             break;
+#endif
         case RESULT_FILES_UPLOADING:
             if (rp->is_upload_done()) {
                 rp->set_ready_to_report();
@@ -1748,6 +1754,7 @@ int CLIENT_STATE::reset_project(PROJECT* project, bool detaching) {
             i--;
         }
     }
+    project->last_upload_start = 0;
 
     // if we're in the middle of a scheduler op to the project, abort it
     //

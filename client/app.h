@@ -28,12 +28,12 @@
 #include "app_ipc.h"
 #include "procinfo.h"
 
-#define ABORT_TIMEOUT   60
+#define ABORT_TIMEOUT   15
     // if we send app <abort> request, wait this long before killing it.
     // This gives it time to download symbol files (which can be several MB)
     // and write stack trace to stderr
-#define QUIT_TIMEOUT    10
-    // Same, for <quit>.  Shorter because no stack trace is generated
+#define QUIT_TIMEOUT    15
+    // Same, for <quit>.
 
 // values for preempt_type
 //
@@ -183,7 +183,7 @@ struct ACTIVE_TASK {
     int current_disk_usage(double&);
         // disk used by output files and temp files of this task
     void get_free_slot(RESULT*);
-    int start(bool first_time);         // start a process
+    int start();         // start a process
 
     // Termination stuff.
     // Terminology:
@@ -207,11 +207,9 @@ struct ACTIVE_TASK {
     //
     int request_exit();
     int request_abort();
-    int kill_task(bool restart);
-        // Kill process forcibly,
-		// otherwise it ends with an error
+    int kill_task();
+        // Kill process and descendants forcibly.
         // Unix: send a SIGKILL signal, Windows: TerminateProcess()
-		// if restart is true, arrange for result to get restarted;
     int abort_task(int exit_status, const char*);
         // can be called whether or not process exists
 
@@ -238,6 +236,7 @@ struct ACTIVE_TASK {
     void handle_exited_app(int stat);
 #endif
     void handle_premature_exit(bool&);
+    void handle_temporary_exit(bool&, double, const char*);
 
     bool check_max_disk_exceeded();
 
@@ -247,7 +246,7 @@ struct ACTIVE_TASK {
     double est_dur();
     int read_stderr_file();
     bool finish_file_present();
-    bool temporary_exit_file_present(double&);
+    bool temporary_exit_file_present(double&, char*);
     void init_app_init_data(APP_INIT_DATA&);
     int write_app_init_file(APP_INIT_DATA&);
     int move_trickle_file();

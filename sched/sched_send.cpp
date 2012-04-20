@@ -591,6 +591,7 @@ static void get_delay_bound_range(
             // if original deadline has passed, return zeros
             // This will skip deadline check.
             opt = pess = 0;
+            return;
         }
         opt = res_report_deadline - now;
         pess = wu.delay_bound;
@@ -604,6 +605,7 @@ static void get_delay_bound_range(
         ) {
             opt = wu.delay_bound*config.reliable_reduced_delay_bound;
             double est_wallclock_duration = estimate_duration(wu, bav);
+
             // Check to see how reasonable this reduced time is.
             // Increase it to twice the estimated delay bound
             // if all the following apply:
@@ -669,11 +671,7 @@ static inline int check_deadline(
     } else {
         double ewd = estimate_duration(wu, bav);
         if (hard_app(app)) ewd *= 1.3;
-        double est_completion_delay = get_estimated_delay(bav) + ewd;
-        double est_report_delay = std::max(
-            est_completion_delay,
-            g_request->global_prefs.work_buf_min()
-        );
+        double est_report_delay = get_estimated_delay(bav) + ewd;
         double diff = est_report_delay - wu.delay_bound;
         if (diff > 0) {
             if (config.debug_send) {
@@ -727,7 +725,8 @@ int wu_is_infeasible_fast(
     }
 
     // homogeneous redundancy: can't send if app uses HR and
-    // 1) host is of unknown HR class
+    // 1) host is of unknown HR class, or
+    // 2) WU is already committed to different HR class
     //
     if (app_hr_type(app)) {
         if (hr_unknown_class(g_reply->host, app_hr_type(app))) {
@@ -747,6 +746,21 @@ int wu_is_infeasible_fast(
                 );
             }
             return INFEASIBLE_HR;
+        }
+    }
+
+    // homogeneous app version
+    //
+    if (app.homogeneous_app_version) {
+        int avid = wu.app_version_id;
+        if (avid && bav.avp->id != avid) {
+            if (config.debug_send) {
+                log_messages.printf(MSG_NORMAL,
+                    "[send] [HOST#%d] [WU#%d %s] failed homogeneous app version check: %d %d\n",
+                    g_reply->host.id, wu.id, wu.name, avid, bav.avp->id
+                );
+            }
+            return INFEASIBLE_HAV;
         }
     }
 
@@ -784,6 +798,12 @@ int wu_is_infeasible_fast(
         retval = check_deadline(wu, app, bav);
     }
     return retval;
+}
+
+// return true if the client has a sticky file used by this job
+//
+bool host_has_job_file(WORKUNIT& wu) {
+    return false;
 }
 
 // insert "text" right after "after" in the given buffer
@@ -1420,7 +1440,7 @@ void send_gpu_messages() {
 
     if (g_request->coprocs.nvidia.count && ssp->have_cuda_apps) {
         send_gpu_property_messages(cuda_requirements,
-            g_request->coprocs.nvidia.prop.dtotalGlobalMem,
+            g_request->coprocs.nvidia.prop.totalGlobalMem,
             g_request->coprocs.nvidia.display_driver_version,
             "NVIDIA GPU"
         );

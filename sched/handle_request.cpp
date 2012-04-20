@@ -47,6 +47,8 @@
 #include "util.h"
 #include "filesys.h"
 
+#include "sched_vda.h"
+
 #include "credit.h"
 #include "sched_main.h"
 #include "sched_types.h"
@@ -68,11 +70,11 @@ static bool find_host_by_other(DB_USER& user, HOST req_host, DB_HOST& host) {
     char buf[2048];
     char dn[512], ip[512], os[512], pm[512];
 
-#ifdef EINSTEIN_AT_HOME
-    // This is to prevent GRID hosts that manipulate their hostids from flooding E@H's DB with slow queries
-    if ((user.id == 282952) || (user.id == 243543))
-      return false;
-#endif
+    // don't dig through hosts of these users
+    // prevents flooding the DB with slow queries from users with many hosts
+    for(unsigned int i=0; i < config.dont_search_host_for_userid.size(); i++)
+      if (user.id == config.dont_search_host_for_userid[i])
+        return false;
 
     // Only check if the fields are populated
     if (strlen(req_host.domain_name) && strlen(req_host.last_ip_addr) && strlen(req_host.os_name) && strlen(req_host.p_model)) {
@@ -407,7 +409,7 @@ make_new_host:
         //
         // NOTE: If the client was run with --allow_multiple_clients, skip this.
         //
-        if ((g_request->allow_multiple_clients==1)
+        if ((g_request->allow_multiple_clients != 1)
             && find_host_by_other(user, g_request->host, host)
         ) {
             log_messages.printf(MSG_NORMAL,
@@ -504,7 +506,11 @@ static int modify_host_struct(HOST& host) {
         strlcat(host.serialnum, buf2, sizeof(host.serialnum));
     }
     if (strcmp(host.last_ip_addr, g_request->host.last_ip_addr)) {
-        strncpy(host.last_ip_addr, g_request->host.last_ip_addr, sizeof(host.last_ip_addr));
+        strncpy(
+            host.last_ip_addr, g_request->host.last_ip_addr,
+            sizeof(host.last_ip_addr)
+        );
+        host.nsame_ip_addr = 0;
     } else {
         host.nsame_ip_addr++;
     }
@@ -1139,7 +1145,7 @@ void process_request(char* code_sign_key) {
     ) {
         g_reply->insert_message("No work available", "low");
         g_reply->set_delay(DELAY_NO_WORK_SKIP);
-        if (!config.msg_to_host) {
+        if (!config.msg_to_host && !config.enable_vda) {
             log_messages.printf(MSG_NORMAL, "No work - skipping DB access\n");
             return;
         }
@@ -1204,13 +1210,13 @@ void process_request(char* code_sign_key) {
     x = drand()*86400;
     srand(retval);
     last_rpc_time = g_reply->host.rpc_time;
-    t = g_reply->host.rpc_time + x;
+    t = (time_t)(g_reply->host.rpc_time + x);
     rpc_time_tm = localtime(&t);
     g_request->last_rpc_dayofyear = rpc_time_tm->tm_yday;
 
     t = time(0);
     g_reply->host.rpc_time = t;
-    t += x;
+    t += (time_t)x;
     rpc_time_tm = localtime(&t);
     g_request->current_rpc_dayofyear = rpc_time_tm->tm_yday;
 
@@ -1251,6 +1257,9 @@ void process_request(char* code_sign_key) {
 
     handle_results();
     handle_file_xfer_results();
+    if (config.enable_vda) {
+        handle_vda();
+    }
 
     // Do this before resending lost jobs
     //

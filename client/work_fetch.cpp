@@ -210,6 +210,7 @@ void RSC_WORK_FETCH::update_busy_time(double dur, double nused) {
 }
 
 static bool wacky_dcf(PROJECT* p) {
+    if (p->dont_use_dcf) return false;
     double dcf = p->duration_correction_factor;
     return (dcf < 0.02 || dcf > 80.0);
 }
@@ -217,13 +218,24 @@ static bool wacky_dcf(PROJECT* p) {
 // If this resource is below min buffer level,
 // return the highest-priority project that may have jobs for it.
 //
-PROJECT* RSC_WORK_FETCH::choose_project_hyst() {
+PROJECT* RSC_WORK_FETCH::choose_project_hyst(bool enforce_hyst) {
     PROJECT* pbest = NULL;
-    if (saturated_time > gstate.work_buf_min()) return NULL;
+    if (enforce_hyst) {
+        if (saturated_time > gstate.work_buf_min()) return NULL;
+    }
+    if (saturated_time > gstate.work_buf_total()) return NULL;
+
     for (unsigned i=0; i<gstate.projects.size(); i++) {
         PROJECT* p = gstate.projects[i];
         if (!p->pwf.can_fetch_work) continue;
         if (!project_state(p).may_have_work) continue;
+
+        // if project has zero resource share,
+        // only fetch work if a device is idle
+        //
+        if (p->resource_share == 0 && nidle_now == 0) {
+            continue;
+        }
 
         // if project has excluded GPUs of this type,
         // and it has runnable jobs for this type,
@@ -232,6 +244,9 @@ PROJECT* RSC_WORK_FETCH::choose_project_hyst() {
         // computing shortfall etc. on a per-project basis
         //
         if (rsc_type) {
+            if (p->ncoprocs_excluded[rsc_type] == ninstances) {
+                continue;
+            }
             if (p->ncoprocs_excluded[rsc_type]
                 && p->rsc_pwf[rsc_type].has_runnable_jobs
             ){
@@ -417,14 +432,9 @@ void RSC_WORK_FETCH::print_state(const char* name) {
         bool no_rsc_ams = p->no_rsc_ams[rsc_type];
         double bt = pwf.backoff_time>gstate.now?pwf.backoff_time-gstate.now:0;
         msg_printf(p, MSG_INFO,
-            "[work_fetch] %s: fetch share %.2f rec %.5f prio %.5f backoff dt %.2f int %.2f%s%s%s%s%s%s%s%s%s",
+            "[work_fetch] %s: fetch share %.3f rsc backoff (dt %.2f, inc %.2f)%s%s%s%s",
             name,
-            pwf.fetchable_share, p->pwf.rec, p->sched_priority, bt, pwf.backoff_interval,
-            p->suspended_via_gui?" (susp via GUI)":"",
-            p->master_url_fetch_pending?" (master fetch pending)":"",
-            p->min_rpc_time > gstate.now?" (comm deferred)":"",
-            p->dont_request_more_work?" (no new tasks)":"",
-            p->too_many_uploading_results?" (too many uploads)":"",
+            pwf.fetchable_share, bt, pwf.backoff_interval,
             no_rsc_pref?" (blocked by prefs)":"",
             no_rsc_apps?" (no apps)":"",
             no_rsc_ams?" (blocked by account manager)":"",
@@ -524,13 +534,27 @@ void WORK_FETCH::print_state() {
     msg_printf(0, MSG_INFO, "[work_fetch] target work buffer: %.2f + %.2f sec",
         gstate.work_buf_min(), gstate.work_buf_additional()
     );
-    for (int i=0; i<coprocs.n_rsc; i++) {
-        rsc_work_fetch[i].print_state(rsc_name(i));
-    }
     for (unsigned int i=0; i<gstate.projects.size(); i++) {
+        char buf[256];
         PROJECT* p = gstate.projects[i];
         if (p->non_cpu_intensive) continue;
-        msg_printf(p, MSG_INFO, "[work_fetch] REC %f", p->pwf.rec);
+        if (p->min_rpc_time > gstate.now) {
+            sprintf(buf, " (project backoff %.2f)", p->min_rpc_time - gstate.now);
+        } else {
+            strcpy(buf, "");
+        }
+        msg_printf(p, MSG_INFO, "[work_fetch] REC %.3f priority %.6f%s%s%s%s%s",
+            p->pwf.rec,
+            p->sched_priority,
+            buf,
+            p->suspended_via_gui?" (susp via GUI)":"",
+            p->master_url_fetch_pending?" (master fetch pending)":"",
+            p->dont_request_more_work?" (no new tasks)":"",
+            p->too_many_uploading_results?" (too many uploads)":""
+        );
+    }
+    for (int i=0; i<coprocs.n_rsc; i++) {
+        rsc_work_fetch[i].print_state(rsc_name(i));
     }
     msg_printf(0, MSG_INFO, "[work_fetch] ------- end work fetch state -------");
 }
@@ -555,7 +579,7 @@ void WORK_FETCH::compute_work_request(PROJECT* p) {
         return;
     }
 
-    PROJECT* bestp = choose_project();
+    PROJECT* bestp = choose_project(false);
     if (p != bestp) {
         clear_request();
     }
@@ -580,7 +604,7 @@ PROJECT* WORK_FETCH::non_cpu_intensive_project_needing_work() {
 // choose a project to fetch work from,
 // and set the request fields of resource objects
 //
-PROJECT* WORK_FETCH::choose_project() {
+PROJECT* WORK_FETCH::choose_project(bool enforce_hyst) {
     PROJECT* p;
 
     if (log_flags.work_fetch_debug) {
@@ -613,12 +637,12 @@ PROJECT* WORK_FETCH::choose_project() {
 if (use_hyst_fetch) {
     if (gpus_usable) {
         for (int i=1; i<coprocs.n_rsc; i++) {
-            p = rsc_work_fetch[i].choose_project_hyst();
+            p = rsc_work_fetch[i].choose_project_hyst(enforce_hyst);
             if (p) break;
         }
     }
     if (!p) {
-        p = rsc_work_fetch[0].choose_project_hyst();
+        p = rsc_work_fetch[0].choose_project_hyst(enforce_hyst);
     }
 } else {
     if (gpus_usable) {
@@ -1002,7 +1026,11 @@ double RESULT::estimated_duration_uncorrected() {
 // estimate how long a result will take on this host
 //
 double RESULT::estimated_duration() {
-    return estimated_duration_uncorrected()*project->duration_correction_factor;
+    double x = estimated_duration_uncorrected();
+    if (!project->dont_use_dcf) {
+        x *= project->duration_correction_factor;
+    }
+	return x;
 }
 
 double RESULT::estimated_time_remaining() {
@@ -1069,6 +1097,7 @@ void CLIENT_STATE::scale_duration_correction_factors(double factor) {
     if (factor <= 0) return;
     for (unsigned int i=0; i<projects.size(); i++) {
         PROJECT* p = projects[i];
+        if (p->dont_use_dcf) continue;
         p->duration_correction_factor *= factor;
     }
     if (log_flags.dcf_debug) {

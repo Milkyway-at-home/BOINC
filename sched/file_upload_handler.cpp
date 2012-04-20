@@ -310,7 +310,7 @@ int handle_file_upload(FILE* in, R_RSA_PUBLIC_KEY& key) {
         );
         if (retval || !is_valid) {
             log_messages.printf(MSG_CRITICAL,
-                "verify_string() [%s] [%s] retval %d, is_valid = %d\n",
+                "check_string_signature() [%s] [%s] retval %d, is_valid = %d\n",
                 signed_xml, xml_signature,
                 retval, is_valid
             );

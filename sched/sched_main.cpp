@@ -17,7 +17,6 @@
 
 // The BOINC scheduling server.
 
-// Note: use_files is a compile setting that records everything in files.
 // Also, You can call debug_sched() for whatever situation is of
 // interest to you.  It won't do anything unless you create
 // (touch) the file 'debug_sched' in the project root directory.
@@ -68,10 +67,6 @@
 
 #define DEBUG_LEVEL  999
 #define MAX_FCGI_COUNT  20
-
-#define REQ_FILE_PREFIX "boinc_req/"
-#define REPLY_FILE_PREFIX "boinc_reply/"
-bool use_files = false;     // use disk files for req/reply msgs (for debugging)
 
 GUI_URLS gui_urls;
 PROJECT_FILES project_files;
@@ -215,6 +210,7 @@ void sigterm_handler(int /*signo*/) {
     log_messages.printf(MSG_CRITICAL,
         "Caught SIGTERM (sent by Apache); exiting\n"
     );
+    unlock_sched();
     fflush((FILE*)NULL);
     exit(1);
     return;
@@ -348,6 +344,11 @@ void attach_to_feeder_shmem() {
     }
 }
 
+inline static const char* get_remote_addr() {
+    const char * r = getenv("REMOTE_ADDR");
+    return r ? r : "?.?.?.?";
+}
+
 int main(int argc, char** argv) {
 #ifndef _USING_FCGI_
     FILE* fin, *fout;
@@ -355,7 +356,7 @@ int main(int argc, char** argv) {
     FCGI_FILE *fin, *fout;
 #endif
     int i, retval;
-    char req_path[256], reply_path[256], path[256];
+    char req_path[256], reply_path[256], log_path[256], path[256];
     unsigned int counter=0;
     char* code_sign_key;
     int length=-1;
@@ -417,10 +418,13 @@ int main(int argc, char** argv) {
         // log information from different scheduler requests running
         // in parallel don't collide in the log file and appear intermingled.
         //
-        if (!(stderr_buffer=(char *)malloc(32768)) || setvbuf(stderr, stderr_buffer, _IOFBF, 32768)) {
-            log_messages.printf(MSG_CRITICAL,
-                "Unable to change stderr buffering preferences\n"
-            );
+        if (config.scheduler_log_buffer) {
+            if (!(stderr_buffer=(char *)malloc(config.scheduler_log_buffer)) ||
+                setvbuf(stderr, stderr_buffer, _IOFBF, 32768)) {
+                log_messages.printf(MSG_CRITICAL,
+                    "Unable to change stderr buffering preferences\n"
+                );
+            }
         }
 #else
         FCGI_FILE* f = FCGI::fopen(path, "a");
@@ -500,7 +504,7 @@ int main(int argc, char** argv) {
         goto done;
     }
 
-    if (use_files) {
+    if (strlen(config.debug_req_reply_dir)) {
         struct stat statbuf;
         // the code below is convoluted because,
         // instead of going from stdin to stdout directly,
@@ -510,8 +514,25 @@ int main(int argc, char** argv) {
         // NOTE: to use this, you must create group-writeable dirs
         // boinc_req and boinc_reply in the project dir
         //
-        sprintf(req_path, "%s%d_%u", config.project_path(REQ_FILE_PREFIX), g_pid, counter);
-        sprintf(reply_path, "%s%d_%u", config.project_path(REPLY_FILE_PREFIX), g_pid, counter);
+        sprintf(req_path, "%s/%d_%u_sched_request.xml", config.debug_req_reply_dir, g_pid, counter);
+        sprintf(reply_path, "%s/%d_%u_sched_reply.xml", config.debug_req_reply_dir, g_pid, counter);
+
+        // keep an own 'log' per PID in case general logging fails
+        // this allows to associate at leas the scheduler request with the client
+        // IP address (as shown in httpd error log) in case of a crash
+        sprintf(log_path, "%s/%d_%u_sched.log", config.debug_req_reply_dir, g_pid, counter);
+#ifndef _USING_FCGI_
+        fout = fopen(log_path, "a");
+#else
+        fout = FCGI::fopen(log_path,"a");
+#endif
+        fprintf(fout, "PID: %d Client IP: %s\n", g_pid, get_remote_addr());
+        fclose(fout);
+
+        log_messages.printf(MSG_DEBUG,
+            "keeping sched_request in %s, sched_reply in %s, custom log in %s\n",
+            req_path, reply_path, log_path
+        );
 #ifndef _USING_FCGI_
         fout = fopen(req_path, "w");
 #else
@@ -572,13 +593,17 @@ int main(int argc, char** argv) {
         }
         copy_stream(fin, stdout);
         fclose(fin);
-#ifdef EINSTEIN_AT_HOME
-        if (getenv("CONTENT_LENGTH")) unlink(req_path);
-        if (getenv("CONTENT_LENGTH")) unlink(reply_path);
-#else
-        // unlink(req_path);
-        // unlink(reply_path);
-#endif
+
+        // if not contacted from a client, don't keep the log files
+        /* not sure what lead to the assumption of a client setting
+           CONTENT_LENGTH, but it's wrong at least on our current
+           project / Apache / Client configuration. Commented out.
+        if (getenv("CONTENT_LENGTH")) {
+          unlink(req_path);
+          unlink(reply_path);
+        }
+        */
+
 #ifndef _USING_FCGI_
     } else if (batch) {
         while (!feof(stdin)) {

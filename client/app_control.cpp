@@ -96,12 +96,12 @@ bool ACTIVE_TASK_SET::poll() {
         ACTIVE_TASK* atp = active_tasks[i];
         if (atp->task_state() == PROCESS_ABORT_PENDING) {
             if (gstate.now > atp->abort_time + ABORT_TIMEOUT) {
-                atp->kill_task(false);
+                atp->kill_task();
             }
         }
         if (atp->task_state() == PROCESS_QUIT_PENDING) {
             if (gstate.now > atp->quit_time + QUIT_TIMEOUT) {
-                atp->kill_task(true);
+                atp->kill_task();
             }
         }
     }
@@ -145,28 +145,33 @@ bool ACTIVE_TASK::kill_all_children() {
 #endif
 #endif
 
-// Send a quit message.
+// Send a quit message, start timer, get descendants
 //
 int ACTIVE_TASK::request_exit() {
-    if (!app_client_shm.shm) return 1;
-    process_control_queue.msg_queue_send(
-        "<quit/>",
-        app_client_shm.shm->process_control_request
-    );
+    if (app_client_shm.shm) {
+        process_control_queue.msg_queue_send(
+            "<quit/>",
+            app_client_shm.shm->process_control_request
+        );
+    }
     set_task_state(PROCESS_QUIT_PENDING, "request_exit()");
     quit_time = gstate.now;
     get_descendants(pid, descendants);
     return 0;
 }
 
-// Send an abort message.
+// Send an abort message, start timer, get descendants
 //
 int ACTIVE_TASK::request_abort() {
-    if (!app_client_shm.shm) return 1;
-    process_control_queue.msg_queue_send(
-        "<abort/>",
-        app_client_shm.shm->process_control_request
-    );
+    if (app_client_shm.shm) {
+        process_control_queue.msg_queue_send(
+            "<abort/>",
+            app_client_shm.shm->process_control_request
+        );
+    }
+    set_task_state(PROCESS_ABORT_PENDING, "request_abort");
+    abort_time = gstate.now;
+    get_descendants(pid, descendants);
     return 0;
 }
 
@@ -192,7 +197,7 @@ static inline void kill_processes(vector<int> pids) {
 
 // Kill the task (and descendants) by OS-specific means.
 //
-int ACTIVE_TASK::kill_task(bool restart) {
+int ACTIVE_TASK::kill_task() {
     vector<int>pids;
 #ifdef _WIN32
     // On Win, in protected mode we won't be able to get
@@ -207,16 +212,10 @@ int ACTIVE_TASK::kill_task(bool restart) {
 #endif
     get_descendants(pid, pids);
     pids.push_back(pid);
-    kill_processes(pids);
-    cleanup_task();
-    if (restart) {
-        set_task_state(PROCESS_UNINITIALIZED, "kill_task");
-        char buf[256];
-        sprintf(buf, "restarting %s", result->name);
-        gstate.request_schedule_cpus(buf);
-    } else {
-        set_task_state(PROCESS_ABORTED, "kill_task");
+    for (unsigned int i=0; i<other_pids.size(); i++) {
+        pids.push_back(other_pids[i]);
     }
+    kill_processes(pids);
     return 0;
 }
 
@@ -259,18 +258,16 @@ static void limbo_message(ACTIVE_TASK& at) {
         msg_printf(at.result->project, MSG_INFO,
             "If this happens repeatedly you may need to reboot your computer."
         );
-    } else {
-#endif
-        msg_printf(at.result->project, MSG_INFO,
-            "Task %s exited with zero status but no 'finished' file",
-            at.result->name
-        );
-        msg_printf(at.result->project, MSG_INFO,
-            "If this happens repeatedly you may need to reset the project."
-        );
-#ifdef _WIN32
+        return;
     }
 #endif
+    msg_printf(at.result->project, MSG_INFO,
+        "Task %s exited with zero status but no 'finished' file",
+        at.result->name
+    );
+    msg_printf(at.result->project, MSG_INFO,
+        "If this happens repeatedly you may need to reset the project."
+    );
 }
 
 // the job just exited.  If it's a GPU job,
@@ -291,24 +288,12 @@ static void clear_schedule_backoffs(ACTIVE_TASK* atp) {
 // handle a task that exited prematurely (i.e. no finish file)
 //
 void ACTIVE_TASK::handle_premature_exit(bool& will_restart) {
-    switch (task_state()) {
-    case PROCESS_QUIT_PENDING:
-        set_task_state(PROCESS_UNINITIALIZED, "handle_premature_exit");
-        will_restart = true;
-        kill_processes(descendants);
-        return;
-    case PROCESS_ABORT_PENDING:
-        set_task_state(PROCESS_UNINITIALIZED, "handle_premature_exit");
-        will_restart = false;
-        kill_processes(descendants);
-        return;
-    }
-
-    // otherwise keep count of exits;
-    // restart it unless this happens 100 times w/o a checkpoint
+    // keep count of premature exits;
+    // if this happens 100 times w/o a checkpoint, abort job
     //
     premature_exit_count++;
     if (premature_exit_count > 100) {
+        will_restart = false;
         set_task_state(PROCESS_ABORTED, "handle_premature_exit");
         result->exit_status = ERR_TOO_MANY_EXITS;
         gstate.report_result_error(*result, "too many exit(0)s");
@@ -320,10 +305,36 @@ void ACTIVE_TASK::handle_premature_exit(bool& will_restart) {
     }
 }
 
+// handle a temporary exit
+//
+void ACTIVE_TASK::handle_temporary_exit(
+    bool& will_restart, double backoff, const char* reason
+) {
+    premature_exit_count++;
+    if (premature_exit_count > 100) {
+        will_restart = false;
+        set_task_state(PROCESS_ABORTED, "handle_temporary_exit");
+        result->exit_status = ERR_TOO_MANY_EXITS;
+        gstate.report_result_error(*result, "too many boinc_temporary_exit()s");
+        result->set_state(RESULT_ABORTED, "handle_temporary_exit");
+    } else {
+        if (log_flags.task_debug) {
+            msg_printf(result->project, MSG_INFO,
+                "[task] task called temporary_exit(%f, %s)", backoff, reason
+            );
+        }
+        will_restart = true;
+        result->schedule_backoff = gstate.now + backoff;
+        strcpy(result->schedule_backoff_reason, reason);
+        set_task_state(PROCESS_UNINITIALIZED, "handle_temporary_exit");
+    }
+}
+
 // deal with a process that has exited, for whatever reason:
 // - completion
 // - crash
-// - preemption via quit
+// - quit or abort message sent by client
+// - killed by client
 //
 #ifdef _WIN32
 void ACTIVE_TASK::handle_exited_app(unsigned long exit_code) {
@@ -343,8 +354,18 @@ void ACTIVE_TASK::handle_exited_app(int stat) {
     get_trickle_up_msg();
     result->final_cpu_time = current_cpu_time;
     result->final_elapsed_time = elapsed_time;
+
+    // if an abort or quit is pending,
+    // the process may have exited itself, or we may have killed it.
+    // Ignore exit status.
+    //
     if (task_state() == PROCESS_ABORT_PENDING) {
         set_task_state(PROCESS_ABORTED, "handle_exited_app");
+        kill_processes(descendants);
+    } else if (task_state() == PROCESS_QUIT_PENDING) {
+        set_task_state(PROCESS_UNINITIALIZED, "handle_exited_app");
+        kill_processes(descendants);
+        will_restart = true;
     } else {
 #ifdef _WIN32
         result->exit_status = exit_code;
@@ -358,16 +379,10 @@ void ACTIVE_TASK::handle_exited_app(int stat) {
                 break;
             }
             double x;
-            if (temporary_exit_file_present(x)) {
-                if (log_flags.task_debug) {
-                    msg_printf(result->project, MSG_INFO,
-                        "[task] task called temporary_exit(%f)", x
-                    );
-                }
-                set_task_state(PROCESS_UNINITIALIZED, "temporary exit");
-                will_restart = true;
-                result->schedule_backoff = gstate.now + x;
-                break;
+            char buf[256];
+            strcpy(buf, "");
+            if (temporary_exit_file_present(x, buf)) {
+                handle_temporary_exit(will_restart, x, buf);
             }
             handle_premature_exit(will_restart);
             break;
@@ -408,23 +423,9 @@ void ACTIVE_TASK::handle_exited_app(int stat) {
         if (WIFEXITED(stat)) {
             result->exit_status = WEXITSTATUS(stat);
 
-            if (result->exit_status) {
-                set_task_state(PROCESS_EXITED, "handle_exited_app");
-                gstate.report_result_error(
-                    *result,
-                    "process exited with code %d (0x%x, %d)",
-                    result->exit_status, result->exit_status,
-                    (-1<<8)|result->exit_status
-                );
-            } else {
-                if (finish_file_present()) {
-                    set_task_state(PROCESS_EXITED, "handle_exited_app");
-                } else {
-                    handle_premature_exit(will_restart);
-                }
-            }
             double x;
-            if (temporary_exit_file_present(x)) {
+            char buf[256];
+            if (temporary_exit_file_present(x, buf)) {
                 if (log_flags.task_debug) {
                     msg_printf(result->project, MSG_INFO,
                         "[task] task called temporary_exit(%f)", x
@@ -433,6 +434,7 @@ void ACTIVE_TASK::handle_exited_app(int stat) {
                 set_task_state(PROCESS_UNINITIALIZED, "temporary exit");
                 will_restart = true;
                 result->schedule_backoff = gstate.now + x;
+                strcpy(result->schedule_backoff_reason, buf);
             } else {
                 if (log_flags.task_debug) {
                     msg_printf(result->project, MSG_INFO,
@@ -440,17 +442,32 @@ void ACTIVE_TASK::handle_exited_app(int stat) {
                         result->exit_status
                     );
                 }
+                if (result->exit_status) {
+                    set_task_state(PROCESS_EXITED, "handle_exited_app");
+                    gstate.report_result_error(
+                        *result,
+                        "process exited with code %d (0x%x, %d)",
+                        result->exit_status, result->exit_status,
+                        (-1<<8)|result->exit_status
+                    );
+                } else {
+                    if (finish_file_present()) {
+                        set_task_state(PROCESS_EXITED, "handle_exited_app");
+                    } else {
+                        handle_premature_exit(will_restart);
+                    }
+                }
             }
         } else if (WIFSIGNALED(stat)) {
             int got_signal = WTERMSIG(stat);
 
             if (log_flags.task_debug) {
                 msg_printf(result->project, MSG_INFO,
-                    "[task] process got signal %d", signal
+                    "[task] process got signal %d", got_signal
                 );
             }
 
-            // if the process was externally killed, allow it to restart.
+            // if the process was externally killed, let it restart.
             //
             switch (got_signal) {
             case SIGHUP:
@@ -461,7 +478,6 @@ void ACTIVE_TASK::handle_exited_app(int stat) {
             case SIGSTOP:
                 will_restart = true;
                 set_task_state(PROCESS_UNINITIALIZED, "handle_exited_app");
-                limbo_message(*this);
                 break;
             default:
                 result->exit_status = stat;
@@ -510,19 +526,23 @@ bool ACTIVE_TASK::finish_file_present() {
     return (boinc_file_exists(path) != 0);
 }
 
-bool ACTIVE_TASK::temporary_exit_file_present(double& x) {
+bool ACTIVE_TASK::temporary_exit_file_present(double& x, char* buf) {
     char path[256];
     sprintf(path, "%s/%s", slot_dir, TEMPORARY_EXIT_FILE);
     FILE* f = fopen(path, "r");
     if (!f) return false;
+    strcpy(buf, "");
     int y;
     int n = fscanf(f, "%d", &y);
-    fclose(f);
     if (n != 1 || y < 0 || y > 86400) {
         x = 300;
     } else {
         x = y;
     }
+    fgets(buf, 256, f);     // read the \n
+    fgets(buf, 256, f);
+    strip_whitespace(buf);
+    fclose(f);
     return true;
 }
 
@@ -599,7 +619,7 @@ void ACTIVE_TASK_SET::process_control_poll() {
                     "Restarting %s - message timeout", atp->result->name
                 );
             }
-            atp->kill_task(true);
+            atp->kill_task();
         } else {
             atp->process_control_queue.msg_queue_poll(
                 atp->app_client_shm.shm->process_control_request
@@ -762,10 +782,7 @@ bool ACTIVE_TASK_SET::check_rsc_limits_exceeded() {
 //
 int ACTIVE_TASK::abort_task(int exit_status, const char* msg) {
     if (task_state() == PROCESS_EXECUTING || task_state() == PROCESS_SUSPENDED) {
-        set_task_state(PROCESS_ABORT_PENDING, "abort_task");
-        abort_time = gstate.now;
         request_abort();
-        get_descendants(pid, descendants);
     } else {
         set_task_state(PROCESS_ABORTED, "abort_task");
     }
@@ -1014,7 +1031,7 @@ void ACTIVE_TASK_SET::unsuspend_all() {
         atp = active_tasks[i];
         if (atp->scheduler_state != CPU_SCHED_SCHEDULED) continue;
         if (atp->task_state() == PROCESS_UNINITIALIZED) {
-            if (atp->start(false)) {
+            if (atp->start()) {
                 msg_printf(atp->wup->project, MSG_INTERNAL_ERROR,
                     "Couldn't restart task %s", atp->result->name
                 );
@@ -1067,7 +1084,7 @@ void ACTIVE_TASK_SET::kill_tasks(PROJECT* proj) {
         atp = active_tasks[i];
         if (proj && atp->wup->project != proj) continue;
         if (!atp->process_exists()) continue;
-        atp->kill_task(false);
+        atp->kill_task();
     }
 }
 
@@ -1076,8 +1093,9 @@ void ACTIVE_TASK_SET::kill_tasks(PROJECT* proj) {
 int ACTIVE_TASK::suspend() {
     if (!app_client_shm.shm) return 0;
     if (task_state() != PROCESS_EXECUTING) {
-        msg_printf(result->project, MSG_INFO,
-            "Internal error: expected process %s to be executing", result->name
+        msg_printf(result->project, MSG_INTERNAL_ERROR,
+            "ACTIVE_TASK::SUSPEND(): expected task %s to be executing",
+            result->name
         );
     }
     int n = process_control_queue.msg_queue_purge("<resume/>");

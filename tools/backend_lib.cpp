@@ -161,8 +161,8 @@ int create_result(
     );
     if (retval) {
         fprintf(stderr,
-            "Failed to read result template file '%s': %d\n",
-            result_template_filename, retval
+            "Failed to read result template file '%s': %s\n",
+            result_template_filename, boincerror(retval)
         );
         return retval;
     }
@@ -171,7 +171,9 @@ int create_result(
         result_template, key, base_outfile_name, config_loc
     );
     if (retval) {
-        fprintf(stderr, "process_result_template() error: %d\n", retval);
+        fprintf(stderr,
+            "process_result_template() error: %s\n", boincerror(retval)
+        );
     }
     if (strlen(result_template) > sizeof(result.xml_doc_in)-1) {
         fprintf(stderr,
@@ -189,7 +191,7 @@ int create_result(
     } else {
         retval = result.insert();
         if (retval) {
-            fprintf(stderr, "result.insert(): %d\n", retval);
+            fprintf(stderr, "result.insert(): %s\n", boincerror(retval));
             return retval;
         }
     }
@@ -244,7 +246,7 @@ int create_work(
         wu, wu_template, infiles, ninfiles, config_loc, command_line, additional_xml
     );
     if (retval) {
-        fprintf(stderr, "process_input_template(): %d\n", retval);
+        fprintf(stderr, "process_input_template(): %s\n", boincerror(retval));
         return retval;
     }
 
@@ -317,13 +319,17 @@ int create_work(
     if (wu.id) {
         retval = wu.update();
         if (retval) {
-            fprintf(stderr, "create_work: workunit.update() %d\n", retval);
+            fprintf(stderr,
+                "create_work: workunit.update() %s\n", boincerror(retval)
+            );
             return retval;
         }
     } else {
         retval = wu.insert();
         if (retval) {
-            fprintf(stderr, "create_work: workunit.insert() %d\n", retval);
+            fprintf(stderr,
+                "create_work: workunit.insert() %s\n", boincerror(retval)
+            );
             return retval;
         }
         wu.id = boinc_db.insert_id();
@@ -334,23 +340,16 @@ int create_work(
 
 // STUFF RELATED TO FILE UPLOAD/DOWNLOAD
 
-int get_file(
-    int host_id, const char* file_name, vector<const char*> urls,
+int get_file_xml(
+    const char* file_name, vector<const char*> urls,
     double max_nbytes,
     double report_deadline,
     bool generate_upload_certificate,
-    R_RSA_PRIVATE_KEY& key
-) {;
+    R_RSA_PRIVATE_KEY& key,
+    char* out
+) {
     char buf[8192];
-    DB_MSG_TO_HOST mth;
-    int retval;
-
-    mth.clear();
-    mth.create_time = time(0);
-    mth.hostid = host_id;
-    strcpy(mth.variety, "file_xfer");
-    mth.handled = false;
-    sprintf(mth.xml,
+    sprintf(out,
         "<app>\n"
         "    <name>file_xfer</name>\n"
         "</app>\n"
@@ -366,7 +365,7 @@ int get_file(
     );
     for (unsigned int i=0; i<urls.size(); i++) {
         sprintf(buf, "    <url>%s</url>\n", urls[i]);
-        strcat(mth.xml, buf);
+        strcat(out, buf);
     }
     sprintf(buf,
         "</file_info>\n"
@@ -388,11 +387,33 @@ int get_file(
         file_name,
         report_deadline
     );
-    strcat(mth.xml, buf);
+    strcat(out, buf);
     if (generate_upload_certificate) {
-        add_signatures(mth.xml, key);
+        add_signatures(out, key);
     }
+    return 0;
+}
 
+int create_get_file_msg(
+    int host_id, const char* file_name, vector<const char*> urls,
+    double max_nbytes,
+    double report_deadline,
+    bool generate_upload_certificate,
+    R_RSA_PRIVATE_KEY& key
+) {
+    DB_MSG_TO_HOST mth;
+    int retval;
+
+    mth.clear();
+    mth.create_time = time(0);
+    mth.hostid = host_id;
+    strcpy(mth.variety, "file_xfer");
+    mth.handled = false;
+    get_file_xml(
+        file_name, urls, max_nbytes, report_deadline,
+        generate_upload_certificate, key,
+        mth.xml
+    );
     retval = mth.insert();
     if (retval) {
         fprintf(stderr, "msg_to_host.insert(): %s\n", boincerror(retval));
@@ -401,20 +422,14 @@ int get_file(
     return 0;
 }
 
-int put_file(
-    int host_id, const char* file_name,
+int put_file_xml(
+    const char* file_name,
     vector<const char*> urls, const char* md5, double nbytes,
-    double report_deadline
+    double report_deadline,
+    char* out
 ) {
     char buf[8192];
-    DB_MSG_TO_HOST mth;
-    int retval;
-    mth.clear();
-    mth.create_time = time(0);
-    mth.hostid = host_id;
-    strcpy(mth.variety, "file_xfer");
-    mth.handled = false;
-    sprintf(mth.xml,
+    sprintf(out,
         "<app>\n"
         "    <name>file_xfer</name>\n"
         "</app>\n"
@@ -428,7 +443,7 @@ int put_file(
     );
     for (unsigned int i=0; i<urls.size(); i++) {
         sprintf(buf, "    <url>%s</url>\n", urls[i]);
-        strcat(mth.xml, buf);
+        strcat(out, buf);
     }
     sprintf(buf,
         "    <md5_cksum>%s</md5_cksum>\n"
@@ -455,7 +470,45 @@ int put_file(
         file_name,
         report_deadline
     );
-    strcat(mth.xml, buf);
+    strcat(out, buf);
+    return 0;
+}
+
+int create_put_file_msg(
+    int host_id, const char* file_name,
+    vector<const char*> urls, const char* md5, double nbytes,
+    double report_deadline
+) {
+    DB_MSG_TO_HOST mth;
+    int retval;
+    mth.clear();
+    mth.create_time = time(0);
+    mth.hostid = host_id;
+    strcpy(mth.variety, "file_xfer");
+    mth.handled = false;
+    put_file_xml(file_name, urls, md5, nbytes, report_deadline, mth.xml);
+    retval = mth.insert();
+    if (retval) {
+        fprintf(stderr, "msg_to_host.insert(): %s\n", boincerror(retval));
+        return retval;
+    }
+    return 0;
+}
+
+int delete_file_xml(const char* file_name, char* out) {
+    sprintf(out, "<delete_file_info>%s</delete_file_info>\n", file_name);
+    return 0;
+}
+
+int create_delete_file_msg(int host_id, const char* file_name) {
+    DB_MSG_TO_HOST mth;
+    int retval;
+    mth.clear();
+    mth.create_time = time(0);
+    mth.hostid = host_id;
+    mth.handled = false;
+    delete_file_xml(file_name, mth.xml);
+    sprintf(mth.variety, "delete_file");
     retval = mth.insert();
     if (retval) {
         fprintf(stderr, "msg_to_host.insert(): %s\n", boincerror(retval));

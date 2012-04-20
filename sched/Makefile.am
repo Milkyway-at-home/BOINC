@@ -19,7 +19,8 @@ libsched_sources = \
     ../db/db_base.cpp \
     ../tools/process_result_template.cpp \
     ../tools/process_input_template.cpp \
-    ../tools/backend_lib.cpp
+    ../tools/backend_lib.cpp \
+	../vda/sched_vda.cpp
 
 lib_LTLIBRARIES = libsched.la
 libsched_la_SOURCES = $(libsched_sources)
@@ -106,6 +107,7 @@ sched_PROGRAMS = \
     db_purge \
     feeder \
     file_deleter \
+    antique_file_deleter \
     message_handler \
     sample_assimilator \
     sample_dummy_assimilator \
@@ -128,6 +130,7 @@ bin_SCRIPTS = start stop status
 noinst_HEADERS = \
     assimilate_handler.h \
     handle_request.h \
+    plan_class_spec.h \
     sched_main.h \
     sched_locality.h \
     sched_score.h \
@@ -145,6 +148,7 @@ cgi_sources = \
     handle_request.cpp \
     hr.cpp \
     hr_info.cpp \
+    plan_class_spec.cpp \
     sched_main.cpp \
     sched_array.cpp \
     sched_assign.cpp \
@@ -189,6 +193,9 @@ show_shmem_LDADD = $(SERVERLIBS)
 
 file_deleter_SOURCES = file_deleter.cpp
 file_deleter_LDADD = $(SERVERLIBS)
+
+antique_file_deleter_SOURCES = antique_file_deleter.cpp
+antique_file_deleter_LDADD = $(SERVERLIBS)
 
 VALIDATOR_SOURCES = \
 	credit.cpp \

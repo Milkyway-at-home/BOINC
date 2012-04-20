@@ -139,6 +139,18 @@ double app_peak_flops(APP_VERSION* avp, double cpu_scale) {
     return x;
 }
 
+double gpu_peak_flops() {
+    double x = 0;
+    for (int i=1; i<coprocs.n_rsc; i++) {
+        x += coprocs.coprocs[i].count * rsc_work_fetch[i].relative_speed * gstate.host_info.p_fpops;
+    }
+    return x;
+}
+
+double cpu_peak_flops() {
+    return gstate.ncpus * gstate.host_info.p_fpops;
+}
+
 void print_project_results(FILE* f) {
     for (unsigned int i=0; i<gstate.projects.size(); i++) {
         PROJECT* p = gstate.projects[i];
@@ -490,7 +502,7 @@ bool CLIENT_STATE::scheduler_rpc_poll() {
         }
 #endif
     
-        p = find_project_with_overdue_results();
+        p = find_project_with_overdue_results(false);
         if (p) {
             //printf("doing RPC to %s to report results\n", p->project_name);
             work_fetch.compute_work_request(p);
@@ -510,7 +522,7 @@ bool CLIENT_STATE::scheduler_rpc_poll() {
         must_check_work_fetch = false;
         last_work_fetch_time = now;
 
-        p = work_fetch.choose_project();
+        p = work_fetch.choose_project(true);
 
         if (p) {
             action = simulate_rpc(p);
@@ -963,7 +975,7 @@ void html_end() {
 void set_initial_rec() {
     unsigned int i;
     double sum=0;
-    double x = total_peak_flops();
+    double x = cpu_peak_flops() + gpu_peak_flops();
     for (i=0; i<gstate.projects.size(); i++) {
         sum += gstate.projects[i]->resource_share;
     }

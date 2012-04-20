@@ -92,11 +92,14 @@ struct VBOX_VM {
 #endif
 
     int initialize();
-    int run();
+    int run(double elapsed_time);
     int start();
     int stop();
+    int poweroff();
     int pause();
     int resume();
+    int createsnapshot(double elapsed_time, double checkpoint_cpu_time);
+    int restoresnapshot();
     void cleanup();
     void poll(bool log_state = true);
 
@@ -126,6 +129,7 @@ struct VBOX_VM {
     int read_floppy(std::string& data);
     int write_floppy(std::string& data);
 
+    void lower_vm_process_priority();
     void reset_vm_process_priority();
 
     int vbm_popen(

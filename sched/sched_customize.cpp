@@ -65,6 +65,7 @@ using std::string;
 #include "sched_shmem.h"
 #include "sched_version.h"
 #include "sched_customize.h"
+#include "plan_class_spec.h"
 
 bool wu_is_infeasible_custom(WORKUNIT& wu, APP& app, BEST_APP_VERSION& bav) {
 #if 0
@@ -99,24 +100,6 @@ bool wu_is_infeasible_custom(WORKUNIT& wu, APP& app, BEST_APP_VERSION& bav) {
     }
 #endif
     return false;
-}
-
-// Suppose we have a computation that uses two devices alternately.
-// The devices have speeds s1 and s2.
-// The fraction of work done on device 1 is frac.
-//
-// This function returns:
-// 1) the overall speed
-// 2) the utilization of device 1, which is always in (0, 1).
-//
-static inline void coproc_perf(
-    double s1, double s2, double frac,
-    double& speed, double& u1
-) {
-    double y = (frac*s2 + (1-frac)*s1);
-    speed = s1*s2/y;
-        // do the math
-    u1 = frac*s2/y;
 }
 
 // the following is for an app that can use anywhere from 1 to 64 threads
@@ -165,7 +148,9 @@ static bool ati_check(const COPROC_ATI& c, HOST_USAGE& hu,
     double cpu_frac,    // fraction of FLOPS performed by CPU
     double flops_scale
 ) {
-    ati_requirements.update(min_driver_version, min_ram);
+    if (c.version_num) {
+        ati_requirements.update(min_driver_version, min_ram);
+    }
 
     if (c.attribs.doublePrecision == CAL_FALSE) {
       if (config.debug_version_select) {
@@ -345,7 +330,9 @@ static bool cuda_check(const COPROC_NVIDIA& c, HOST_USAGE& hu,
     double flops_scale
 ) {
 
-    cuda_requirements.update(min_driver_version, min_ram);
+    if (c.display_driver_version) {
+        cuda_requirements.update(min_driver_version, min_ram);
+    }
 
     // Old BOINC clients report display driver version;
     // newer ones report CUDA RT version.
@@ -553,7 +540,7 @@ static bool opencl_check(
         hu.avg_ncpus
     );
     hu.peak_flops = ndevs*cp.peak_flops + hu.avg_ncpus*capped_host_fpops();
-    hu.max_ncpus = hu.avg_ncpus;
+    hu.max_ncpus = hu.avg_ncpus = cpu_frac;
     return true;
 }
 
@@ -640,7 +627,7 @@ static inline bool app_plan_opencl(
                                         101,
                                         256 * MEGA,
                                         1,
-                                        0.1,
+                                        0.05,
                                         0.2);
 
             const char* nbody = strstr(plan_class, "nbody");
@@ -689,7 +676,7 @@ static inline bool app_plan_opencl(
                                         101,
                                         256 * MEGA,
                                         1,
-                                        0.1,
+                                        0.05,
                                         0.2);
 
             const char* nbody = strstr(plan_class, "nbody");
@@ -719,14 +706,25 @@ static inline bool app_plan_vbox(
 ) {
     bool can_use_multicore = true;
 
+    // host must run 7.0+ client
+    //
+    if (sreq.core_client_major_version < 7) {
+        add_no_work_message("BOINC client 7.0+ required for Virtualbox jobs");
+        return false;
+    }
+
     // host must have VirtualBox 3.2 or later
     //
-    if (strlen(sreq.host.virtualbox_version) == 0) return false;
+    if (strlen(sreq.host.virtualbox_version) == 0) {
+        add_no_work_message("VirtualBox is not installed");
+        return false;
+    }
     int n, maj, min, rel;
     n = sscanf(sreq.host.virtualbox_version, "%d.%d.%d", &maj, &min, &rel);
-    if (n != 3) return false;
-    if (maj < 3) return false;
-    if (maj == 3 and min < 2) return false;
+    if ((n != 3) || (maj < 3) || (maj == 3 and min < 2)) {
+        add_no_work_message("VirtualBox version 3.2 or later is required");
+        return false;
+    }
 
     // host must have VM acceleration in order to run multi-core jobs
     //
@@ -778,10 +776,55 @@ static inline bool app_plan_vbox(
     return true;
 }
 
+PLAN_CLASS_SPECS plan_class_specs;
+
 // app planning function.
 // See http://boinc.berkeley.edu/trac/wiki/AppPlan
 //
-bool app_plan(SCHEDULER_REQUEST& sreq, const char* plan_class, HOST_USAGE& hu) {
+bool app_plan(SCHEDULER_REQUEST& sreq, char* plan_class, HOST_USAGE& hu) {
+    char buf[256];
+    static bool check_plan_class_spec = true;
+    static bool have_plan_class_spec = false;
+    static bool bad_plan_class_spec = false;
+
+    if (config.debug_version_select) {
+        log_messages.printf(MSG_NORMAL,
+            "[version] Checking plan class '%s'\n", plan_class
+        );
+    }
+
+    if (check_plan_class_spec) {
+        check_plan_class_spec = false;
+        strcpy(buf, config.project_dir);
+        strcat(buf, "/plan_class_spec.xml");
+        int retval = plan_class_specs.parse_file(buf);
+        if (retval == ERR_FOPEN) {
+            if (config.debug_version_select) {
+                log_messages.printf(MSG_NORMAL,
+                    "[version] Couldn't open plan class spec file '%s'\n", buf
+                );
+            }
+        } else if (retval) {
+            log_messages.printf(MSG_CRITICAL,
+                "Error parsing plan class spec file '%s'\n", buf
+            );
+            bad_plan_class_spec = true;
+        } else {
+            if (config.debug_version_select) {
+                log_messages.printf(MSG_NORMAL,
+                    "[version] reading plan classes from file '%s'\n", buf
+                );
+            }
+            have_plan_class_spec = true;
+        }
+    }
+    if (bad_plan_class_spec) {
+        return false;
+    }
+    if (have_plan_class_spec) {
+        return plan_class_specs.check(sreq, plan_class, hu);
+    }
+
     if (!strcmp(plan_class, "mt")) {
         return app_plan_mt(sreq, hu);
     } else if (strstr(plan_class, "opencl")) {

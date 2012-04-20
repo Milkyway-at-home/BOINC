@@ -142,7 +142,7 @@ struct FILE_INFO {
     FILE_INFO();
     ~FILE_INFO();
     void reset();
-    int set_permissions();
+    int set_permissions(const char* path=0);
     int parse(XML_PARSER&);
     int write(MIOFILE&, bool to_server);
     int write_gui(MIOFILE&);
@@ -354,6 +354,8 @@ struct PROJECT : PROJ_AM {
         // have trickle up to send
     double last_rpc_time;
         // when last RPC finished
+        // not maintained across client sessions
+        // used by Manager (simple view)
 
     // Other stuff
 
@@ -381,6 +383,7 @@ struct PROJECT : PROJ_AM {
     int send_job_log;
         // if nonzero, send this project's job log from that point on
     bool send_full_workload;
+    bool dont_use_dcf;
 
     bool suspended_via_gui;
     bool dont_request_more_work; 
@@ -720,6 +723,9 @@ struct RESULT {
     bool report_immediately;
     bool not_started;   // temp for CPU sched
 
+    std::string name_md5;   // see sort_results();
+    int index;              // index in results vector
+
     APP* app;
     WORKUNIT* wup;
     PROJECT* project;
@@ -815,6 +821,7 @@ struct RESULT {
     double schedule_backoff;
         // don't try to schedule until this time
         // (wait for free GPU RAM)
+    char schedule_backoff_reason[256];
 };
 
 // represents an always/auto/never value, possibly temporarily overridden

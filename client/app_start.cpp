@@ -371,10 +371,7 @@ int ACTIVE_TASK::setup_file(
 
     sprintf(rel_file_path, "../../%s", file_path );
 
-    // if anonymous platform, this is called even if not first time,
-    // so link may already be there
-    //
-    if (input && project->anonymous_platform && boinc_file_exists(link_path)) {
+    if (boinc_file_exists(link_path)) {
         return 0;
     }
 
@@ -385,9 +382,9 @@ int ACTIVE_TASK::setup_file(
             if (boinc_file_exists(link_path)) {
                 return 0;
             }
-            if (fip->nbytes > 0) {
+            if (fip->nbytes > ASYNC_FILE_THRESHOLD) {
                 ASYNC_COPY* ac = new ASYNC_COPY;
-                retval = ac->init(this, file_path, link_path);
+                retval = ac->init(this, fip, file_path, link_path);
                 if (retval) return retval;
                 return ERR_IN_PROGRESS;
             } else {
@@ -399,10 +396,9 @@ int ACTIVE_TASK::setup_file(
                     );
                     return retval;
                 }
+                retval = fip->set_permissions(link_path);
+                if (retval) return retval;
             }
-#ifdef SANDBOX
-            return set_to_project_group(link_path);
-#endif
         }
         return 0;
     }
@@ -483,7 +479,7 @@ int ACTIVE_TASK::copy_output_files() {
 // else
 //   ACTIVE_TASK::task_state is PROCESS_EXECUTING
 //
-int ACTIVE_TASK::start(bool first_time) {
+int ACTIVE_TASK::start() {
     char exec_name[256], file_path[256], buf[256], exec_path[256];
     char cmdline[80000];    // 64KB plus some extra
     unsigned int i;
@@ -495,7 +491,7 @@ int ACTIVE_TASK::start(bool first_time) {
     if (async_copy) {
         if (log_flags.task_debug) {
             msg_printf(wup->project, MSG_INFO,
-                "ACTIVE_TASK::start(): async file copy already in progress"
+                "[task_debug] ACTIVE_TASK::start(): async file copy already in progress"
             );
         }
         return 0;
@@ -572,18 +568,13 @@ int ACTIVE_TASK::start(bool first_time) {
             safe_strcpy(exec_name, fip->name);
             safe_strcpy(exec_path, file_path);
         }
-        // anonymous platform may use different files than
-        // when the result was started, so link files even if not first time
-        //
-        if (first_time || wup->project->anonymous_platform) {
-            retval = setup_file(fip, fref, file_path, true, false);
-            if (retval == ERR_IN_PROGRESS) {
-                set_task_state(PROCESS_COPY_PENDING, "start");
-                return 0;
-            } else if (retval) {
-                strcpy(buf, "Can't link app version file");
-                goto error;
-            }
+        retval = setup_file(fip, fref, file_path, true, false);
+        if (retval == ERR_IN_PROGRESS) {
+            set_task_state(PROCESS_COPY_PENDING, "start");
+            return 0;
+        } else if (retval) {
+            strcpy(buf, "Can't link app version file");
+            goto error;
         }
     }
     if (!strlen(exec_name)) {
@@ -594,37 +585,35 @@ int ACTIVE_TASK::start(bool first_time) {
 
     // set up input, output files
     //
-    if (first_time) {
-        for (i=0; i<wup->input_files.size(); i++) {
-            fref = wup->input_files[i];
-            fip = fref.file_info;
-            get_pathname(fref.file_info, file_path, sizeof(file_path));
-            retval = setup_file(fip, fref, file_path, true, true);
-            if (retval == ERR_IN_PROGRESS) {
-                set_task_state(PROCESS_COPY_PENDING, "start");
-                return 0;
-            } else if (retval) {
-                strcpy(buf, "Can't link input file");
-                goto error;
-            }
+    for (i=0; i<wup->input_files.size(); i++) {
+        fref = wup->input_files[i];
+        fip = fref.file_info;
+        get_pathname(fref.file_info, file_path, sizeof(file_path));
+        retval = setup_file(fip, fref, file_path, true, true);
+        if (retval == ERR_IN_PROGRESS) {
+            set_task_state(PROCESS_COPY_PENDING, "start");
+            return 0;
+        } else if (retval) {
+            strcpy(buf, "Can't link input file");
+            goto error;
         }
-        for (i=0; i<result->output_files.size(); i++) {
-            fref = result->output_files[i];
-            if (must_copy_file(fref, true)) continue;
-            fip = fref.file_info;
-            get_pathname(fref.file_info, file_path, sizeof(file_path));
-            retval = setup_file(fip, fref, file_path, false, true);
-            if (retval) {
-                strcpy(buf, "Can't link output file");
-                goto error;
-            }
+    }
+    for (i=0; i<result->output_files.size(); i++) {
+        fref = result->output_files[i];
+        if (must_copy_file(fref, true)) continue;
+        fip = fref.file_info;
+        get_pathname(fref.file_info, file_path, sizeof(file_path));
+        retval = setup_file(fip, fref, file_path, false, true);
+        if (retval) {
+            strcpy(buf, "Can't link output file");
+            goto error;
         }
     }
 
     link_user_files();
         // don't check retval here
 
-    // make sure temporary exit file isn't there
+    // remove temporary exit file from last run
     //
     sprintf(file_path, "%s/%s", slot_dir, TEMPORARY_EXIT_FILE);
     delete_project_owned_file(file_path, true);
@@ -1082,13 +1071,8 @@ int ACTIVE_TASK::resume_or_start(bool first_time) {
 
     switch (task_state()) {
     case PROCESS_UNINITIALIZED:
-        if (first_time) {
-            retval = start(true);
-            str = "Starting";
-        } else {
-            retval = start(false);
-            str = "Restarting";
-        }
+        str = (first_time)?"Starting":"Restarting";
+        retval = start();
         if ((retval == ERR_SHMGET) || (retval == ERR_SHMAT)) {
             return retval;
         }

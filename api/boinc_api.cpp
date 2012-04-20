@@ -512,7 +512,7 @@ int boinc_init_options_general(BOINC_OPTIONS& opt) {
             // If we exit(0), the client will keep restarting us.
             // Instead, tell the client not to restart us for 10 min.
             //
-            boinc_temporary_exit(600);
+            boinc_temporary_exit(600, "Waiting to acquire lock");
         }
     }
 
@@ -551,7 +551,6 @@ int boinc_init_options_general(BOINC_OPTIONS& opt) {
 int boinc_get_status(BOINC_STATUS *s) {
     s->no_heartbeat = boinc_status.no_heartbeat;
     s->suspended = boinc_status.suspended;
-    s->suspend_request = boinc_status.suspend_request;
     s->quit_request = boinc_status.quit_request;
     s->reread_init_data_file = boinc_status.reread_init_data_file;
     s->abort_request = boinc_status.abort_request;
@@ -607,12 +606,15 @@ int boinc_finish(int status) {
     return 0;   // never reached
 }
 
-int boinc_temporary_exit(int delay) {
+int boinc_temporary_exit(int delay, const char* reason) {
     FILE* f = fopen(TEMPORARY_EXIT_FILE, "w");
     if (!f) {
         return ERR_FOPEN;
     }
     fprintf(f, "%d\n", delay);
+    if (reason) {
+        fprintf(f, "%s\n", reason);
+    }
     fclose(f);
     boinc_exit(0);
     return 0;
@@ -809,39 +811,34 @@ int boinc_wu_cpu_time(double& cpu_t) {
     return 0;
 }
 
-// make static eventually
 int suspend_activities() {
-    BOINCINFO("Received Suspend Message");
 #ifdef _WIN32
     static DWORD pid;
     if (!pid) pid = GetCurrentProcessId();
-    if (options.direct_process_action) {
-        if (options.multi_thread) {
-            suspend_or_resume_threads(pid, timer_thread_id, false);
-        } else {
-            SuspendThread(worker_thread_handle);
-        }
+    if (options.multi_thread) {
+        suspend_or_resume_threads(pid, timer_thread_id, false);
+    } else {
+        SuspendThread(worker_thread_handle);
     }
 #else
-    if (options.multi_process && options.direct_process_action) {
+    // don't need to do anything in single-process case;
+    // suspension is done by signal handler in worker thread
+    //
+    if (options.multi_process) {
         suspend_or_resume_descendants(0, false);
     }
 #endif
     return 0;
 }
 
-// make static eventually
 int resume_activities() {
-    BOINCINFO("Received Resume Message");
 #ifdef _WIN32
     static DWORD pid;
     if (!pid) pid = GetCurrentProcessId();
-    if (options.direct_process_action) {
-        if (options.multi_thread) {
-            suspend_or_resume_threads(pid, timer_thread_id, true);
-        } else {
-            ResumeThread(worker_thread_handle);
-        }
+    if (options.multi_thread) {
+        suspend_or_resume_threads(pid, timer_thread_id, true);
+    } else {
+        ResumeThread(worker_thread_handle);
     }
 #else
     if (options.multi_process) {
@@ -849,16 +846,6 @@ int resume_activities() {
     }
 #endif
     return 0;
-}
-
-int restore_activities() {
-    int retval;
-    if (boinc_status.suspended) {
-        retval = suspend_activities();
-    } else {
-        retval = resume_activities();
-    }
-    return retval;
 }
 
 static void handle_upload_file_status() {
@@ -910,6 +897,12 @@ static void handle_trickle_down_msg() {
     }
 }
 
+// This flag is set of we get a suspend request while in a critical section,
+// and options.direct_process_action is set.
+// As soon as we're not in the critical section we'll do the suspend.
+//
+static bool suspend_request = false;
+
 // runs in timer thread
 //
 static void handle_process_control_msg() {
@@ -922,26 +915,26 @@ static void handle_process_control_msg() {
         );
 #endif
         if (match_tag(buf, "<suspend/>")) {
-            if (in_critical_section) {
-                boinc_status.suspend_request = true;
+            BOINCINFO("Received suspend message");
+            if (options.direct_process_action) {
+                if (in_critical_section) {
+                    suspend_request = true;
+                } else {
+                    boinc_status.suspended = true;
+                    suspend_request = false;
+                    suspend_activities();
+                }
             } else {
                 boinc_status.suspended = true;
-                suspend_activities();
             }
-        }
-
-        if (!in_critical_section && boinc_status.suspend_request) {
-            boinc_status.suspended = true;
-            boinc_status.suspend_request = false;
-            suspend_activities();
         }
 
         if (match_tag(buf, "<resume/>")) {
-            if (boinc_status.suspended) {
-                boinc_status.suspended = false;
+            BOINCINFO("Received resume message");
+            if (boinc_status.suspended && options.direct_process_action) {
                 resume_activities();
             }
-            boinc_status.suspend_request = false;
+            boinc_status.suspended = false;
         }
 
         if (boinc_status.quit_request || match_tag(buf, "<quit/>")) {
@@ -971,6 +964,23 @@ static void handle_process_control_msg() {
         if (match_tag(buf, "<network_available/>")) {
             have_network = 1;
         }
+    }
+
+    // if we got a suspend/quit/abort msg while in critical section,
+    // and we've left the critical section, suspend/quit/abort now
+    //
+    if (options.direct_process_action && !in_critical_section) {
+        if (boinc_status.quit_request) {
+            exit_from_timer_thread(0);
+        }
+        if (boinc_status.abort_request) {
+            exit_from_timer_thread(EXIT_ABORTED_BY_CLIENT);
+        }
+        if (suspend_request && !boinc_status.suspended) {
+            boinc_status.suspended = true;
+            suspend_activities();
+        }
+        suspend_request = false;
     }
 }
 

@@ -110,6 +110,7 @@ struct RSC_DESC {
     bool no_rsc_ams;
     bool no_rsc_apps;
     bool no_rsc_pref;
+    bool no_rsc_config;
 
     void clear();
 };
@@ -253,6 +254,7 @@ struct RESULT {
     bool project_suspended_via_gui;
     bool coproc_missing;
     bool scheduler_wait;
+    char scheduler_wait_reason[256];
     bool network_wait;
 
     // the following defined if active
@@ -338,19 +340,22 @@ struct MESSAGE {
     void clear();
 };
 
+// should match up with PROXY_INFO in proxy_info.h
+//
 struct GR_PROXY_INFO {
     bool use_http_proxy;
-    bool use_socks_proxy;
     bool use_http_authentication;
-    int socks_version;
-    std::string socks_server_name;
     std::string http_server_name;
-    int socks_server_port;
     int http_server_port;
     std::string http_user_name;
     std::string http_user_passwd;
+
+    bool use_socks_proxy;
+    std::string socks_server_name;
+    int socks_server_port;
     std::string socks5_user_name;
     std::string socks5_user_passwd;
+
 	std::string noproxy_hosts;
 
     GR_PROXY_INFO();
