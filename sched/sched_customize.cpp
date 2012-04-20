@@ -624,7 +624,7 @@ static inline bool app_plan_opencl(
                               1, 0.05, 1);
         } else {
             bool base_cl = opencl_check(cpnv, hu,
-                                        101,
+                                        100,
                                         256 * MEGA,
                                         1,
                                         0.05,
@@ -673,7 +673,7 @@ static inline bool app_plan_opencl(
                              0.23);
         } else {
             bool base_cl = opencl_check(cpati, hu,
-                                        101,
+                                        100,
                                         256 * MEGA,
                                         1,
                                         0.05,
