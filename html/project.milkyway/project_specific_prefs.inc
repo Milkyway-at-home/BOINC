@@ -26,7 +26,7 @@ define ('GPU_DISABLE_CHECKPOINTING_PREF', false);
 // nbody screensaver preferences
 define ('NBODY_GRAPHICS_POLL_PERIOD_PREF', true);
 define ('NBODY_GRAPHICS_FPS_PREF', false);
-define ('NBODY_GRAPHICS_BLOCK_SIMULATION_PREF', true);
+define ('NBODY_GRAPHICS_BLOCK_SIMULATION_PREF',true);
 define ('NBODY_GRAPHICS_FLOAT_PREF', true);
 define ('NBODY_GRAPHICS_FLOAT_SPEED_PREF', true);
 define ('NBODY_GRAPHICS_TEXTURED_POINT_SIZE_PREF', true);
@@ -36,7 +36,7 @@ define ('NBODY_GRAPHICS_MONOCHROMATIC_PREF', true);
 define ('NBODY_GRAPHICS_ORIGIN_CENTERED_PREF', true);
 define ('NBODY_GRAPHICS_SHOW_INFO_PREF', true);
 define ('NBODY_GRAPHICS_SHOW_AXES_PREF', true);
-define ('NBODY_GRAPHICS_SHOW_ORBIT_TRACE_PREF', false);
+define ('NBODY_GRAPHICS_SHOW_ORBIT_TRACE_PREF', true);
 
 
 
@@ -89,7 +89,7 @@ define('NBODY_GRAPHICS_POLL_PERIOD_DESC', tra('Period (in milliseconds) to check
 define('NBODY_GRAPHICS_FPS_DESC', tra('Reserved (use poll period)'));
 define('NBODY_GRAPHICS_BLOCK_SIMULATION_DESC', tra('Simulation should wait for graphics to display every timestep as a frame'));
 
-define('NBODY_GRAPHICS_FLOAT_DESC', tra('view randomly floats around by default'));
+define('NBODY_GRAPHICS_FLOAT_DESC', tra('View randomly floats around by default'));
 define('NBODY_GRAPHICS_FLOAT_SPEED_DESC', tra('Change how fast the view randomly moves around'));
 define('NBODY_GRAPHICS_TEXTURED_POINT_SIZE_DESC', tra('Make particles bigger or smaller'));
 define('NBODY_GRAPHICS_POINT_POINT_SIZE_DESC', tra('Make particles bigger or smaller when using uglier particles'));
@@ -256,7 +256,6 @@ function project_specific_prefs_edit($prefs, $error=false) {
         row2(GPU_TARGET_FREQUENCY_DESC, $y, isset($error->gpu_target_frequency));
     }
 
-
     if (NBODY_GRAPHICS_POLL_PERIOD_PREF) {
         $y = "<input size=5 name=nbody_graphics_poll_period value='$prefs->nbody_graphics_poll_period'>";
         row2(NBODY_GRAPHICS_POLL_PERIOD_DESC, $y, isset($error->nbody_graphics_poll_period));
@@ -268,17 +267,17 @@ function project_specific_prefs_edit($prefs, $error=false) {
     }
 
     if (NBODY_GRAPHICS_BLOCK_SIMULATION_PREF) {
-        $y = "<input size=5 name=nbody_graphics_block_simulation_pref value='$prefs->nbody_graphics_block_simulation'>";
+        $y = "<input type=checkbox name=nbody_graphics_block_simulation value='$prefs->nbody_graphics_block_simulation'>";
         row2(NBODY_GRAPHICS_BLOCK_SIMULATION_DESC, $y, isset($error->nbody_graphics_block_simulation));
     }
 
     if (NBODY_GRAPHICS_FLOAT_PREF) {
-        $y = "<input size=5 name=nbody_graphics_block_float_pref value='$prefs->nbody_graphics_float'>";
+        $y = "<input type=checkbox name=nbody_graphics_block_float value='$prefs->nbody_graphics_float'>";
         row2(NBODY_GRAPHICS_FLOAT_DESC, $y, isset($error->nbody_graphics_float));
     }
 
     if (NBODY_GRAPHICS_FLOAT_SPEED_PREF) {
-        $y = "<input size=5 name=nbody_graphics_float_speed value='$prefs->nbody_graphics_float_speed_size'>";
+        $y = "<input size=5 name=nbody_graphics_float_speed value='$prefs->nbody_graphics_float_speed'>";
         row2(NBODY_GRAPHICS_FLOAT_SPEED_DESC, $y, isset($error->nbody_graphics_float_speed));
     }
 
@@ -293,32 +292,32 @@ function project_specific_prefs_edit($prefs, $error=false) {
     }
 
     if (NBODY_GRAPHICS_UNTEXTURED_POINTS_PREF) {
-        $y = "<input size=5 name=nbody_graphics_untextured_points value='$prefs->nbody_graphics_untextured_points'>";
+        $y = "<input type=checkbox name=nbody_graphics_untextured_points value='$prefs->nbody_graphics_untextured_points'>";
         row2(NBODY_GRAPHICS_UNTEXTURED_POINTS_DESC, $y, isset($error->nbody_graphics_untextured_points));
     }
 
     if (NBODY_GRAPHICS_MONOCHROMATIC_PREF) {
-        $y = "<input size=5 name=nbody_graphics_monochromatic value='$prefs->nbody_graphics_monochromatic'>";
+        $y = "<input type=checkbox name=nbody_graphics_monochromatic value='$prefs->nbody_graphics_monochromatic'>";
         row2(NBODY_GRAPHICS_MONOCHROMATIC_DESC, $y, isset($error->nbody_graphics_monochromatic));
     }
 
     if (NBODY_GRAPHICS_ORIGIN_CENTERED_PREF) {
-        $y = "<input size=5 name=nbody_graphics_origin_centered='$prefs->nbody_graphics_origin_centered'>";
+        $y = "<input type=checkbox name=nbody_graphics_origin_centered='$prefs->nbody_graphics_origin_centered'>";
         row2(NBODY_GRAPHICS_ORIGIN_CENTERED_DESC, $y, isset($error->nbody_graphics_origin_centered));
     }
 
     if (NBODY_GRAPHICS_SHOW_INFO_PREF) {
-        $y = "<input size=5 name=nbody_show_info_pref value='$prefs->nbody_graphics_show_info'>";
+        $y = "<input type=checkbox name=nbody_show_info_pref value='$prefs->nbody_graphics_show_info'>";
         row2(NBODY_GRAPHICS_SHOW_INFO_DESC, $y, isset($error->nbody_graphics_show_info));
     }
 
     if (NBODY_GRAPHICS_SHOW_AXES_PREF) {
-        $y = "<input size=5 name=nbody_graphics_show_axes value='$prefs->nbody_graphics_show_axes'>";
+        $y = "<input type=checkbox name=nbody_graphics_show_axes value='$prefs->nbody_graphics_show_axes'>";
         row2(NBODY_GRAPHICS_SHOW_AXES_DESC, $y, isset($error->nbody_graphics_show_axes));
     }
 
     if (NBODY_GRAPHICS_SHOW_ORBIT_TRACE_PREF) {
-        $y = "<input size=5 name=nbody_graphics_show_orbit_trace value='$prefs->nbody_graphics_show_orbit_trace'>";
+        $y = "<input type=checkbox name=nbody_graphics_show_orbit_trace value='$prefs->nbody_graphics_show_orbit_trace'>";
         row2(NBODY_GRAPHICS_SHOW_ORBIT_TRACE_DESC, $y, isset($error->nbody_graphics_show_orbit_trace));
     }
 }
