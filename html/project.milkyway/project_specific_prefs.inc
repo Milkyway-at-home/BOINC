@@ -302,7 +302,7 @@ function project_specific_prefs_edit($prefs, $error=false) {
         row2(NBODY_GRAPHICS_MONOCHROMATIC_DESC, $y, isset($error->nbody_graphics_monochromatic));
     }
 
-    if (NBODY_GRAPHICS_ORIGIN_CENTERED) {
+    if (NBODY_GRAPHICS_ORIGIN_CENTERED_PREF) {
         $y = "<input size=5 name=nbody_graphics_origin_centered='$prefs->nbody_graphics_origin_centered'>";
         row2(NBODY_GRAPHICS_ORIGIN_CENTERED_DESC, $y, isset($error->nbody_graphics_origin_centered));
     }
