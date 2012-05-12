@@ -394,7 +394,7 @@ function project_specific_prefs_parse_form(&$error) {
 
     if (NBODY_GRAPHICS_TEXTURED_POINT_SIZE_PREF) {
         $nbody_graphics_textured_point_size = sanitize_numeric($_GET["nbody_graphics_textured_point_size"]);
-        if (!verify_numeric($nbody_graphics_textured_point_size,  1.0E-3, 2000.0)) $error->nbody_graphics_textured_point_size_frequency = true;
+        if (!verify_numeric($nbody_graphics_textured_point_size,  1.0E-3, 2000.0)) $error->nbody_graphics_textured_point_size = true;
         $x .= "<nbody_graphics_textured_point_size>$nbody_graphics_textured_point_size</nbody_graphics_textured_point_size>\n";
     }
 
