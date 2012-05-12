@@ -36,7 +36,7 @@ define ('NBODY_GRAPHICS_MONOCHROMATIC_PREF', true);
 define ('NBODY_GRAPHICS_ORIGIN_CENTERED_PREF', true);
 define ('NBODY_GRAPHICS_SHOW_INFO_PREF', true);
 define ('NBODY_GRAPHICS_SHOW_AXES_PREF', true);
-define ('NBODY_GRAPHICS_SHOW_ORBIT_TRACE_PREF', true);
+define ('NBODY_GRAPHICS_SHOW_ORBIT_TRACE_PREF', false);
 
 
 
@@ -319,7 +319,7 @@ function project_specific_prefs_edit($prefs, $error=false) {
 
     if (NBODY_GRAPHICS_SHOW_ORBIT_TRACE_PREF) {
         $y = "<input size=5 name=nbody_graphics_show_orbit_trace value='$prefs->nbody_graphics_show_orbit_trace'>";
-        row2(NBODY_GRAPHICS_SHOW_ORBIT_TRACE, $y, isset($error->nbody_graphics_show_orbit_trace));
+        row2(NBODY_GRAPHICS_SHOW_ORBIT_TRACE_DESC, $y, isset($error->nbody_graphics_show_orbit_trace));
     }
 }
 
