@@ -28,17 +28,17 @@ define ('GPU_TARGET_FREQUENCY_DEFAULT', 60.0);
 // nbody screensaver preferences
 define ('NBODY_GRAPHICS_POLL_PERIOD_PREF', true);
 define ('NBODY_GRAPHICS_FPS_PREF', false);
-define ('NBODY_GRAPHICS_BLOCK_SIMULATION_PREF',true);
-define ('NBODY_GRAPHICS_FLOAT_PREF', true);
+define ('NBODY_GRAPHICS_BLOCK_SIMULATION_PREF',false);
+define ('NBODY_GRAPHICS_FLOAT_PREF', false);
 define ('NBODY_GRAPHICS_FLOAT_SPEED_PREF', true);
 define ('NBODY_GRAPHICS_TEXTURED_POINT_SIZE_PREF', true);
 define ('NBODY_GRAPHICS_POINT_POINT_SIZE_PREF', true);
-define ('NBODY_GRAPHICS_UNTEXTURED_POINTS_PREF', true);
-define ('NBODY_GRAPHICS_MONOCHROMATIC_PREF', true);
-define ('NBODY_GRAPHICS_ORIGIN_CENTERED_PREF', true);
-define ('NBODY_GRAPHICS_SHOW_INFO_PREF', true);
-define ('NBODY_GRAPHICS_SHOW_AXES_PREF', true);
-define ('NBODY_GRAPHICS_SHOW_ORBIT_TRACE_PREF', true);
+define ('NBODY_GRAPHICS_UNTEXTURED_POINTS_PREF', false);
+define ('NBODY_GRAPHICS_MONOCHROMATIC_PREF', false);
+define ('NBODY_GRAPHICS_ORIGIN_CENTERED_PREF', false);
+define ('NBODY_GRAPHICS_SHOW_INFO_PREF', false);
+define ('NBODY_GRAPHICS_SHOW_AXES_PREF', false);
+define ('NBODY_GRAPHICS_SHOW_ORBIT_TRACE_PREF', false);
 
 define ('NBODY_GRAPHICS_POLL_PERIOD_DEFAULT', 30);
 define ('NBODY_GRAPHICS_FPS_DEFAULT', 30);
@@ -200,7 +200,7 @@ function project_specific_prefs_default() {
     }
 
     if (NBODY_GRAPHICS_POINT_POINT_SIZE_PREF) {
-        " . x .= " . "<nbody_graphics_point_point_size>" . NBODY_GRAPHICS_POINT_POINT_SIZE_DEFAULT . "</nbody_graphics_point_point_size>\n";
+        $x .=  "<nbody_graphics_point_point_size>" . NBODY_GRAPHICS_POINT_POINT_SIZE_DEFAULT . "</nbody_graphics_point_point_size>\n";
     }
 
     if (NBODY_GRAPHICS_UNTEXTURED_POINTS_PREF) {
@@ -280,12 +280,22 @@ function project_specific_prefs_edit($prefs, $error=false) {
     }
 
     if (NBODY_GRAPHICS_BLOCK_SIMULATION_PREF) {
+        /*
+        if (!isset($prefs->nbody_graphics_block_simulation)) {
+            $prefs->nbody_graphics_block_simulation = NBODY_GRAPHICS_BLOCK_SIMULATION_DEFAULT;
+        }
+        */
         $checked = $prefs->nbody_graphics_block_simulation ? "checked" : "";
         $y = "<input type=checkbox name=nbody_graphics_block_simulation $checked>";
         row2(NBODY_GRAPHICS_BLOCK_SIMULATION_DESC, $y, isset($error->nbody_graphics_block_simulation));
     }
 
     if (NBODY_GRAPHICS_FLOAT_PREF) {
+        /*
+        if (!isset($prefs->nbody_graphics_float)) {
+            $prefs->nbody_graphics_float = NBODY_GRAPHICS_FLOAT_DEFAULT;
+        }
+        */
         $checked = $prefs->nbody_graphics_float ? "checked" : "";
         $y = "<input type=checkbox name=nbody_graphics_float $checked>";
         row2(NBODY_GRAPHICS_FLOAT_DESC, $y, isset($error->nbody_graphics_float));
@@ -355,10 +365,6 @@ function sanitize_numeric_with_default($x, $val) {
     }
 }
 
-function isset_with_default($x, $val) {
-
-}
-
 function project_specific_prefs_parse_form(&$error) {
     global $app_array;
     $x = "";
@@ -414,12 +420,12 @@ function project_specific_prefs_parse_form(&$error) {
 
 
     if (NBODY_GRAPHICS_BLOCK_SIMULATION_PREF) {
-        $nbody_graphics_block_simulation = isset($_GET["nbody_graphics_block_simulation"]) ? 1 : 0;
+        $nbody_graphics_block_simulation = $_GET["nbody_graphics_block_simulation"] ? 1 : 0;
         $x .= "<nbody_graphics_block_simulation>$nbody_graphics_block_simulation</nbody_graphics_block_simulation>\n";
     }
 
     if (NBODY_GRAPHICS_FLOAT_PREF) {
-        $nbody_graphics_float = isset($_GET["nbody_graphics_float"]);
+        $nbody_graphics_float = $_GET["nbody_graphics_float"] ? 1 : 0;
         $x .= "<nbody_graphics_float>$nbody_graphics_float</nbody_graphics_float>\n";
     }
 
@@ -442,32 +448,32 @@ function project_specific_prefs_parse_form(&$error) {
     }
 
     if (NBODY_GRAPHICS_UNTEXTURED_POINTS_PREF) {
-        $nbody_graphics_untextured_points = isset($_GET["nbody_graphics_untextured_points"]) ? 1 : 0;
+        $nbody_graphics_untextured_points = $_GET["nbody_graphics_untextured_points"] ? 1 : 0;
         $x .= "<nbody_graphics_untextured_points>$nbody_graphics_untextured_points</nbody_graphics_untextured_points>\n";
     }
 
     if (NBODY_GRAPHICS_MONOCHROMATIC_PREF) {
-        $nbody_graphics_monochromatic = isset($_GET["nbody_graphics_monochromatic"]) ? 1 : 0;
+        $nbody_graphics_monochromatic = $_GET["nbody_graphics_monochromatic"] ? 1 : 0;
         $x .= "<nbody_graphics_monochromatic>$nbody_graphics_monochromatic</nbody_graphics_monochromatic>\n";
     }
 
     if (NBODY_GRAPHICS_ORIGIN_CENTERED_PREF) {
-        $nbody_graphics_origin_centered = isset($_GET["nbody_graphics_origin_centered"]) ? 1 : 0;
+        $nbody_graphics_origin_centered = $_GET["nbody_graphics_origin_centered"] ? 1 : 0;
         $x .= "<nbody_graphics_origin_centered>$nbody_graphics_origin_centered</nbody_graphics_origin_centered>\n";
     }
 
     if (NBODY_GRAPHICS_SHOW_INFO_PREF) {
-        $nbody_graphics_show_info = isset($_GET["nbody_graphics_show_info"]) ? 1 : 0;
+        $nbody_graphics_show_info = $_GET["nbody_graphics_show_info"] ? 1 : 0;
         $x .= "<nbody_graphics_show_info>$nbody_graphics_show_info</nbody_graphics_show_info>\n";
     }
 
     if (NBODY_GRAPHICS_SHOW_AXES_PREF) {
-        $nbody_graphics_show_axes = isset($_GET["nbody_graphics_show_axes"]) ? 1 : 0;
+        $nbody_graphics_show_axes = $_GET["nbody_graphics_show_axes"] ? 1 : 0;
         $x .= "<nbody_graphics_show_axes>$nbody_graphics_show_axes</nbody_graphics_show_axes>\n";
     }
 
     if (NBODY_GRAPHICS_SHOW_ORBIT_TRACE_PREF) {
-        $nbody_graphics_show_orbit_trace = isset($_GET["nbody_graphics_show_orbit_trace"]) ? 1 : 0;
+        $nbody_graphics_show_orbit_trace = $_GET["nbody_graphics_show_orbit_trace"] ? 1 : 0;
         $x .= "<nbody_graphics_show_orbit_trace>$nbody_graphics_show_orbit_trace</nbody_graphics_show_orbit_trace>\n";
     }
 
