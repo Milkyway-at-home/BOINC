@@ -23,6 +23,8 @@ define ('GPU_NONRESPONSIVE_PREF', false);
 define ('GPU_PRIORITY_PREF', false);
 define ('GPU_DISABLE_CHECKPOINTING_PREF', false);
 
+define ('GPU_TARGET_FREQUENCY_DEFAULT', 60.0);
+
 // nbody screensaver preferences
 define ('NBODY_GRAPHICS_POLL_PERIOD_PREF', true);
 define ('NBODY_GRAPHICS_FPS_PREF', false);
@@ -38,8 +40,19 @@ define ('NBODY_GRAPHICS_SHOW_INFO_PREF', true);
 define ('NBODY_GRAPHICS_SHOW_AXES_PREF', true);
 define ('NBODY_GRAPHICS_SHOW_ORBIT_TRACE_PREF', true);
 
-
-
+define ('NBODY_GRAPHICS_POLL_PERIOD_DEFAULT', 30);
+define ('NBODY_GRAPHICS_FPS_DEFAULT', 30);
+define ('NBODY_GRAPHICS_BLOCK_SIMULATION_DEFAULT', 0); // false
+define ('NBODY_GRAPHICS_FLOAT_DEFAULT', 1); // true
+define ('NBODY_GRAPHICS_FLOAT_SPEED_DEFAULT', 5.0);
+define ('NBODY_GRAPHICS_TEXTURED_POINT_SIZE_DEFAULT', 250.0);
+define ('NBODY_GRAPHICS_POINT_POINT_SIZE_DEFAULT', 40.0);
+define ('NBODY_GRAPHICS_UNTEXTURED_POINTS_DEFAULT', 0); // false
+define ('NBODY_GRAPHICS_MONOCHROMATIC_DEFAULT', 0); // false
+define ('NBODY_GRAPHICS_ORIGIN_CENTERED_DEFAULT', 0); // false
+define ('NBODY_GRAPHICS_SHOW_INFO_DEFAULT', 1); // true
+define ('NBODY_GRAPHICS_SHOW_AXES_DEFAULT', 0); // false
+define ('NBODY_GRAPHICS_SHOW_ORBIT_TRACE_DEFAULT', 0); // false
 
 $project_has_beta = false;
 
@@ -78,7 +91,7 @@ define('APP_SELECT_DESC', tra('Run only the selected applications'));
 define('ACCEPT_ANY_DESC', tra('If no work for selected applications is available, accept work from other applications?'));
 
 // GPU preference descriptions
-define('GPU_TARGET_FREQUENCY_DESC', tra('Frequency (in Hz) that should try to complete individual work chunks. Higher numbers may run slower but will provide a more responsive system. Lower may be faster but more laggy. %1default 60.0 (corresponds to 60 fps)%2', "<br><span class=note>", "</span>"));
+define('GPU_TARGET_FREQUENCY_DESC', tra('Frequency (in Hz) that should try to complete individual work chunks. Higher numbers may run slower but will provide a more responsive system. Lower may be faster but more laggy. %1default 60 (corresponds to 60 fps)%2', "<br><span class=note>", "</span>"));
 define('GPU_NONRESPONSIVE_DESC', tra('WARNING: Be careful with this option. Ignore any responsiveness requirements for GPU workunits. This could result in an unusable system while it is running.'));
 define('GPU_PRIORITY_DESC', tra('Optionally change the process priority that a GPU application will use'));
 define('GPU_DISABLE_CHECKPOINTING_DESC', tra('Disable main checkpointing for GPU applications.'));
@@ -146,7 +159,7 @@ function project_specific_prefs_default() {
     }
 
     if (GPU_TARGET_FREQUENCY_PREF) {
-        $x .= "<gpu_target_frequency>60.0</gpu_target_frequency>\n";
+        $x .= "<gpu_target_frequency>" . GPU_TARGET_FREQUENCY_DEFAULT . "</gpu_target_frequency>\n";
     }
 
     if (GPU_NONRESPONSIVE_PREF) {
@@ -163,55 +176,55 @@ function project_specific_prefs_default() {
 
 
     if (NBODY_GRAPHICS_POLL_PERIOD_PREF) {
-        $x .= "<nbody_graphics_poll_period>33</nbody_graphics_poll_period>\n";
+        $x .= "<nbody_graphics_poll_period>" . NBODY_GRAPHICS_POLL_PERIOD_DEFAULT . "</nbody_graphics_poll_period>\n";
     }
 
     if (NBODY_GRAPHICS_FPS_PREF) {
-        $x .= "<nbody_graphics_fps>30</nbody_graphics_fps>\n";
+        $x .= "<nbody_graphics_fps>" . NBODY_GRAPHICS_FPS_DEFAULT . "</nbody_graphics_fps>\n";
     }
 
     if (NBODY_GRAPHICS_BLOCK_SIMULATION_PREF) {
-        $x .= "<nbody_graphics_block_simulation>0</nbody_graphics_block_simulation>\n";
+        $x .= "<nbody_graphics_block_simulation>" . NBODY_GRAPHICS_BLOCK_SIMULATION_DEFAULT . "</nbody_graphics_block_simulation>\n";
     }
 
     if (NBODY_GRAPHICS_FLOAT_PREF) {
-        $x .= "<nbody_graphics_float>1</nbody_graphics_float>\n";
+        $x .= "<nbody_graphics_float>" . NBODY_GRAPHICS_FLOAT_DEFAULT . "</nbody_graphics_float>\n";
     }
 
     if (NBODY_GRAPHICS_FLOAT_SPEED_PREF) {
-        $x .= "<nbody_graphics_float_speed>5.0</nbody_graphics_float_speed>\n";
+        $x .= "<nbody_graphics_float_speed>" . NBODY_GRAPHICS_FLOAT_SPEED_DEFAULT . "</nbody_graphics_float_speed>\n";
     }
 
     if (NBODY_GRAPHICS_TEXTURED_POINT_SIZE_PREF) {
-        $x .= "<nbody_graphics_textured_point_size>250.0</nbody_graphics_textured_point_size>\n";
+        $x .= "<nbody_graphics_textured_point_size>" . NBODY_GRAPHICS_TEXTURED_POINT_SIZE_DEFAULT . "</nbody_graphics_textured_point_size>\n";
     }
 
     if (NBODY_GRAPHICS_POINT_POINT_SIZE_PREF) {
-        $x .= "<nbody_graphics_point_point_size>40.0</nbody_graphics_point_point_size>\n";
+        " . x .= " . "<nbody_graphics_point_point_size>" . NBODY_GRAPHICS_POINT_POINT_SIZE_DEFAULT . "</nbody_graphics_point_point_size>\n";
     }
 
     if (NBODY_GRAPHICS_UNTEXTURED_POINTS_PREF) {
-        $x .= "<nbody_graphics_untextured_points>0</nbody_graphics_untextured_points>\n";
+        $x .= "<nbody_graphics_untextured_points>" . NBODY_GRAPHICS_UNTEXTURED_POINTS_DEFAULT . "</nbody_graphics_untextured_points>\n";
     }
 
     if (NBODY_GRAPHICS_MONOCHROMATIC_PREF) {
-        $x .= "<nbody_graphics_monochromatic>0</nbody_graphics_monochromatic>\n";
+        $x .= "<nbody_graphics_monochromatic>" . NBODY_GRAPHICS_MONOCHROMATIC_DEFAULT . "</nbody_graphics_monochromatic>\n";
     }
 
     if (NBODY_GRAPHICS_ORIGIN_CENTERED_PREF) {
-        $x .= "<nbody_graphics_origin_centered>0</nbody_graphics_origin_centered>\n";
+        $x .= "<nbody_graphics_origin_centered>" . NBODY_GRAPHICS_ORIGIN_CENTERED_DEFAULT . "</nbody_graphics_origin_centered>\n";
     }
 
     if (NBODY_GRAPHICS_SHOW_INFO_PREF) {
-        $x .= "<nbody_graphics_show_info>1</nbody_graphics_show_info>\n";
+        $x .= "<nbody_graphics_show_info>" . NBODY_GRAPHICS_SHOW_INFO_DEFAULT . "</nbody_graphics_show_info>\n";
     }
 
     if (NBODY_GRAPHICS_SHOW_AXES_PREF) {
-        $x .= "<nbody_graphics_show_axes>0</nbody_graphics_show_axes>\n";
+        $x .= "<nbody_graphics_show_axes>" . NBODY_GRAPHICS_SHOW_AXES_DEFAULT . "</nbody_graphics_show_axes>\n";
     }
 
     if (NBODY_GRAPHICS_SHOW_ORBIT_TRACE_PREF) {
-        $x .= "<nbody_graphics_show_orbit_trace>0</nbody_graphics_show_orbit_trace>\n";
+        $x .= "<nbody_graphics_show_orbit_trace>" . NBODY_GRAPHICS_SHOW_ORBIT_TRACE_DEFAULT . "</nbody_graphics_show_orbit_trace>\n";
     }
 
     return $x;
@@ -267,16 +280,21 @@ function project_specific_prefs_edit($prefs, $error=false) {
     }
 
     if (NBODY_GRAPHICS_BLOCK_SIMULATION_PREF) {
-        $y = "<input type=checkbox name=nbody_graphics_block_simulation value='$prefs->nbody_graphics_block_simulation'>";
+        $checked = $prefs->nbody_graphics_block_simulation ? "checked" : "";
+        $y = "<input type=checkbox name=nbody_graphics_block_simulation $checked>";
         row2(NBODY_GRAPHICS_BLOCK_SIMULATION_DESC, $y, isset($error->nbody_graphics_block_simulation));
     }
 
     if (NBODY_GRAPHICS_FLOAT_PREF) {
-        $y = "<input type=checkbox name=nbody_graphics_block_float value='$prefs->nbody_graphics_float'>";
+        $checked = $prefs->nbody_graphics_float ? "checked" : "";
+        $y = "<input type=checkbox name=nbody_graphics_float $checked>";
         row2(NBODY_GRAPHICS_FLOAT_DESC, $y, isset($error->nbody_graphics_float));
     }
 
     if (NBODY_GRAPHICS_FLOAT_SPEED_PREF) {
+        if (!isset($prefs->nbody_graphics_float_speed)) {
+            $prefs->nbody_graphics_float_speed = NBODY_GRAPHICS_FLOAT_SPEED_DEFAULT;
+        }
         $y = "<input size=5 name=nbody_graphics_float_speed value='$prefs->nbody_graphics_float_speed'>";
         row2(NBODY_GRAPHICS_FLOAT_SPEED_DESC, $y, isset($error->nbody_graphics_float_speed));
     }
@@ -297,17 +315,20 @@ function project_specific_prefs_edit($prefs, $error=false) {
     }
 
     if (NBODY_GRAPHICS_MONOCHROMATIC_PREF) {
-        $y = "<input type=checkbox name=nbody_graphics_monochromatic value='$prefs->nbody_graphics_monochromatic'>";
+        $checked = $prefs->nbody_graphics_monochromatic ? "checked" : "";
+        $y = "<input type=checkbox name=nbody_graphics_monochromatic $checked>";
         row2(NBODY_GRAPHICS_MONOCHROMATIC_DESC, $y, isset($error->nbody_graphics_monochromatic));
     }
 
     if (NBODY_GRAPHICS_ORIGIN_CENTERED_PREF) {
-        $y = "<input type=checkbox name=nbody_graphics_origin_centered='$prefs->nbody_graphics_origin_centered'>";
+        $checked = $prefs->nbody_graphics_origin_centered ? "checked" : "";
+        $y = "<input type=checkbox name=nbody_graphics_origin_centered $checked>";
         row2(NBODY_GRAPHICS_ORIGIN_CENTERED_DESC, $y, isset($error->nbody_graphics_origin_centered));
     }
 
     if (NBODY_GRAPHICS_SHOW_INFO_PREF) {
-        $y = "<input type=checkbox name=nbody_show_info_pref value='$prefs->nbody_graphics_show_info'>";
+        $checked = $prefs->nbody_graphics_show_info ? "checked" : "";
+        $y = "<input type=checkbox name=nbody_graphics_show_info $checked>";
         row2(NBODY_GRAPHICS_SHOW_INFO_DESC, $y, isset($error->nbody_graphics_show_info));
     }
 
@@ -317,9 +338,25 @@ function project_specific_prefs_edit($prefs, $error=false) {
     }
 
     if (NBODY_GRAPHICS_SHOW_ORBIT_TRACE_PREF) {
-        $y = "<input type=checkbox name=nbody_graphics_show_orbit_trace value='$prefs->nbody_graphics_show_orbit_trace'>";
+        $checked = $prefs->nbody_graphics_show_orbit_trace ? "checked" : "";
+        $y = "<input type=checkbox name=nbody_graphics_show_orbit_trace $checked>";
         row2(NBODY_GRAPHICS_SHOW_ORBIT_TRACE_DESC, $y, isset($error->nbody_graphics_show_orbit_trace));
     }
+}
+
+// if variable is null use given as default
+function sanitize_numeric_with_default($x, $val) {
+    if (is_numeric($x)) {
+        return $x;
+    } else if ($x == "") {
+        return $val;
+    } else {
+        return "not numeric";
+    }
+}
+
+function isset_with_default($x, $val) {
+
 }
 
 function project_specific_prefs_parse_form(&$error) {
@@ -358,26 +395,26 @@ function project_specific_prefs_parse_form(&$error) {
     }
 
     if (GPU_TARGET_FREQUENCY_PREF) {
-        $gpu_target_frequency = sanitize_numeric($_GET["gpu_target_frequency"]);
+        $gpu_target_frequency = sanitize_numeric_with_default($_GET["gpu_target_frequency"], GPU_TARGET_FREQUENCY_DEFAULT);
         if (!verify_numeric($gpu_target_frequency, 0, 100000000)) $error->gpu_target_frequency = true;
         $x .= "<gpu_target_frequency>$gpu_target_frequency</gpu_target_frequency>\n";
     }
 
     if (NBODY_GRAPHICS_POLL_PERIOD_PREF) {
-        $nbody_graphics_poll_period = sanitize_numeric($_GET["nbody_graphics_poll_period"]);
+        $nbody_graphics_poll_period = sanitize_numeric_with_default($_GET["nbody_graphics_poll_period"], NBODY_GRAPHICS_POLL_PERIOD_DEFAULT);
         if (!verify_numeric($nbody_graphics_poll_period, 0, 5000)) $error->nbody_graphics_poll_period = true;
         $x .= "<nbody_graphics_poll_period>$nbody_graphics_poll_period</nbody_graphics_poll_period>\n";
     }
 
     if (NBODY_GRAPHICS_FPS_PREF) {
-        $nbody_graphics_fps = sanitize_numeric($_GET["nbody_graphics_fps"]);
+        $nbody_graphics_fps = sanitize_numeric_with_default($_GET["nbody_graphics_fps"], NBODY_GRAPHICS_FPS_DEFAULT);
         if (!verify_numeric($nbody_graphics_fps, 0, 200)) $error->nbody_graphics_fps = true;
         $x .= "<nbody_graphics_fps>$nbody_graphics_fps</nbody_graphics_fps>\n";
     }
 
 
     if (NBODY_GRAPHICS_BLOCK_SIMULATION_PREF) {
-        $nbody_graphics_block_simulation = isset($_GET["nbody_graphics_block_simulation"]);
+        $nbody_graphics_block_simulation = isset($_GET["nbody_graphics_block_simulation"]) ? 1 : 0;
         $x .= "<nbody_graphics_block_simulation>$nbody_graphics_block_simulation</nbody_graphics_block_simulation>\n";
     }
 
@@ -387,50 +424,50 @@ function project_specific_prefs_parse_form(&$error) {
     }
 
     if (NBODY_GRAPHICS_FLOAT_SPEED_PREF) {
-        $nbody_graphics_float_speed = sanitize_numeric($_GET["nbody_graphics_float_speed"]);
-        if (!verify_numeric($nbody_graphics_float_speed,  1.0E-3, 30.0)) $error->nbody_graphics_float_speed_frequency = true;
+        $nbody_graphics_float_speed = sanitize_numeric_with_default($_GET["nbody_graphics_float_speed"], NBODY_GRAPHICS_FLOAT_SPEED_DEFAULT);
+        if (!verify_numeric($nbody_graphics_float_speed,  1.0E-3, 30.0)) $error->nbody_graphics_float_speed = true;
         $x .= "<nbody_graphics_float_speed>$nbody_graphics_float_speed</nbody_graphics_float_speed>\n";
     }
 
     if (NBODY_GRAPHICS_TEXTURED_POINT_SIZE_PREF) {
-        $nbody_graphics_textured_point_size = sanitize_numeric($_GET["nbody_graphics_textured_point_size"]);
+        $nbody_graphics_textured_point_size = sanitize_numeric_with_default($_GET["nbody_graphics_textured_point_size"], NBODY_GRAPHICS_TEXTURED_POINT_SIZE_DEFAULT);
         if (!verify_numeric($nbody_graphics_textured_point_size,  1.0E-3, 2000.0)) $error->nbody_graphics_textured_point_size = true;
         $x .= "<nbody_graphics_textured_point_size>$nbody_graphics_textured_point_size</nbody_graphics_textured_point_size>\n";
     }
 
     if (NBODY_GRAPHICS_POINT_POINT_SIZE_PREF) {
-        $nbody_graphics_point_point_size = sanitize_numeric($_GET["nbody_graphics_point_point_size"]);
-        if (!verify_numeric($nbody_graphics_point_point_size,  1.0E-3, 500.0)) $error->nbody_graphics_point_point_size_frequency = true;
+        $nbody_graphics_point_point_size = sanitize_numeric_with_default($_GET["nbody_graphics_point_point_size"], NBODY_GRAPHICS_POINT_POINT_SIZE_DEFAULT);
+        if (!verify_numeric($nbody_graphics_point_point_size,  1.0E-3, 500.0)) $error->nbody_graphics_point_point_size = true;
         $x .= "<nbody_graphics_point_point_size>$nbody_graphics_point_point_size</nbody_graphics_point_point_size>\n";
     }
 
     if (NBODY_GRAPHICS_UNTEXTURED_POINTS_PREF) {
-        $nbody_graphics_untextured_points = isset($_GET["nbody_graphics_untextured_points"]);
+        $nbody_graphics_untextured_points = isset($_GET["nbody_graphics_untextured_points"]) ? 1 : 0;
         $x .= "<nbody_graphics_untextured_points>$nbody_graphics_untextured_points</nbody_graphics_untextured_points>\n";
     }
 
     if (NBODY_GRAPHICS_MONOCHROMATIC_PREF) {
-        $nbody_graphics_monochromatic = isset($_GET["nbody_graphics_monochromatic"]);
+        $nbody_graphics_monochromatic = isset($_GET["nbody_graphics_monochromatic"]) ? 1 : 0;
         $x .= "<nbody_graphics_monochromatic>$nbody_graphics_monochromatic</nbody_graphics_monochromatic>\n";
     }
 
     if (NBODY_GRAPHICS_ORIGIN_CENTERED_PREF) {
-        $nbody_graphics_origin_centered = isset($_GET["nbody_graphics_origin_centered"]);
+        $nbody_graphics_origin_centered = isset($_GET["nbody_graphics_origin_centered"]) ? 1 : 0;
         $x .= "<nbody_graphics_origin_centered>$nbody_graphics_origin_centered</nbody_graphics_origin_centered>\n";
     }
 
     if (NBODY_GRAPHICS_SHOW_INFO_PREF) {
-        $nbody_graphics_show_info = isset($_GET["nbody_graphics_show_info"]);
+        $nbody_graphics_show_info = isset($_GET["nbody_graphics_show_info"]) ? 1 : 0;
         $x .= "<nbody_graphics_show_info>$nbody_graphics_show_info</nbody_graphics_show_info>\n";
     }
 
     if (NBODY_GRAPHICS_SHOW_AXES_PREF) {
-        $nbody_graphics_show_axes = isset($_GET["nbody_graphics_show_axes"]);
+        $nbody_graphics_show_axes = isset($_GET["nbody_graphics_show_axes"]) ? 1 : 0;
         $x .= "<nbody_graphics_show_axes>$nbody_graphics_show_axes</nbody_graphics_show_axes>\n";
     }
 
     if (NBODY_GRAPHICS_SHOW_ORBIT_TRACE_PREF) {
-        $nbody_graphics_show_orbit_trace = isset($_GET["nbody_graphics_show_orbit_trace"]);
+        $nbody_graphics_show_orbit_trace = isset($_GET["nbody_graphics_show_orbit_trace"]) ? 1 : 0;
         $x .= "<nbody_graphics_show_orbit_trace>$nbody_graphics_show_orbit_trace</nbody_graphics_show_orbit_trace>\n";
     }
 
@@ -600,7 +637,7 @@ function project_specific_prefs_show($prefs, $columns=false) {
         }
 
         if (NBODY_GRAPHICS_SHOW_AXES_PREF) {
-            row2(NBODY_GRAPHICS_SHOW_AXES_DESC, $prefs->nbody_graphics_show_aexs);
+            row2(NBODY_GRAPHICS_SHOW_AXES_DESC, $prefs->nbody_graphics_show_axes);
         }
 
         if (NBODY_GRAPHICS_SHOW_ORBIT_TRACE_PREF) {
