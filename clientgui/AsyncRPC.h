@@ -33,10 +33,6 @@
 #include <pthread.h>
 
 
-#if 1
-#define BOINC_Mutex wxMutex
-#define BOINC_Condition wxCondition
-#else
 class BOINC_Mutex
 {
 public:
@@ -80,7 +76,7 @@ private:
 };
 
 #endif
-#endif
+
 
 class CMainDocument;    // Forward declaration
 

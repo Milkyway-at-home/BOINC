@@ -85,6 +85,7 @@ private:
     CBOINCBaseView*         m_pParentView;
     wxArrayInt              m_iRowsNeedingProgressBars;
 
+#if USE_NATIVE_LISTCONTROL
 public:
    void                     PostDrawProgressBarEvent();
 private:
@@ -94,10 +95,11 @@ private:
     bool                    m_bProgressBarEventPending;
 
     DECLARE_EVENT_TABLE()
-#if ! USE_NATIVE_LISTCONTROL
+#else
  public:
+    void                    DrawProgressBars(void);
     wxScrolledWindow*       GetMainWin(void) { return (wxScrolledWindow*) m_mainWin; }
-    wxCoord                 GetHeaderHeight(void);
+    wxCoord                 GetHeaderHeight(void) { return m_headerHeight; }
 #ifdef __WXMAC__
     void                    SetupMacAccessibilitySupport();
     void                    RemoveMacAccessibilitySupport();

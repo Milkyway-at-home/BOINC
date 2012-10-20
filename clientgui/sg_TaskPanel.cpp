@@ -1258,7 +1258,6 @@ void CSimpleTaskPanel::OnEraseBackground(wxEraseEvent& event) {
         }
     }
     
-//    CSimplePanelBase::OnEraseBackground(event);
-    event.Skip();
+    CSimplePanelBase::OnEraseBackground(event);
 }
 #endif

@@ -155,7 +155,6 @@ wxInt32 CBOINCTaskCtrl::UpdateControls() {
     unsigned int        i;
     unsigned int        j;
     bool                bCreateMainSizer = false;
-    int                 layoutChanged = 0;
     CTaskItemGroup*     pGroup = NULL;
     CTaskItem*          pItem = NULL;
 
@@ -165,7 +164,6 @@ wxInt32 CBOINCTaskCtrl::UpdateControls() {
         SetAutoLayout(TRUE);
         m_pSizer = new wxBoxSizer( wxVERTICAL  );
         m_pSizer->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALL, 5);
-        layoutChanged = 1;
     }
 
 
@@ -179,7 +177,6 @@ wxInt32 CBOINCTaskCtrl::UpdateControls() {
 #ifdef __WXMAC__
             pGroup->SetupMacAccessibilitySupport();
 #endif
-            layoutChanged = 1;
         }
     }
 
@@ -198,7 +195,6 @@ wxInt32 CBOINCTaskCtrl::UpdateControls() {
                 pItem->m_pButton->SetToolTip(pItem->m_strDescription);
 #endif
                 pGroup->m_pStaticBoxSizer->Add(pItem->m_pButton, 0, wxEXPAND|wxALL, 5);
-                layoutChanged = 1;
             }
         }
     }
@@ -211,7 +207,7 @@ wxInt32 CBOINCTaskCtrl::UpdateControls() {
     // necessarily generates a size event which would do it for us.
     FitInside();
     
-    return layoutChanged;
+    return 0;
 }
 
 
