@@ -31,16 +31,18 @@
 #endif
 #endif
 
+#include "error_numbers.h"
 #include "filesys.h"
 #include "parse.h"
+#include "str_replace.h"
 #include "str_util.h"
 #include "url.h"
-#include "str_replace.h"
-#include "client_state.h"
+
 #include "client_msgs.h"
-#include "log_flags.h"
-#include "error_numbers.h"
+#include "client_state.h"
 #include "file_names.h"
+#include "log_flags.h"
+#include "project.h"
 
 using std::string;
 using std::sort;
@@ -53,7 +55,7 @@ using std::sort;
 // (which normally is undefined) is valid
 //
 int PROJECT::write_account_file() {
-    char path[256];
+    char path[MAXPATHLEN];
     FILE* f;
     int retval;
 
@@ -133,6 +135,8 @@ int PROJECT::parse_account(FILE* in) {
             if (btemp) handle_no_rsc_pref(this, "CPU");
             continue;
         }
+
+        // deprecated
         else if (xp.parse_bool("no_cuda", btemp)) {
             if (btemp) handle_no_rsc_pref(this, GPU_TYPE_NVIDIA);
             continue;
@@ -141,6 +145,7 @@ int PROJECT::parse_account(FILE* in) {
             if (btemp) handle_no_rsc_pref(this, GPU_TYPE_ATI);
             continue;
         }
+
         else if (xp.parse_str("no_rsc", buf2, sizeof(buf2))) {
             handle_no_rsc_pref(this, buf2);
             continue;
@@ -181,7 +186,7 @@ int PROJECT::parse_account(FILE* in) {
 // (so that we know the host venue)
 //
 int PROJECT::parse_account_file_venue() {
-    char attr_buf[256], venue[256], path[256], buf2[256];
+    char attr_buf[256], venue[256], path[MAXPATHLEN], buf2[256];
     int retval;
     bool in_right_venue = false, btemp;
 
@@ -233,6 +238,8 @@ int PROJECT::parse_account_file_venue() {
             if (btemp) handle_no_rsc_pref(this, "CPU");
             continue;
         }
+
+        // deprecated syntax
         else if (xp.parse_bool("no_cuda", btemp)) {
             if (btemp) handle_no_rsc_pref(this, GPU_TYPE_NVIDIA);
             continue;
@@ -241,6 +248,7 @@ int PROJECT::parse_account_file_venue() {
             if (btemp) handle_no_rsc_pref(this, GPU_TYPE_ATI);
             continue;
         }
+
         else if (xp.parse_str("no_rsc", buf2, sizeof(buf2))) {
             handle_no_rsc_pref(this, buf2);
             continue;
@@ -256,7 +264,7 @@ int PROJECT::parse_account_file_venue() {
 }
 
 int PROJECT::parse_account_file() {
-    char path[256];
+    char path[MAXPATHLEN];
     int retval;
     FILE* f;
 
@@ -425,7 +433,7 @@ int CLIENT_STATE::parse_statistics_files() {
 }
 
 int PROJECT::write_statistics_file() {
-    char path[256];
+    char path[MAXPATHLEN];
     FILE* f;
     int retval;
 
@@ -471,7 +479,7 @@ int CLIENT_STATE::add_project(
     const char* master_url, const char* _auth, const char* project_name,
     bool attached_via_acct_mgr
 ) {
-    char path[256], canonical_master_url[256], auth[256], dir[256];
+    char path[MAXPATHLEN], canonical_master_url[256], auth[256], dir[256];
     PROJECT* project;
     FILE* f;
     int retval;

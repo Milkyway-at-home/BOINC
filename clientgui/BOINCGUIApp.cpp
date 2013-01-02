@@ -300,7 +300,8 @@ bool CBOINCGUIApp::OnInit() {
 
     // Enable additional file system type handlers
     wxFileSystem::AddHandler(new wxMemoryFSHandler);
-    wxFileSystem::AddHandler(new CBOINCInternetFSHandler);
+    m_pInternetFSHandler = new CBOINCInternetFSHandler;
+    wxFileSystem::AddHandler(m_pInternetFSHandler);
 
     // Initialize the skin manager
     m_pSkinManager = new CSkinManager(m_bDebugSkins);
@@ -789,6 +790,14 @@ int CBOINCGUIApp::IdleTrackerDetach() {
 
 
 void CBOINCGUIApp::OnActivateApp(wxActivateEvent& event) {
+#ifdef __WXMAC__
+    // Make sure any modal dialog (such as Attach Wizard) ends up in front.
+    if (IsModalDialogDisplayed()) {
+        event.Skip();
+        return;
+    }
+#endif
+
     if (event.GetActive()) {
         if (m_pEventLog && !m_pEventLog->IsIconized()) {
             m_pEventLog->Raise();
@@ -894,6 +903,9 @@ void CBOINCGUIApp::FireReloadSkin() {
 
 
 bool CBOINCGUIApp::SetActiveGUI(int iGUISelection, bool bShowWindow) {
+    wxLogTrace(wxT("Function Start/End"), wxT("CBOINCGUIApp::SetActiveGUI - Function Begin"));
+    wxLogTrace(wxT("Function Start/End"), wxT("CBOINCGUIApp::SetActiveGUI - GUI Selection: '%d', Show: %d'"), iGUISelection, (int)bShowWindow);
+
     CBOINCBaseFrame* pNewFrame = NULL;
     CBOINCBaseFrame* pOldFrame = m_pFrame;
     wxInt32          iTop = 0;
@@ -917,12 +929,19 @@ bool CBOINCGUIApp::SetActiveGUI(int iGUISelection, bool bShowWindow) {
             m_pConfig->SetPath(wxT("/Simple"));
             m_pConfig->Read(wxT("YPos"), &iTop, 30);
             m_pConfig->Read(wxT("XPos"), &iLeft, 30);
+
+            // We don't save Simple View's width & height since it's 
+            // window is not resizable, so don't try to read them
 #ifdef __WXMAC__
-            m_pConfig->Read(wxT("Width"), &iWidth, 409);
-            m_pConfig->Read(wxT("Height"), &iHeight, 561);
+//            m_pConfig->Read(wxT("Width"), &iWidth, 409);
+//            m_pConfig->Read(wxT("Height"), &iHeight, 561);
+            iWidth = 409;
+            iHeight = 561;
 #else
-            m_pConfig->Read(wxT("Width"), &iWidth, 416);
-            m_pConfig->Read(wxT("Height"), &iHeight, 570);
+//            m_pConfig->Read(wxT("Width"), &iWidth, 416);
+//            m_pConfig->Read(wxT("Height"), &iHeight, 570);
+            iWidth = 416;
+            iHeight = 570;
 #endif
         }
 
@@ -930,19 +949,9 @@ bool CBOINCGUIApp::SetActiveGUI(int iGUISelection, bool bShowWindow) {
         // Make sure that the new window is going to be visible
         //   on a screen
 #ifdef __WXMAC__
-        Rect titleRect = {iTop, iLeft, iTop+22, iLeft+iWidth };
-        InsetRect(&titleRect, 5, 5);                // Make sure at least a 5X5 piece visible
-        RgnHandle displayRgn = NewRgn();
-        CopyRgn(GetGrayRgn(), displayRgn);          // Region encompassing all displays
-        Rect menuRect = ((**GetMainDevice())).gdRect;
-        menuRect.bottom = GetMBarHeight() + menuRect.top;
-        RgnHandle menuRgn = NewRgn();
-        RectRgn(menuRgn, &menuRect);                // Region hidden by menu bar
-        DiffRgn(displayRgn, menuRgn, displayRgn);   // Subtract menu bar retion
-        if (!RectInRgn(&titleRect, displayRgn))
-            iTop = iLeft = 30;
-        DisposeRgn(menuRgn);
-        DisposeRgn(displayRgn);
+    if (!IsWindowOnScreen(iLeft, iTop, iWidth, iHeight)) {
+        iTop = iLeft = 30;
+    }
 #else
 	    // If either co-ordinate is less then 0 then set it equal to 0 to ensure
 	    // it displays on the screen.
@@ -996,9 +1005,6 @@ bool CBOINCGUIApp::SetActiveGUI(int iGUISelection, bool bShowWindow) {
             // Delete the old one if it exists
             // Note: this has the side effect of hiding the Event Log
             if (pOldFrame) pOldFrame->Destroy();
-
-            // Show the new frame if needed (and show the Event Log if open)
-            if (pNewFrame && bShowWindow) pNewFrame->Show();
         }
     }
 
@@ -1015,6 +1021,9 @@ bool CBOINCGUIApp::SetActiveGUI(int iGUISelection, bool bShowWindow) {
         if (!m_pFrame->IsShown()) {
             m_pFrame->Show();
         }
+        if (m_pFrame->IsIconized()) {
+            m_pFrame->Maximize(false);
+        }
         m_pFrame->Raise();
 
 #ifdef __WXMSW__
@@ -1026,6 +1035,7 @@ bool CBOINCGUIApp::SetActiveGUI(int iGUISelection, bool bShowWindow) {
     m_pConfig->SetPath(wxT("/"));
     m_pConfig->Write(wxT("GUISelection"), iGUISelection);
 
+    wxLogTrace(wxT("Function Start/End"), wxT("CBOINCGUIApp::SetActiveGUI - Function End"));
     return true;
 }
 

@@ -18,12 +18,8 @@
 #ifndef _FILESYS_
 #define _FILESYS_
 
-#define FILE_RETRY_INTERVAL 5
-    // On Windows, retry for this period of time, since some other program
-    // (virus scan, defrag, index) may have the file open.
-
-
 #if defined(_WIN32) && !defined(__CYGWIN32__)
+#include "boinc_win.h"
 #else
 #include <dirent.h>
 #include <grp.h>
@@ -34,11 +30,15 @@
 #include <string>
 #endif
 
+#endif /* !WIN32 */
+
 #ifndef MAXPATHLEN
-#define MAXPATHLEN 1024
+#define MAXPATHLEN 4096
 #endif
 
-#endif /* !WIN32 */
+#define FILE_RETRY_INTERVAL 5
+    // On Windows, retry for this period of time, since some other program
+    // (virus scan, defrag, index) may have the file open.
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,20 +46,23 @@ extern "C" {
   extern int boinc_delete_file(const char*);
   extern int boinc_touch_file(const char *path);
   extern FILE* boinc_fopen(const char* path, const char* mode);
-  extern int boinc_flush(FILE*);
   extern int boinc_copy(const char* orig, const char* newf);
   extern int boinc_rename(const char* old, const char* newf);
   extern int boinc_mkdir(const char*);
-#ifndef _WIN32
+#ifdef _WIN32
+  extern int boinc_allocate_file(const char*, double size);
+#else
   extern int boinc_chown(const char*, gid_t);
 #endif
   extern int boinc_rmdir(const char*);
   extern void boinc_getcwd(char*);
   extern void relative_to_absolute(const char* relname, char* path);
   extern int boinc_make_dirs(const char*, const char*);
-  extern char boinc_failed_file[256];
+  extern char boinc_failed_file[MAXPATHLEN];
   extern int is_file(const char* path);
   extern int is_dir(const char* path);
+  extern int is_file_follow_symlinks(const char* path);
+  extern int is_dir_follow_symlinks(const char* path);
   extern int is_symlink(const char* path);
   extern int boinc_truncate(const char*, double);
   extern int boinc_file_exists(const char* path);
@@ -83,7 +86,7 @@ extern int get_filesystem_info(double& total, double& free, char* path=const_cas
 //
 #if defined(_WIN32) && !defined(__CYGWIN32__)
 typedef struct _DIR_DESC {
-    char path[256];
+    char path[MAXPATHLEN];
     bool first;
     void* handle;
 } DIR_DESC;
@@ -125,15 +128,6 @@ struct FILE_LOCK {
     int lock(const char* filename);
     int unlock(const char* filename);
 };
-
-#ifndef _WIN32
-
-// search PATH, find the directory that a program is in, if any
-//
-extern int get_file_dir(char* filename, char* dir);
-
-#endif
-
 
 #endif /* c++ */
 

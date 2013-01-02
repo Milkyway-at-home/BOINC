@@ -42,15 +42,18 @@
 
 #include <cstdio>
 #include <vector>
+#include <cmath>
+#include <cstring>
+
 #include "util.h"
 #include "svn_version.h"
 
 using std::vector;
 
 struct HOST_DESC{
-    char os_name[128];
-    char p_vendor[128];
-    char p_model[128];
+    char os_name[256];
+    char p_vendor[256];
+    char p_model[256];
 };
 
 vector<HOST_DESC> host_descs;
@@ -80,6 +83,7 @@ void read_hosts() {
         strcpy(hd.p_model, p3);
         host_descs.push_back(hd);
     }
+    fclose(f);
 }
 
 inline double req_time() {

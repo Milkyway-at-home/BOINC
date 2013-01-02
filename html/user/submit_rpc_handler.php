@@ -115,7 +115,7 @@ function stage_file($file) {
 
     $md5 = md5_file($file->source);
     if (!$md5) {
-        error("Can't get MD5 of file $source");
+        error("Can't get MD5 of file $file->source");
     }
     $name = "batch_$md5";
     $path = dir_hier_path($name, "../../download", $fanout);
@@ -308,6 +308,7 @@ function handle_retire_batch($r) {
     list($user, $user_submit) = authenticate_user($r, null);
     $batch_id = (int)($r->batch_id);
     $batch = BoincBatch::lookup_id($batch_id);
+    if (!$batch) error("no such batch");
     if ($batch->user_id != $user->id) {
         error("not owner");
     }

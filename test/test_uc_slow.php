@@ -1,6 +1,6 @@
 #!/usr/local/bin/php -q
 <?php {
-    // $Id$
+    // $Id: test_uc_slow.php 1496 2003-06-16 17:59:38Z eheien $
 
     include_once("test.inc");
 

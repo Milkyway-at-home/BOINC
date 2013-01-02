@@ -31,27 +31,27 @@ function type_text($type) {
     }
 }
 
-$w70 = array(
-	"num"=>"7.0.8",
+$w70dev = array(
+	"num"=>"7.0.42",
 	"status"=>"Development version",
-	"file"=>"boinc_7.0.8_windows_intelx86.exe",
-	"date"=>"13 Jan 2012",
+	"file"=>"boinc_7.0.42_windows_intelx86.exe",
+	"date"=>"14 Dec 2012",
+	"type"=>"win_new",
+);
+
+$w70 = array(
+	"num"=>"7.0.28",
+	"status"=>"Recommended version",
+	"file"=>"boinc_7.0.28_windows_intelx86.exe",
+	"date"=>"21 May 2012",
 	"type"=>"win_new",
 );
 
 $w612 = array(
 	"num"=>"6.12.34",
-	"status"=>"Recommended version",
+	"status"=>"Older version",
 	"file"=>"boinc_6.12.34_windows_intelx86.exe",
 	"date"=>"28 July 2011",
-	"type"=>"win_new",
-);
-
-$w610 = array(
-	"num"=>"6.10.60",
-	"status"=>"Older version",
-	"file"=>"boinc_6.10.60_windows_intelx86.exe",
-	"date"=>"25 Mar 2011",
 	"type"=>"win_new",
 );
 
@@ -71,51 +71,59 @@ $w5816 = array(
     "type"=>"win_new",
 );
 
-$w70x64 = array(
-	"num"=>"7.0.8",
+$w70x64dev = array(
+	"num"=>"7.0.42",
 	"status"=>"Development version",
-	"file"=>"boinc_7.0.8_windows_x86_64.exe",
-	"date"=>"13 Jan 2012",
+	"file"=>"boinc_7.0.42_windows_x86_64.exe",
+	"date"=>"14 Dec 2012",
+	"type"=>"win_new",
+);
+
+$w70x64 = array(
+	"num"=>"7.0.28",
+	"status"=>"Recommended version",
+	"file"=>"boinc_7.0.28_windows_x86_64.exe",
+	"date"=>"21 May 2012",
 	"type"=>"win_new",
 );
 
 $w612x64 = array(
 	"num"=>"6.12.34",
-	"status"=>"Recommended version",
+	"status"=>"Older version",
 	"file"=>"boinc_6.12.34_windows_x86_64.exe",
 	"date"=>"28 July 2011",
 	"type"=>"win_new",
 );
 
-$w610x64 = array(
-	"num"=>"6.10.60",
-	"status"=>"Older version",
-	"file"=>"boinc_6.10.60_windows_x86_64.exe",
-	"date"=>"25 Mar 2011",
-	"type"=>"win_new",
+$m70dev = array(
+	"num"=>"7.0.42",
+	"status"=>"Development version (standard GUI)",
+	"file"=>"boinc_7.0.42_macOSX_i686.zip",
+	"date"=>"14 Dec 2012",
+	"type"=>"mac_advanced",
 );
 
 $m70 = array(
-	"num"=>"7.0.8",
-	"status"=>"Development version (standard GUI)",
-	"file"=>"boinc_7.0.8_macOSX_i686.zip",
-	"date"=>"13 Jan 2012",
+	"num"=>"7.0.31",
+	"status"=>"Recommended version (standard GUI)",
+	"file"=>"boinc_7.0.31_macOSX_i686.zip",
+	"date"=>"7 July 2012",
 	"type"=>"mac_advanced",
 );
 
 $m612 = array(
 	"num"=>"6.12.35",
-	"status"=>"Recommended version (standard GUI)",
+	"status"=>"Older version (standard GUI)",
 	"file"=>"boinc_6.12.35_macOSX_universal.zip",
 	"date"=>"11 Aug 2011",
 	"type"=>"mac_advanced",
 );
 
-$m610 = array(
-	"num"=>"6.10.58",
-	"status"=>"Older version (standard GUI)",
-	"file"=>"boinc_6.10.58_macOSX_universal.zip",
-	"date"=>"6 July 2010",
+$m612_ppc = array(
+	"num"=>"6.12.35",
+	"status"=>"Recommended version (standard GUI)",
+	"file"=>"boinc_6.12.35_macOSX_universal.zip",
+	"date"=>"11 Aug 2011",
 	"type"=>"mac_advanced",
 );
 
@@ -127,27 +135,35 @@ $m66 = array(
     "type"=>"mac_advanced",
 );
 
-$m70c = array(
-	"num"=>"7.0.8",
+$m70cdev = array(
+	"num"=>"7.0.42",
 	"status"=>"Development version (Unix command-line version)",
-	"file"=>"boinc_7.0.8_i686-apple-darwin.zip",
-	"date"=>"13 Jan 2012",
+	"file"=>"boinc_7.0.42_i686-apple-darwin.zip",
+	"date"=>"14 Dev 2012",
+	"type"=>"bare_core",
+);
+
+$m70c = array(
+	"num"=>"7.0.31",
+	"status"=>"Recommended version (Unix command-line version)",
+	"file"=>"boinc_7.0.31_i686-apple-darwin.zip",
+	"date"=>"29 July 2012",
 	"type"=>"bare_core",
 );
 
 $m612c = array(
 	"num"=>"6.12.35",
-	"status"=>"Recommended version (Unix command-line version)",
+	"status"=>"Older version (Unix command-line version)",
 	"file"=>"boinc_6.12.35_universal-apple-darwin.zip",
 	"date"=>"11 Aug 2011",
 	"type"=>"bare_core",
 );
 
-$m610c = array(
-	"num"=>"6.10.58",
-	"status"=>"Older version (Unix command-line version)",
-	"file"=>"boinc_6.10.58_universal-apple-darwin.zip",
-	"date"=>"6 July 2010",
+$m612c_ppc = array(
+	"num"=>"6.12.35",
+	"status"=>"Recommended version (Unix command-line version)",
+	"file"=>"boinc_6.12.35_universal-apple-darwin.zip",
+	"date"=>"11 Aug 2011",
 	"type"=>"bare_core",
 );
 
@@ -175,51 +191,51 @@ $l66 = array(
 	"type"=>"sea",
 	);
 
-$l70ubuntu = array(
-	"num"=>"7.0.8",
+$l70ubuntudev = array(
+	"num"=>"7.0.42",
 	"status"=>"Development version",
-	"file"=>"boinc_7.0.8_i686-pc-linux-gnu.sh",
-	"date"=>"13 Jan 2012",
+	"file"=>"boinc_7.0.42_i686-pc-linux-gnu.sh",
+	"date"=>"14 Dec 2012",
+	"type"=>"sea",
+);
+
+$l70ubuntu = array(
+	"num"=>"7.0.28",
+	"status"=>"Recommended version",
+	"file"=>"boinc_7.0.28_i686-pc-linux-gnu.sh",
+	"date"=>"21 May 2012",
 	"type"=>"sea",
 );
 
 $l612ubuntu = array(
 	"num"=>"6.12.34",
-	"status"=>"Recommended version",
+	"status"=>"Older version",
 	"file"=>"boinc_6.12.34_i686-pc-linux-gnu.sh",
 	"date"=>"28 July 2011",
 	"type"=>"sea",
 );
 
-$l610ubuntu = array(
-	"num"=>"6.10.58",
-	"status"=>"Older version",
-	"file"=>"boinc_6.10.58_i686-pc-linux-gnu.sh",
-	"date"=>"4 Aug 2010",
+$l70ubuntux64dev = array(
+	"num"=>"7.0.42",
+	"status"=>"Development version",
+	"file"=>"boinc_7.0.42_x86_64-pc-linux-gnu.sh",
+	"date"=>"14 Dec 2012",
 	"type"=>"sea",
 );
 
 $l70ubuntux64 = array(
-	"num"=>"7.0.8",
-	"status"=>"Development version",
-	"file"=>"boinc_7.0.8_x86_64-pc-linux-gnu.sh",
-	"date"=>"13 Jan 2012",
+	"num"=>"7.0.28",
+	"status"=>"Recommended version",
+	"file"=>"boinc_7.0.28_x86_64-pc-linux-gnu.sh",
+	"date"=>"21 May 2012",
 	"type"=>"sea",
 );
 
 $l612ubuntux64 = array(
 	"num"=>"6.12.34",
-	"status"=>"Recommended version",
+	"status"=>"Older version",
 	"file"=>"boinc_6.12.34_x86_64-pc-linux-gnu.sh",
 	"date"=>"28 July 2011",
-	"type"=>"sea",
-);
-
-$l610ubuntux64 = array(
-	"num"=>"6.10.58",
-	"status"=>"Older version",
-	"file"=>"boinc_6.10.58_x86_64-pc-linux-gnu.sh",
-	"date"=>"4 Aug 2010",
 	"type"=>"sea",
 );
 
@@ -232,9 +248,9 @@ $windows = array(
     "description"=>"2000/XP/Vista/7",
     "dbname" => "windows_intelx86",
     "versions"=>array(
+		$w70dev,
 		$w70,
 		$w612,
-		$w610,
 		$w66,
         $w5816,
     )
@@ -245,23 +261,33 @@ $windowsx64 = array(
     "description"=>"XP/Vista/7",
     "dbname" => "windows_x86_64",
     "versions"=>array(
+		$w70x64dev,
 		$w70x64,
 		$w612x64,
-		$w610x64,
     )
 );
 
 $mac = array(
-    "name"=>"Mac OS X",
+    "name"=>"Mac OS X (Intel only)",
     "description"=>"Version 10.4.0+",
-    "dbname" => "powerpc-apple-darwin",
+    "dbname" => "x86_64-apple-darwin",
     "versions"=>array(
+		$m70dev,
 		$m70,
+		$m70cdev,
 		$m70c,
 		$m612,
 		$m612c,
-		$m610,
-        $m610c,
+    )
+);
+
+$macppc = array(
+    "name"=>"Mac OS X (PowerPC and x86)",
+    "description"=>"Version 10.4.0+",
+    "dbname" => "powerpc-apple-darwin",
+    "versions"=>array(
+		$m612_ppc,
+		$m612c_ppc,
         $m66,
         $m66c,
     )
@@ -277,34 +303,33 @@ $linuxcompat = array(
     )
 );
 
-$linux = array(
-    "name"=>"Linux x86",
-    "description"=>"Tested on the current Ubuntu release; may work on others.
+function linux_info() {
+    return "Tested on the current Ubuntu distribution; may work on others.
     <br>If available, we recommend that you install a
     <a href=http://boinc.berkeley.edu/wiki/Installing_BOINC#Linux>
     distribution-specific package</a>
-    instead.
-    ",
+    instead.  ";
+}
+
+$linux = array(
+    "name"=>"Linux x86",
+    "description"=> linux_info(),
     "dbname" => "i686-pc-linux-gnu",
     "versions"=>array(
+		$l70ubuntudev,
 		$l70ubuntu,
 		$l612ubuntu,
-		$l610ubuntu,
     )
 );
 
 $linuxx64 = array(
     "name"=>"Linux x64",
-    "description"=>"Tested on the current Ubuntu release; may work on others.
-    <br>If available, we recommend that you install a
-    <a href=http://boinc.berkeley.edu/wiki/Installing_BOINC#Linux>
-    distribution-specific package</a>
-    instead.
-    ",
+    "description"=> linux_info(),
+    "dbname" => "x86_64-pc-linux-gnu",
     "versions"=>array(
+		$l70ubuntux64dev,
 		$l70ubuntux64,
 		$l612ubuntux64,
-		$l610ubuntux64,
     )
 );
 
@@ -312,6 +337,7 @@ $platforms = array(
     "win"=>$windows,
     "winx64"=>$windowsx64,
     "mac"=>$mac,
+    "macppc"=>$macppc,
     "linux"=>$linux,
     "linuxx64"=>$linuxx64,
     "linuxcompat"=>$linuxcompat,
@@ -325,11 +351,11 @@ function is_dev($v) {
 //switch(rand(0,3)) {
 switch(0) {
     case 0: $url_base = "http://boinc.berkeley.edu/dl/"; break;
-    case 0: $url_base = "http://boincdl3.ssl.berkeley.edu/mirror/"; break;
-    case 1: $url_base = "http://einstein.ligo.caltech.edu/download/boinc/dl/"; break;
-    case 2: $url_base = "http://einstein.aei.mpg.de/download/boinc/dl/"; break;
+    //case 0: $url_base = "http://boincdl3.ssl.berkeley.edu/mirror/"; break;
+    //case 1: $url_base = "http://einstein.ligo.caltech.edu/download/boinc/dl/"; break;
+    //case 2: $url_base = "http://einstein.aei.mpg.de/download/boinc/dl/"; break;
     //case 1: $url_base = "http://morel.mit.edu/download/boinc/dl/"; break;
-    case 3: $url_base = "http://einstein-dl.phys.uwm.edu/download/boinc/dl/"; break;
+    //case 3: $url_base = "http://einstein-dl.phys.uwm.edu/download/boinc/dl/"; break;
     //case 4: $url_base = "http://einstein.astro.gla.ac.uk/download/boinc/dl/"; break;
     //case 4: $url_base = "http://albert.gravity.psu.edu/download/boinc/dl/"; break;
 }

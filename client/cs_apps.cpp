@@ -29,15 +29,18 @@
 #include <csignal>
 #endif
 
-#include "md5_file.h"
-#include "util.h"
 #include "error_numbers.h"
-#include "file_names.h"
 #include "filesys.h"
+#include "md5_file.h"
 #include "shmem.h"
-#include "log_flags.h"
+#include "util.h"
+
 #include "client_msgs.h"
 #include "client_state.h"
+#include "file_names.h"
+#include "log_flags.h"
+#include "project.h"
+#include "result.h"
 
 using std::vector;
 
@@ -100,7 +103,7 @@ int CLIENT_STATE::app_finished(ACTIVE_TASK& at) {
 #ifndef SIM
     FILE_INFO* fip;
     unsigned int i;
-    char path[256];
+    char path[MAXPATHLEN];
     int retval;
     double size;
 
@@ -108,8 +111,8 @@ int CLIENT_STATE::app_finished(ACTIVE_TASK& at) {
     // Don't bother doing this if result was aborted via GUI or by project
     //
     switch (rp->exit_status) {
-    case ERR_ABORTED_VIA_GUI:
-    case ERR_ABORTED_BY_PROJECT:
+    case EXIT_ABORTED_VIA_GUI:
+    case EXIT_ABORTED_BY_PROJECT:
         break;
     default:
         for (i=0; i<rp->output_files.size(); i++) {
@@ -180,8 +183,8 @@ int CLIENT_STATE::app_finished(ACTIVE_TASK& at) {
 
     if (had_error) {
         switch (rp->exit_status) {
-        case ERR_ABORTED_VIA_GUI:
-        case ERR_ABORTED_BY_PROJECT:
+        case EXIT_ABORTED_VIA_GUI:
+        case EXIT_ABORTED_BY_PROJECT:
             rp->set_state(RESULT_ABORTED, "CS::app_finished");
             break;
         default:
@@ -190,7 +193,7 @@ int CLIENT_STATE::app_finished(ACTIVE_TASK& at) {
     } else {
 #ifdef SIM
         rp->set_state(RESULT_FILES_UPLOADED, "CS::app_finished");
-        rp->ready_to_report = true;
+        rp->set_ready_to_report();
         rp->completed_time = now;
 #else
         rp->set_state(RESULT_FILES_UPLOADING, "CS::app_finished");
@@ -206,7 +209,7 @@ int CLIENT_STATE::app_finished(ACTIVE_TASK& at) {
     return 0;
 }
 
-// Returns true iff all the input files for a result are present
+// Returns zero iff all the input files for a result are present
 // (both WU and app version)
 // Called from CLIENT_STATE::update_results (with verify=false)
 // to transition result from DOWNLOADING to DOWNLOADED.
@@ -216,7 +219,7 @@ int CLIENT_STATE::app_finished(ACTIVE_TASK& at) {
 // If fipp is nonzero, return a pointer to offending FILE_INFO on error
 //
 int CLIENT_STATE::input_files_available(
-    RESULT* rp, bool verify, FILE_INFO** fipp
+    RESULT* rp, bool verify_contents, FILE_INFO** fipp
 ) {
     WORKUNIT* wup = rp->wup;
     FILE_INFO* fip;
@@ -237,8 +240,8 @@ int CLIENT_STATE::input_files_available(
 
         // don't verify app files if using anonymous platform
         //
-        if (!project->anonymous_platform) {
-            retval = fip->verify_file(verify, true);
+        if (verify_contents && !project->anonymous_platform) {
+            retval = fip->verify_file(true, true, false);
             if (retval) {
                 if (fipp) *fipp = fip;
                 return retval;
@@ -252,8 +255,9 @@ int CLIENT_STATE::input_files_available(
             if (wup->input_files[i].optional) continue;
             if (fipp) *fipp = fip;
             return ERR_FILE_MISSING;
-        } else {
-            retval = fip->verify_file(verify, true);
+        }
+        if (verify_contents) {
+            retval = fip->verify_file(true, true, false);
             if (retval) {
                 if (fipp) *fipp = fip;
                 return retval;

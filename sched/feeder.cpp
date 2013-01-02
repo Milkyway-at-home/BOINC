@@ -20,15 +20,17 @@
 //
 // Usage: feeder [ options ]
 //  [ -d x ]                debug level x
+//  [ --allapps ]           interleave results from all applications uniformly
+//  [ --by_batch ]          interleave results from all batches uniformly
 //  [ --random_order ]      order by "random" field of result
 //  [ --priority_order ]    order by decreasing "priority" field of result
+//  [ --priority_asc ]      order by increasing "priority" field of result
 //  [ --priority_order_create_time ]
 //                          order by priority, then by increasing WU create time
 //  [ --mod n i ]           handle only results with (id mod n) == i
 //  [ --wmod n i ]          handle only workunits with (id mod n) == i
 //                          recommended if using HR with multiple schedulers
 //  [ --sleep_interval x ]  sleep x seconds if nothing to do
-//  [ --allapps ]           interleave results from all applications uniformly
 //  [ --appids a1{,a2} ]    get work only for appids a1,...
 //                          (comma-separated list)
 //  [ --purge_stale x ]     remove work items from the shared memory segment
@@ -39,7 +41,7 @@
 // It maintains a DB enumerator (DB_WORK_ITEM).
 // scan_work_array() scans the work array.
 // looking for empty slots and trying to fill them in.
-// The  enumeration may return results already in the array.
+// The enumeration may return results already in the array.
 // So, for each result, we scan the entire array to make sure
 // it's not there already (can this be streamlined?)
 //
@@ -55,7 +57,7 @@
 //   stop the scan and sleep for N seconds
 // - Otherwise immediately start another scan
 
-// If -allapps is used:
+// If --allapps is used:
 // - there are separate DB enumerators for each app
 // - the work array is interleaved by application, based on their weights.
 //   slot_to_app[] maps slot (i.e. work array index) to app index.
@@ -71,7 +73,7 @@
 // (proportional to the total RAC of hosts in that class).
 // This is to maximize the likelihood of having work for an average host.
 //
-// If you use different HR types between apps, you must use -allapps.
+// If you use different HR types between apps, you must use --allapps.
 // Otherwise we wouldn't know how many slots to reserve for each HR type.
 //
 // It's OK to use HR for some apps and not others.
@@ -98,9 +100,10 @@
 #include <ctime>
 #include <csignal>
 #include <unistd.h>
-#include <math.h>
+#include <cmath>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/param.h>
 #include <vector>
 using std::vector;
 
@@ -136,13 +139,13 @@ SCHED_SHMEM* ssp;
 key_t sema_key;
 const char* order_clause="";
 char mod_select_clause[256];
-double sleep_interval = DEFAULT_SLEEP_INTERVAL;
+int sleep_interval = DEFAULT_SLEEP_INTERVAL;
 bool all_apps = false;
 int purge_stale_time = 0;
 int num_work_items = MAX_WU_RESULTS;
 int enum_limit = MAX_WU_RESULTS*2;
 
-// The following defined if -allapps:
+// The following defined if --allapps:
 int *enum_sizes;
     // the enum size per app; else not used
 int *app_indices;
@@ -232,7 +235,7 @@ void hr_count_slots() {
 // 
 static bool get_job_from_db(
     DB_WORK_ITEM& wi,    // enumerator to get job from
-    int app_index,       // if using -allapps, the app index
+    int app_index,       // if using --allapps, the app index
     int& enum_phase,
     int& ncollisions
 ) {
@@ -252,7 +255,7 @@ static bool get_job_from_db(
     int hrt = ssp->apps[app_index].homogeneous_redundancy;
 
     while (1) {
-        if (hrt) {
+        if (hrt && config.hr_allocate_slots) {
             retval = wi.enumerate_all(enum_size, select_clause);
         } else {
             retval = wi.enumerate(enum_size, select_clause, order_clause);
@@ -326,7 +329,7 @@ static bool get_job_from_db(
 
             // if using HR, check whether we've exceeded quota for this class
             //
-            if (hrt) {
+            if (hrt && config.hr_allocate_slots) {
                 if (!hr_info.accept(hrt, wi.wu.hr_class)) {
                     log_messages.printf(MSG_DEBUG,
                         "rejecting [RESULT#%u] because HR class %d/%d over quota\n",
@@ -341,7 +344,7 @@ static bool get_job_from_db(
     return false;   // never reached
 }
 
-// This function decides the interleaving used for -allapps.
+// This function decides the interleaving used for --allapps.
 // Inputs:
 //   n (number of weights)
 //   k (length of vector)
@@ -402,6 +405,26 @@ static void update_job_stats() {
     }
 }
 
+// We're purging this item because it's been in shared mem too long.
+// In general it will get added again soon.
+// But if it's committed to an HR class,
+// it could be because it got sent to a rare host.
+// Un-commit it by zeroing out the WU's hr class,
+// and incrementing target_nresults
+//
+static void purge_stale(WU_RESULT& wu_result) {
+    DB_WORKUNIT wu;
+    wu.id = wu_result.workunit.id;
+    if (wu_result.workunit.hr_class) {
+        char buf[256];
+        sprintf(buf,
+            "hr_class=0, target_nresults=target_nresults+1, transition_time=%ld",
+            time(0)
+        );
+        wu.update_field(buf);
+    }
+}
+
 // Make one pass through the work array, filling in empty slots.
 // Return true if we filled in any.
 //
@@ -420,7 +443,7 @@ static bool scan_work_array(vector<DB_WORK_ITEM> &work_items) {
         }
     }
 
-    if (using_hr) {
+    if (using_hr && config.hr_allocate_slots) {
         hr_count_slots();
     }
 
@@ -432,11 +455,12 @@ static bool scan_work_array(vector<DB_WORK_ITEM> &work_items) {
         switch (wu_result.state) {
         case WR_STATE_PRESENT:
             if (purge_stale_time && wu_result.time_added_to_shared_memory < (time(0) - purge_stale_time)) {
-                wu_result.state = WR_STATE_EMPTY;
                 log_messages.printf(MSG_NORMAL,
                     "remove result [RESULT#%d] from slot %d because it is stale\n",
                     wu_result.resultid, i
                 );
+                purge_stale(wu_result);
+                wu_result.state = WR_STATE_EMPTY;
                 // fall through, refill this array slot
             } else {
                 break;
@@ -533,9 +557,9 @@ void feeder_loop() {
             pause();
 #else
             log_messages.printf(MSG_DEBUG,
-                "No action; sleeping %.2f sec\n", sleep_interval
+                "No action; sleeping %d sec\n", sleep_interval
             );
-            boinc_sleep(sleep_interval);
+            daemon_sleep(sleep_interval);
 #endif
         } else {
             if (config.job_size_matching) {
@@ -607,7 +631,7 @@ void hr_init() {
         if (some_app_uses_hr) {
             if (apps_differ && !all_apps) {
                 log_messages.printf(MSG_CRITICAL,
-                    "You must use -allapps if apps have different HR\n"
+                    "You must use --allapps if apps have different HR\n"
                 );
                 exit(1);
             }
@@ -616,34 +640,38 @@ void hr_init() {
         }
     }
     using_hr = true;
-    hr_info.init();
-    retval = hr_info.read_file();
-    if (retval) {
-        log_messages.printf(MSG_CRITICAL,
-            "Can't read HR info file: %s\n", boincerror(retval)
-        );
-        exit(1);
-    }
+    if (config.hr_allocate_slots) {
+        hr_info.init();
+        retval = hr_info.read_file();
+        if (retval) {
+            log_messages.printf(MSG_CRITICAL,
+                "Can't read HR info file: %s\n", boincerror(retval)
+            );
+            exit(1);
+        }
 
-    // find the weight for each HR type
-    //
-    for (i=0; i<ssp->napps; i++) {
-        hrt = ssp->apps[i].homogeneous_redundancy;
-        hr_info.type_weights[hrt] += ssp->apps[i].weight;
-        hr_info.type_being_used[hrt] = true;
-    }
+        // find the weight for each HR type
+        //
+        for (i=0; i<ssp->napps; i++) {
+            hrt = ssp->apps[i].homogeneous_redundancy;
+            hr_info.type_weights[hrt] += ssp->apps[i].weight;
+            hr_info.type_being_used[hrt] = true;
+        }
 
-    // compute the slot allocations for HR classes
-    //
-    hr_info.allocate(ssp->max_wu_results);
-    hr_info.show(stderr);
+        // compute the slot allocations for HR classes
+        //
+        hr_info.allocate(ssp->max_wu_results);
+        hr_info.show(stderr);
+    }
 }
 
 // write a summary of feeder state to stderr
 //
 void show_state(int) {
     ssp->show(stderr);
-    hr_info.show(stderr);
+    if (config.hr_allocate_slots) {
+        hr_info.show(stderr);
+    }
 }
 
 void show_version() {
@@ -656,9 +684,10 @@ void usage(char *name) {
         "including an array of work items (results/workunits to send).\n\n"
         "Usage: %s [OPTION]...\n\n"
         "Options:\n"
-        "  [ -d X | --debug_level X]        Set Debug level to X\n"
+        "  [ -d X | --debug_level X]        Set log verbosity to X (1..4)\n"
         "  [ --allapps ]                    Interleave results from all applications uniformly.\n"
         "  [ --random_order ]               order by \"random\" field of result\n"
+        "  [ --priority_asc ]               order by increasing \"priority\" field of result\n"
         "  [ --priority_order ]             order by decreasing \"priority\" field of result\n"
         "  [ --priority_order_create_time ] order by priority, then by increasing WU create time\n"
         "  [ --purge_stale x ]              remove work items from the shared memory segment after x secs\n"
@@ -677,7 +706,7 @@ void usage(char *name) {
 int main(int argc, char** argv) {
     int i, retval;
     void* p;
-    char path[256];
+    char path[MAXPATHLEN], order_buf[1024];
 
     for (i=1; i<argc; i++) {
         if (is_arg(argv[i], "d") || is_arg(argv[i], "debug_level")) {
@@ -693,10 +722,26 @@ int main(int argc, char** argv) {
             order_clause = "order by r1.random ";
         } else if (is_arg(argv[i], "allapps")) {
             all_apps = true;
+        } else if (is_arg(argv[i], "priority_asc")) {
+            order_clause = "order by r1.priority asc ";
         } else if (is_arg(argv[i], "priority_order")) {
             order_clause = "order by r1.priority desc ";
         } else if (is_arg(argv[i], "priority_order_create_time")) {
             order_clause = "order by r1.priority desc, r1.workunitid";
+        } else if (is_arg(argv[i], "by_batch")) {
+            // Evenly distribute work among batches
+            // The 0=1 causes anything before the union statement
+            // to result in an empty set,
+            // and the '#' at the end comments out anthing following our query
+            // This has allowed us to inject a more customizable query
+            //
+            sprintf(order_buf, "and 0=1 union (SELECT r1.id, r1.priority, r1.server_state, r1.report_deadline, workunit.* FROM workunit JOIN ("
+                "SELECT *, CASE WHEN @batch != t.batch THEN @rownum := 0 WHEN @batch = t.batch THEN @rownum := @rownum + 1 END AS rank, @batch := t.batch "
+                "FROM (SELECT @rownum := 0, @batch := 0, r.* FROM result r WHERE r.server_state=2 ORDER BY batch) t) r1 ON workunit.id=r1.workunitid "
+                "ORDER BY rank LIMIT %d)#",
+                enum_limit
+            );
+            order_clause = order_buf;      
         } else if (is_arg(argv[i], "purge_stale")) {
             purge_stale_time = atoi(argv[++i])*60;
         } else if (is_arg(argv[i], "appids")) {
@@ -734,7 +779,7 @@ int main(int argc, char** argv) {
                 usage(argv[0]);
                 exit(1);
             }
-            sleep_interval = atof(argv[i]);
+            sleep_interval = atoi(argv[i]);
         } else if (is_arg(argv[i], "v") || is_arg(argv[i], "version")) {
             show_version();
             exit(0);
@@ -847,6 +892,8 @@ int main(int argc, char** argv) {
         weighted_interleave(
             weights, ssp->napps, ssp->max_wu_results, app_indices, counts
         );
+        free(weights);
+        free(counts);
     } else {
         napps = 1;
     }

@@ -19,18 +19,18 @@
 #include "boinc_win.h"
 #else
 #include "config.h"
-#include <cassert>
 #include <cstring>
 #include <string>
 #endif
 
-#include "str_util.h"
-#include "util.h"
-#include "msg_log.h"
-
 #ifdef _USING_FCGI_
 #include "boinc_fcgi.h"
 #endif
+
+#include "str_util.h"
+#include "util.h"
+
+#include "msg_log.h"
 
 using std::string;
 
@@ -71,8 +71,6 @@ MSG_LOG::MSG_LOG(FILE* output_) {
 }
 
 void MSG_LOG::enter_level(int diff) {
-    assert (indent_level >= 0);
-
     if (indent_level <= 0 ) indent_level = 0;
     if ((indent_level + diff) <= 0) return;
     if (indent_level >= 39 ) indent_level = 39;
@@ -81,8 +79,6 @@ void MSG_LOG::enter_level(int diff) {
     spaces[indent_level] = ' ';
     indent_level += diff*2;
     spaces[indent_level] = 0;
-
-    assert (indent_level >= 0);
 }
 
 void MSG_LOG::vprintf(int kind, const char* format, va_list va) {
@@ -207,4 +203,3 @@ void SCOPE_MSG_LOG::printf_file(
     messages.vprintf_file(kind, filename, prefix_format, va);
     va_end(va);
 }
-

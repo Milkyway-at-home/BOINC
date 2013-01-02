@@ -44,7 +44,6 @@
 #include "res/linuxicon.xpm"
 #include "res/atiicon.xpm"
 #include "res/nvidiaicon.xpm"
-#include "res/multicore.xpm"
 #include "res/blankicon.xpm"
 
 
@@ -62,7 +61,6 @@ class CProjectInfo : public wxObject
         m_bProjectSupportsLinux = false;
         m_bProjectSupportsCUDA = false;
         m_bProjectSupportsCAL = false;
-        m_bProjectSupportsMulticore = false;
     }
 
 public:
@@ -78,7 +76,6 @@ public:
     bool m_bProjectSupportsLinux;
     bool m_bProjectSupportsCUDA;
     bool m_bProjectSupportsCAL;
-    bool m_bProjectSupportsMulticore;
 };
 
 IMPLEMENT_DYNAMIC_CLASS( CProjectInfo, wxObject )
@@ -163,7 +160,6 @@ bool CProjectInfoPage::Create( CBOINCBaseWizard* parent )
     m_pProjectDetailsSupportedPlatformLinuxCtrl = NULL;
     m_pProjectDetailsSupportedPlatformATICtrl = NULL;
     m_pProjectDetailsSupportedPlatformNvidiaCtrl = NULL;
-    m_pProjectDetailsSupportedPlatformMultiCoreCtrl = NULL;
     m_pProjectDetailsSupportedPlatformBlankCtrl = NULL;
     m_pProjectURLStaticCtrl = NULL;
     m_pProjectURLCtrl = NULL;
@@ -310,9 +306,6 @@ void CProjectInfoPage::CreateControls()
     m_pProjectDetailsSupportedPlatformNvidiaCtrl = new wxStaticBitmap( itemWizardPage23, wxID_STATIC, GetBitmapResource(wxT("nvidiaicon.xpm")), wxDefaultPosition, wxSize(16,16), 0 );
     itemBoxSizer26->Add(m_pProjectDetailsSupportedPlatformNvidiaCtrl, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 5);
 
-    m_pProjectDetailsSupportedPlatformMultiCoreCtrl = new wxStaticBitmap( itemWizardPage23, wxID_STATIC, GetBitmapResource(wxT("multicore.xpm")), wxDefaultPosition, wxSize(16,16), 0 );
-    itemBoxSizer26->Add(m_pProjectDetailsSupportedPlatformMultiCoreCtrl, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 5);
-
     m_pProjectDetailsSupportedPlatformBlankCtrl = new wxStaticBitmap( itemWizardPage23, wxID_STATIC, GetBitmapResource(wxT("blankicon.xpm")), wxDefaultPosition, wxSize(16,16), 0 );
     itemBoxSizer26->Add(m_pProjectDetailsSupportedPlatformBlankCtrl, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT|wxTOP, 5);
 
@@ -406,11 +399,6 @@ wxBitmap CProjectInfoPage::GetBitmapResource( const wxString& name )
         wxBitmap bitmap(nvidiaicon_xpm);
         return bitmap;
     }
-    else if (name == wxT("multicore.xpm"))
-    {
-        wxBitmap bitmap(multicore_xpm);
-        return bitmap;
-    }
     else if (name == wxT("blankicon.xpm"))
     {
         wxBitmap bitmap(blankicon_xpm);
@@ -476,54 +464,56 @@ void CProjectInfoPage::OnProjectCategorySelected( wxCommandEvent& WXUNUSED(event
 void CProjectInfoPage::OnProjectSelected( wxCommandEvent& WXUNUSED(event) ) {
     wxLogTrace(wxT("Function Start/End"), wxT("CProjectInfoPage::OnProjectSelected - Function Begin"));
 
-    CProjectInfo* pProjectInfo = (CProjectInfo*)m_pProjectsCtrl->GetClientData(m_pProjectsCtrl->GetSelection());
+    if (m_pProjectsCtrl->GetSelection() != wxNOT_FOUND) {
 
-    wxString strURL = pProjectInfo->m_strURL;
-    EllipseStringIfNeeded(strURL, m_pProjectDetailsURLCtrl);
+        CProjectInfo* pProjectInfo = (CProjectInfo*)m_pProjectsCtrl->GetClientData(m_pProjectsCtrl->GetSelection());
 
-    // Populate the project details area
-    wxString desc = pProjectInfo->m_strDescription;
-    // Change all occurrences of "<sup>n</sup>" to "^n"
-    desc.Replace(wxT("<sup>"), wxT("^"), true);
-    desc.Replace(wxT("</sup>"), wxT(""), true);
+        wxString strURL = pProjectInfo->m_strURL;
+        EllipseStringIfNeeded(strURL, m_pProjectDetailsURLCtrl);
 
-    m_pProjectDetailsDescriptionCtrl->SetValue(desc);
-    m_pProjectDetailsURLCtrl->SetLabel(strURL);
-    m_pProjectDetailsURLCtrl->SetURL(pProjectInfo->m_strURL);
-    // Set tooltip to full text in case ellipsed
-    m_pProjectDetailsURLCtrl->SetToolTip(pProjectInfo->m_strURL);
+        // Populate the project details area
+        wxString desc = pProjectInfo->m_strDescription;
+        // Change all occurrences of "<sup>n</sup>" to "^n"
+        desc.Replace(wxT("<sup>"), wxT("^"), true);
+        desc.Replace(wxT("</sup>"), wxT(""), true);
 
-    m_pProjectDetailsSupportedPlatformWindowsCtrl->Hide();
-    m_pProjectDetailsSupportedPlatformMacCtrl->Hide();
-    m_pProjectDetailsSupportedPlatformLinuxCtrl->Hide();
-    m_pProjectDetailsSupportedPlatformATICtrl->Hide();
-    m_pProjectDetailsSupportedPlatformNvidiaCtrl->Hide();
-    m_pProjectDetailsSupportedPlatformMultiCoreCtrl->Hide();
-    if (pProjectInfo->m_bProjectSupportsWindows) m_pProjectDetailsSupportedPlatformWindowsCtrl->Show();
-    if (pProjectInfo->m_bProjectSupportsMac) m_pProjectDetailsSupportedPlatformMacCtrl->Show();
-    if (pProjectInfo->m_bProjectSupportsLinux) m_pProjectDetailsSupportedPlatformLinuxCtrl->Show();
-    if (pProjectInfo->m_bProjectSupportsCAL) m_pProjectDetailsSupportedPlatformATICtrl->Show();
-    if (pProjectInfo->m_bProjectSupportsCUDA) m_pProjectDetailsSupportedPlatformNvidiaCtrl->Show();
-    if (pProjectInfo->m_bProjectSupportsMulticore) m_pProjectDetailsSupportedPlatformMultiCoreCtrl->Show();
+        m_pProjectDetailsDescriptionCtrl->SetValue(desc);
+        m_pProjectDetailsURLCtrl->SetLabel(strURL);
+        m_pProjectDetailsURLCtrl->SetURL(pProjectInfo->m_strURL);
+        // Set tooltip to full text in case ellipsed
+        m_pProjectDetailsURLCtrl->SetToolTip(pProjectInfo->m_strURL);
 
-    // Populate non-control data for use in other places of the wizard
-    SetProjectURL( pProjectInfo->m_strURL );
-    SetProjectSupported( pProjectInfo->m_bSupportedPlatformFound );
+        m_pProjectDetailsSupportedPlatformWindowsCtrl->Hide();
+        m_pProjectDetailsSupportedPlatformMacCtrl->Hide();
+        m_pProjectDetailsSupportedPlatformLinuxCtrl->Hide();
+        m_pProjectDetailsSupportedPlatformATICtrl->Hide();
+        m_pProjectDetailsSupportedPlatformNvidiaCtrl->Hide();
+        if (pProjectInfo->m_bProjectSupportsWindows) m_pProjectDetailsSupportedPlatformWindowsCtrl->Show();
+        if (pProjectInfo->m_bProjectSupportsMac) m_pProjectDetailsSupportedPlatformMacCtrl->Show();
+        if (pProjectInfo->m_bProjectSupportsLinux) m_pProjectDetailsSupportedPlatformLinuxCtrl->Show();
+        if (pProjectInfo->m_bProjectSupportsCAL) m_pProjectDetailsSupportedPlatformATICtrl->Show();
+        if (pProjectInfo->m_bProjectSupportsCUDA) m_pProjectDetailsSupportedPlatformNvidiaCtrl->Show();
 
-    TransferDataToWindow();
-    Layout();
+        // Populate non-control data for use in other places of the wizard
+        SetProjectURL( pProjectInfo->m_strURL );
+        SetProjectSupported( pProjectInfo->m_bSupportedPlatformFound );
 
-    wxString strResearchArea = pProjectInfo->m_strSpecificArea;
-    EllipseStringIfNeeded(strResearchArea, m_pProjectDetailsResearchAreaCtrl);
-    m_pProjectDetailsResearchAreaCtrl->SetLabel(strResearchArea);
-    // Set tooltip to full text in case ellipsed
-    m_pProjectDetailsResearchAreaCtrl->SetToolTip(pProjectInfo->m_strSpecificArea);
+        TransferDataToWindow();
+        Layout();
 
-    wxString strOrganization = pProjectInfo->m_strOrganization;
-    EllipseStringIfNeeded(strOrganization, m_pProjectDetailsOrganizationCtrl);
-    m_pProjectDetailsOrganizationCtrl->SetLabel(strOrganization);
-    // Set tooltip to full text in case ellipsed
-    m_pProjectDetailsOrganizationCtrl->SetToolTip(pProjectInfo->m_strOrganization);
+        wxString strResearchArea = pProjectInfo->m_strSpecificArea;
+        EllipseStringIfNeeded(strResearchArea, m_pProjectDetailsResearchAreaCtrl);
+        m_pProjectDetailsResearchAreaCtrl->SetLabel(strResearchArea);
+        // Set tooltip to full text in case ellipsed
+        m_pProjectDetailsResearchAreaCtrl->SetToolTip(pProjectInfo->m_strSpecificArea);
+
+        wxString strOrganization = pProjectInfo->m_strOrganization;
+        EllipseStringIfNeeded(strOrganization, m_pProjectDetailsOrganizationCtrl);
+        m_pProjectDetailsOrganizationCtrl->SetLabel(strOrganization);
+        // Set tooltip to full text in case ellipsed
+        m_pProjectDetailsOrganizationCtrl->SetToolTip(pProjectInfo->m_strOrganization);
+
+    }
 
     wxLogTrace(wxT("Function Start/End"), wxT("CProjectInfoPage::OnProjectSelected - Function End"));
 }
@@ -568,7 +558,6 @@ void CProjectInfoPage::OnPageChanged( wxWizardExEvent& event ) {
     wxASSERT(m_pProjectDetailsSupportedPlatformLinuxCtrl);
     wxASSERT(m_pProjectDetailsSupportedPlatformATICtrl);
     wxASSERT(m_pProjectDetailsSupportedPlatformNvidiaCtrl);
-    wxASSERT(m_pProjectDetailsSupportedPlatformMultiCoreCtrl);
     wxASSERT(m_pProjectURLStaticCtrl);
     wxASSERT(m_pProjectURLCtrl);
 
@@ -698,11 +687,6 @@ void CProjectInfoPage::OnPageChanged( wxWizardExEvent& event ) {
 						if (!pDoc->state.have_ati) continue;
                     }
 
-                    if (strProjectPlatform.Find(_T("[mt")) != wxNOT_FOUND) {
-                        pProjectInfo->m_bProjectSupportsMulticore = true;
-						if (pDoc->state.host_info.p_ncpus < 4) continue;
-                    }
-                    
                     if (strClientPlatform == strRootProjectPlatform) {
                         pProjectInfo->m_bSupportedPlatformFound = true;
                     }
@@ -717,13 +701,12 @@ void CProjectInfoPage::OnPageChanged( wxWizardExEvent& event ) {
 
             wxLogTrace(
                 wxT("Function Status"),
-                wxT("CProjectInfoPage::OnPageChanged - Windows: '%d', Mac: '%d', Linux: '%d', Nvidia: '%d', ATI: '%d', Multicore: '%d', Platform: '%d'"),
+                wxT("CProjectInfoPage::OnPageChanged - Windows: '%d', Mac: '%d', Linux: '%d', Nvidia: '%d', ATI: '%d', Platform: '%d'"),
                 pProjectInfo->m_bProjectSupportsWindows,
                 pProjectInfo->m_bProjectSupportsMac,
                 pProjectInfo->m_bProjectSupportsLinux,
                 pProjectInfo->m_bProjectSupportsCUDA,
                 pProjectInfo->m_bProjectSupportsCAL,
-                pProjectInfo->m_bProjectSupportsMulticore,
                 pProjectInfo->m_bSupportedPlatformFound
             );
         }

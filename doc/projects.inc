@@ -10,9 +10,40 @@ require_once("../inc/translation.inc");
 // 5: logo
 // 6: master URL (if different from web site)
 
+$sensing = array(
+    tra("Distributed sensing"),
+    array(
+        array(
+            "Quake Catcher Network",
+            "http://qcn.stanford.edu/sensor/",
+            tra("Stanford University"),
+            tra("Seismology"),
+            tra("The Quake-Catcher Network is developing the world's largest seismic network using sensors attached to Internet-connected computers.  You must buy a sensor to participate."),
+            ""
+        ),
+        array(
+            "Radioactive@Home",
+            "http://radioactiveathome.org/",
+            tra("BOINC Poland Foundation"),
+            tra("Environmental research"),
+            tra("This project is creating a free and continuously updated map of radiation levels by using sensors connected to volunteers' computers.  You must buy a sensor to participate."),
+            "radioactive.jpg",
+        ),
+    ),
+    "<br><span class=\"note\">".tra("To participate in these projects you must buy a sensor and attach it to your computer.")."</span>",
+);
+
 $cogsci = array(
     tra("Cognitive science and artifical intelligence"),
     array(
+        array(
+            "MindModeling@Home",
+            "http://mindmodeling.org/",
+            "University of Dayton and Wright State University",
+            "Cognitive Science",
+            "MindModeling@Home uses computational cognitive process modeling to better understand the human mind, and specifically to study the mechanisms and processes that enable and moderate human performance and learning.",
+            "mmlogo.gif"
+        ),
         array(
             "FreeHAL",
             "http://www.freehal.net/freehal_at_home/",
@@ -26,6 +57,14 @@ $cogsci = array(
 $biomed = array(
     tra("Biology and Medicine"),
     array(
+        array(
+            "FightMalaria@Home",
+            "http://boinc.ucd.ie/fmah/",
+            tra("University College Dublin"),
+            tra("Antimalarial drug discovery"),
+            tra("The parasite that causes malaria continues to evolve resistance to available medication. We therefore urgently need to discover new drugs to replace existing drugs. Importantly, these new drugs need to target NEW proteins in the parasite. The FightMalaria@Home project is aimed at finding these new targets."),
+            "FMAH_banner3_wt.png"
+        ),
         array(
             "POEM@HOME",
             "http://boinc.fzk.de/poem/",
@@ -119,13 +158,6 @@ $biomed = array(
 $earth = array(
     tra("Earth Sciences"),
     array(
-//        array(
-//            "Quake Catcher Network",
-//            "http://qcn.stanford.edu/",
-//            tra("Stanford University"),
-//            tra("Seismology"),
-//            tra("The Quake-Catcher Network is a collaborative initiative for developing the world's largest, low-cost strong-motion seismic network by utilizing sensors in and attached to internet-connected computers.")
-//        ),
         array(
             "Virtual Prairie",
             "http://vcsc.cs.uh.edu/virtual-prairie/",
@@ -145,8 +177,16 @@ $earth = array(
     ),
 );
 $astro_phys_chem = array(
-    tra("Astronomy/Physics/Chemistry"),
+    tra("Astronomy, Physics, and Chemistry"),
     array(
+        array(
+            "Constellation",
+            "http://aerospaceresearch.net/constellation/",
+            "<a href=\"http://rechenkraft.net\">Rechenkraft.net</a>, <a href=\"http://stuttgart.dglr.de\">DGLR</a>, <a href=\"http://selfnet.de\">Selfnet</a>, and <a href=\"http://shackspace.de\">shack</a>",
+            "Aerospace-related science and engineering",
+            "Constellation is a platform for aerospace-related simulations, including trajectory optimization of launchers, satellites and probes, simulation of Moon's near-surface exosphere, and analysis of dynamic systems of exploration-rovers",
+            "constellation2.png"
+        ),
         array(
             "eOn",
             "http://eon.ices.utexas.edu/eon2/",
@@ -209,6 +249,14 @@ $astro_phys_chem = array(
             tra("Physics"),
             tra("The Large Hadron Collider (LHC) is a particle accelerator at CERN, the European Organization for Nuclear Research, the world's largest particle physics laboratory.  It is the most powerful instrument ever built to investigate on particles proprieties. LHC@home runs simulations to improve the design of LHC and its detectors."),
             "lhc.jpg"
+        ),
+        array(
+            "LHC@home Test4Theory",
+            "http://lhcathome2.cern.ch/test4theory/",
+            tra("CERN (European Organization for Nuclear Research)"),
+            tra("Physics"),
+            tra("This project uses CERN-developed virtual machine technology for full-fledged LHC event physics simulation on volunteer computers.  Requires that you install VirtualBox on your computer"),
+            "t4t.png"
         ),
         array(
             "SETI@home",
@@ -285,6 +333,30 @@ $math = array(
     tra("Mathematics, computing, and games"),
     array(
         array(
+            "OProject@Home",
+            "http://oproject.info/",
+            tra("Private"),
+            tra("Mathematics, Physics, Artificial Intelligence"),
+            tra("Simulation of quantum computing; Goldbach's conjecture."),
+            "oproject_logo.png"
+        ),
+        array(
+            "NumberFields@home",
+            "http://stat.la.asu.edu/NumberFields/",
+            "Arizona State University, school of Mathematics",
+            "Mathematics",
+            "NumberFields@home searches for fields with special properties. The primary application of this research is in the realm of algebraic number theory. Number theorists can mine the data for interesting patterns to help them formulate conjectures about number fields. Ultimately, this research will lead to a deeper understanding of the profound properties of numbers, the basic building blocks of all mathematics.",
+            "nf_banner_10.jpg"
+        ),
+        array(
+            "SAT@home",
+            "http://sat.isa.ru/pdsat/",
+            "Institute for Systems Analysis and Institute for System Dynamics and Control Theory, Russian Academy of Science",
+            "Computer Science",
+            "Solve hard and practically important problems (discrete functions inversion problems, discrete optimization, bioinformatics, etc.) that can be effectively reduced to Boolean satisfiability problem.",
+            "sat_logo.png"
+        ),
+        array(
             "Mersenne@home",
             "http://mersenneathome.net/",
             tra("Private"),
@@ -353,7 +425,7 @@ $math = array(
             tra("Mathematical Institute of Leiden University / Kennislink"),
             tra("Mathematics"),
             tra("Search for 'abc-triples': positive integers a,b,c such that a+b=c, a &lt; b &lt; c, a,b,c have no common divisors and c > rad(abc), where rad(n) is the product of the distinct prime factors of n. The ABC conjecture says that there are only finitely many a,b,c such that log(c)/log(rad(abc)) > h for any real h > 1. The ABC conjecture is currently one of the greatest open problems in mathematics. If it is proven to be true, a lot of other open problems can be answered directly from it."),
-            ""
+            "abclogo.jpg"
         ),
         array(
             "PrimeGrid",
@@ -416,7 +488,7 @@ $math = array(
             "http://sudoku.nctu.edu.tw/",
             "National Chiao Tung University, Taiwan",
             tra("Mathematics"),
-            "Sudoku@vtaiwan seeks to solve the minimum Sudoku problem, which is a well-known problem in mathematics and computer science.",
+            "Sudoku@vtaiwan seeks to solve the minimum Sudoku problem, a well-known problem in mathematics and computer science.",
             "sudoku.png"
         ),
         array(
@@ -430,6 +502,6 @@ $math = array(
     ),
 );
 
-$areas = array($biomed, $astro_phys_chem, $math, $earth, $mixed, $cogsci);
+$areas = array($biomed, $astro_phys_chem, $math, $earth, $mixed, $cogsci, $sensing);
 
 ?>

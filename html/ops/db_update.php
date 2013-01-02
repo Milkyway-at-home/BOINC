@@ -1,4 +1,3 @@
-#! /usr/bin/env php
 <?php
 // This file is part of BOINC.
 // http://boinc.berkeley.edu
@@ -797,14 +796,51 @@ function update_9_20_2011() {
     ");
 }
 
-function_update_1_30_2012() {
+function update_1_30_2012() {
     do_query("
         alter table workunit
         add transitioner_flags tinyint not null
     ");
     do_query(
-        "add index asgn_target(target_type, target_id)"
+        "alter table assignment add index asgn_target(target_type, target_id)"
     );
+}
+
+function update_6_4_2012() {
+    do_query("
+        alter table batch
+        add project_state integer not null,
+        add description varchar(255) not null
+    ");
+}
+
+function update_8_24_2012() {
+    do_query("
+        alter table app
+        add non_cpu_intensive tinyint not null default 0
+    ");
+}
+
+function update_8_26_2012() {
+    do_query("
+        alter table app
+        add locality_scheduling integer not null default 0
+    ");
+}
+
+function update_11_25_2012() {
+    do_query("
+        create table job_file (
+            id                      integer         not null auto_increment,
+            md5                     char(64)        not null,
+            create_time             double          not null,
+            delete_time             double          not null,
+            primary key(id)
+        ) engine = InnoDB
+    ");
+    do_query("
+        alter table job_file add index md5 (md5)
+    ");
 }
 
 // Updates are done automatically if you use "upgrade".
@@ -831,8 +867,10 @@ $db_updates = array (
     array(24225, "update_9_15_2011"),
     array(24248, "update_9_20_2011"),
     array(25169, "update_1_30_2012"),
+    array(25734, "update_6_4_2012"),
+    array(26060, "update_8_24_2012"),
+    array(26062, "update_8_26_2012"),
+    array(27000, "update_11_25_2012"),
 );
-
-
 
 ?>

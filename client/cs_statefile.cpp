@@ -23,16 +23,19 @@
 #include <errno.h>
 #endif
 
+#include "error_numbers.h"
+#include "filesys.h"
+#include "md5_file.h"
 #include "parse.h"
 #include "str_util.h"
 #include "util.h"
-#include "error_numbers.h"
-#include "filesys.h"
 
-#include "cs_proxy.h"
-#include "file_names.h"
 #include "client_msgs.h"
 #include "client_state.h"
+#include "cs_proxy.h"
+#include "file_names.h"
+#include "project.h"
+#include "result.h"
 
 #define MAX_STATE_FILE_WRITE_ATTEMPTS 2
 
@@ -65,7 +68,8 @@ static bool valid_state_file(const char* fname) {
     return false;
 }
 
-// return true if r0 arrived before r1
+// return true if r0 arrived before r1,
+// with tie-break based on name hash.
 // used to sort result list
 //
 static inline bool arrived_first(RESULT* r0, RESULT* r1) {
@@ -75,7 +79,7 @@ static inline bool arrived_first(RESULT* r0, RESULT* r1) {
     if (r0->received_time > r1->received_time) {
         return false;
     }
-    return (r0 < r1);    // arbitrary but deterministic
+    return (r0->name_md5 < r1->name_md5);
 }
 
 // Parse the client_state.xml file
@@ -391,8 +395,8 @@ int CLIENT_STATE::parse_state_file_aux(const char* fname) {
                 xp.skip_unexpected();
                 continue;
             }
-            project->parse_project_files(xp, false);
-            project->link_project_files(false);
+            parse_project_files(xp, project->project_files);
+            project->link_project_files();
             continue;
         }
         if (xp.match_tag("host_info")) {
@@ -542,12 +546,27 @@ int CLIENT_STATE::parse_state_file_aux(const char* fname) {
     return 0;
 }
 
+// this is called whenever new results are added,
+// namely at startup and after a scheduler RPC.
+// Sort results based on (arrival time, name),
+// then set result.index to their position in this order.
+// This determines the order in which results are run.
+//
 void CLIENT_STATE::sort_results() {
+    unsigned int i;
+    for (i=0; i<results.size(); i++) {
+        RESULT* rp = results[i];
+        rp->name_md5 = md5_string(string(rp->name));
+    }
     std::sort(
         results.begin(),
         results.end(),
         arrived_first
     );
+    for (i=0; i<results.size(); i++) {
+        RESULT* rp = results[i];
+        rp->index = i;
+    }
 }
 
 #ifndef SIM
@@ -786,7 +805,7 @@ int CLIENT_STATE::write_state_file_if_needed() {
 //
 void CLIENT_STATE::check_anonymous() {
     unsigned int i;
-    char dir[256], path[256];
+    char dir[256], path[MAXPATHLEN];
     FILE* f;
     int retval;
 
@@ -817,7 +836,7 @@ void CLIENT_STATE::check_anonymous() {
 // parse a project's app_info.xml (anonymous platform) file
 //
 int CLIENT_STATE::parse_app_info(PROJECT* p, FILE* in) {
-    char buf[256], path[1024];
+    char buf[256], path[MAXPATHLEN];
     MIOFILE mf;
     mf.init_file(in);
     XML_PARSER xp(&mf);
@@ -850,7 +869,7 @@ int CLIENT_STATE::parse_app_info(PROJECT* p, FILE* in) {
                     _("File referenced in app_info.xml does not exist: ")
                 );
                 strcat(buf, fip->name);
-                msg_printf(p, MSG_USER_ALERT, buf);
+                msg_printf(p, MSG_USER_ALERT, "%s", buf);
                 delete fip;
                 continue;
             }
@@ -907,11 +926,6 @@ int CLIENT_STATE::write_state_gui(MIOFILE& f) {
 
     f.printf("<client_state>\n");
 
-#if 1
-    // NOTE: the following stuff is not in CC_STATE.
-    // However, BoincView (which does its own parsing) expects it
-    // to be in the get_state() reply, so leave it in for now
-    //
     retval = host_info.write(f, true, false);
     if (retval) return retval;
 
@@ -924,11 +938,17 @@ int CLIENT_STATE::write_state_gui(MIOFILE& f) {
         f.printf("<have_ati/>\n");
     }
 
-    retval = time_stats.write(f, false);
-    if (retval) return retval;
+#if 1
+    // NOTE: the following is not in CC_STATE.
+    // However, BoincView (which does its own parsing) expects it
+    // to be in the get_state() reply, so leave it in for now
+    //
     retval = net_stats.write(f);
     if (retval) return retval;
 #endif
+
+    retval = time_stats.write(f, true);
+    if (retval) return retval;
 
     for (j=0; j<projects.size(); j++) {
         PROJECT* p = projects[j];

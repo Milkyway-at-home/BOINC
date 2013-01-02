@@ -35,11 +35,12 @@
 #include "str_replace.h"
 #include "util.h"
 
-#include "main.h"
 #include "client_msgs.h"
 #include "client_state.h"
-#include "sandbox.h"
 #include "cs_proxy.h"
+#include "main.h"
+#include "project.h"
+#include "sandbox.h"
 
 static void print_options(char* prog) {
     printf(
@@ -136,7 +137,10 @@ void CLIENT_STATE::parse_cmdline(int argc, char** argv) {
             check_all_logins = true;
         } else if (ARG(daemon)) {
             executing_as_daemon = true;
-        } else if (ARG(detach_console) || ARG(detach_phase_two)) {
+        } else if (ARG(detach)) {
+#ifdef _WIN32
+            FreeConsole();
+#endif
             detach_console = true;
         } else if (ARG(detach_project)) {
             if (i == argc-1) show_options = true;

@@ -54,6 +54,10 @@ extern "C" int debug_printf(const char *fmt, ...);
 #include <sys/stat.h>
 #include <sys/mman.h>
 
+#include "error_numbers.h"
+
+#include "shmem.h"
+
 // MAP_FILE isn't defined on most operating systems, and even then, it
 // is often defined just for the sake of compatibility.  On those that
 // don't define it, we will....
@@ -61,10 +65,6 @@ extern "C" int debug_printf(const char *fmt, ...);
 #define MAP_FILE 0
 #endif
 #endif
-
-
-#include "error_numbers.h"
-#include "shmem.h"
 
 #ifdef _USING_FCGI_
 #include "boinc_fcgi.h"
@@ -352,7 +352,7 @@ int create_shmem_mmap(const char *path, size_t size, void** pp) {
     return 0;
 }
 
-int destroy_shmem_mmap(key_t key){
+int destroy_shmem_mmap(key_t /*key*/){
     return 0;
 }
 

@@ -32,7 +32,6 @@ function admin_page_head($title) {
 
     echo "<html><head><title>$title</title>
         <link rel=stylesheet type=\"text/css\" href=\"".URL_BASE."main.css\" media=\"all\" />
-        <link rel=\"stylesheet\" type=\"text/css\" href=\"$stylesheet\">
         </head>
         <body bgcolor=\"#ffffff\">
         <h2>".PROJECT.": $title</h2>
@@ -228,6 +227,35 @@ function current_versions($avs) {
         if (!$av->deprecated) $x[] = $av;
     }
     return $x;
+}
+
+function test_mysql_query($msg) {
+    echo "mysql_query($msg)<br/>";
+    return 1;
+}
+
+// for purposes of testing and seeing queries,
+// replace the two instances of mysql_query() below with test_mysql_query().
+//
+function cancel_wu($wuid1, $wuid2) {
+    $command1="update result set server_state=5, outcome=5 where server_state=2 and $wuid1<=workunitid and workunitid<=$wuid2";
+    $command2="update workunit set error_mask=error_mask|16 where $wuid1<=id and id<=$wuid2";
+
+    if (!mysql_query($command1)) {
+        echo "MySQL command $command1 failed:<br/>unable to cancel unsent results.<br/>";
+        return 1;
+    } else if (!mysql_query($command2)) {
+        echo "MySQL command $command2 failed:<br/>unable to cancel workunits.<br/>";
+        return 2;
+    }
+
+    // trigger the transitioner (it will set file_delete_state)
+
+    $now = time();
+    $query="update workunit set transition_time=$now where $wuid1<=id and id<=$wuid2";
+    mysql_query($query);
+
+    return 0;
 }
 
 if (isset($cli_only)) {

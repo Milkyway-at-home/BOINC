@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with BOINC.  If not, see <http://www.gnu.org/licenses/>.
 
-// boinccmd: command-line interface to a BOINC core client,
+// boinccmd: command-line interface to a BOINC client,
 // using GUI RPCs.
 //
 // usage: boinccmd [--host hostname] [--passwd passwd] command
@@ -93,7 +93,7 @@ Commands:\n\
    mode = always | auto | never\n\
  --task url task_name op            task operation\n\
    op = suspend | resume | abort\n\
- --version, -V                      show core client version\n\
+ --version, -V                      show client version\n\
 "
 );
     exit(1);
@@ -356,7 +356,6 @@ int main(int argc, char** argv) {
         pi.http_user_passwd = next_arg(argc, argv, i);
         pi.socks_server_name = next_arg(argc, argv, i);
         pi.socks_server_port = atoi(next_arg(argc, argv, i));
-        pi.socks_version = atoi(next_arg(argc, argv, i));
         pi.socks5_user_name = next_arg(argc, argv, i);
         pi.socks5_user_passwd = next_arg(argc, argv, i);
         pi.noproxy_hosts = next_arg(argc, argv, i);

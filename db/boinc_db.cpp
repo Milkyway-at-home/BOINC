@@ -73,6 +73,7 @@ void TRANSITIONER_ITEM::clear() {memset(this, 0, sizeof(*this));}
 void VALIDATOR_ITEM::clear() {memset(this, 0, sizeof(*this));}
 void SCHED_RESULT_ITEM::clear() {memset(this, 0, sizeof(*this));}
 void HOST_APP_VERSION::clear() {memset(this, 0, sizeof(*this));}
+void USER_SUBMIT::clear() {memset(this, 0, sizeof(*this));}
 void STATE_COUNTS::clear() {memset(this, 0, sizeof(*this));}
 void FILE_ITEM::clear() {memset(this, 0, sizeof(*this));}
 void FILESET_ITEM::clear() {memset(this, 0, sizeof(*this));}
@@ -115,6 +116,8 @@ DB_ASSIGNMENT::DB_ASSIGNMENT(DB_CONN* dc) :
     DB_BASE("assignment", dc?dc:&boinc_db){}
 DB_HOST_APP_VERSION::DB_HOST_APP_VERSION(DB_CONN* dc) :
     DB_BASE("host_app_version", dc?dc:&boinc_db){}
+DB_USER_SUBMIT::DB_USER_SUBMIT(DB_CONN* dc) :
+    DB_BASE("user_submit", dc?dc:&boinc_db){}
 DB_STATE_COUNTS::DB_STATE_COUNTS(DB_CONN* dc) :
     DB_BASE("state_counts", dc?dc:&boinc_db){}
 DB_TRANSITIONER_ITEM_SET::DB_TRANSITIONER_ITEM_SET(DB_CONN* dc) :
@@ -203,7 +206,9 @@ void DB_APP::db_print(char* buf){
         "target_nresults=%d, "
         "min_avg_pfc=%.15e, "
         "host_scale_check=%d, "
-        "homogeneous_app_version=%d, ",
+        "homogeneous_app_version=%d, "
+        "non_cpu_intensive=%d, "
+        "locality_scheduling=%d ",
         create_time,
         name,
         min_version,
@@ -215,7 +220,9 @@ void DB_APP::db_print(char* buf){
         target_nresults,
         min_avg_pfc,
         host_scale_check?1:0,
-        homogeneous_app_version?1:0
+        homogeneous_app_version?1:0,
+        non_cpu_intensive?1:0,
+        locality_scheduling
     );
 }
 
@@ -235,6 +242,8 @@ void DB_APP::db_parse(MYSQL_ROW &r) {
     min_avg_pfc = atof(r[i++]);
     host_scale_check = (atoi(r[i++]) != 0);
     homogeneous_app_version = (atoi(r[i++]) != 0);
+    non_cpu_intensive = (atoi(r[i++]) != 0);
+    locality_scheduling = atoi(r[i++]);
 }
 
 void DB_APP_VERSION::db_print(char* buf){
@@ -1228,6 +1237,31 @@ void DB_HOST_APP_VERSION::db_parse(MYSQL_ROW& r) {
     consecutive_valid = atoi(r[i++]);
 }
 
+void DB_USER_SUBMIT::db_print(char* buf) {
+    sprintf(buf,
+        "user_id=%d, "
+        "quota=%.15e, "
+        "logical_start_time=%.15e, "
+        "submit_all=%d, "
+        "manage_all=%d ",
+        user_id,
+        quota,
+        logical_start_time,
+        submit_all?1:0,
+        manage_all?1:0
+    );
+}
+
+void DB_USER_SUBMIT::db_parse(MYSQL_ROW& r) {
+    int i=0;
+    clear();
+    user_id = atoi(r[i++]);
+    quota = atof(r[i++]);
+    logical_start_time = atof(r[i++]);
+    submit_all = (atoi(r[i++]) != 0);
+    manage_all = (atoi(r[i++]) != 0);
+}
+
 void DB_STATE_COUNTS::db_print(char* buf) {
     sprintf(buf,
         "appid=%d, "
@@ -1369,7 +1403,7 @@ int DB_TRANSITIONER_ITEM_SET::enumerate(
             "   workunit AS wu "
             "       LEFT JOIN result AS res ON wu.id = res.workunitid "
             "WHERE "
-            "   wu.transition_time < %d %s and transitioner_flags<>%d"
+            "   wu.transition_time < %d %s and transitioner_flags<>%d "
             "LIMIT "
             "   %d ",
             transition_time, mod_clause, TRANSITION_NONE, nresult_limit
@@ -1526,6 +1560,8 @@ void VALIDATOR_ITEM::parse(MYSQL_ROW& r) {
     res.sent_time = atoi(r[i++]);
     res.received_time = atoi(r[i++]);
     res.appid = atoi(r[i++]);
+    res.app_version_id = atoi(r[i++]);
+    res.app_version_num = atoi(r[i++]);
     res.elapsed_time = atof(r[i++]);
     res.flops_estimate = atof(r[i++]);
     res.app_version_id = atoi(r[i++]);
@@ -1587,6 +1623,8 @@ int DB_VALIDATOR_ITEM_SET::enumerate(
             "   res.sent_time, "
             "   res.received_time, "
             "   res.appid, "
+            "   res.app_version_id, "
+            "   res.app_version_num, "
             "   res.elapsed_time, "
             "   res.flops_estimate, "
             "   res.app_version_id, "
@@ -1652,14 +1690,13 @@ int DB_VALIDATOR_ITEM_SET::update_result(RESULT& res) {
 
     sprintf(query,
         "update result set validate_state=%d, granted_credit=%.15e, "
-        "server_state=%d, outcome=%d, opaque=%lf, random=%d, runtime_outlier=%d "
+        "server_state=%d, outcome=%d, opaque=%lf, runtime_outlier=%d "
         "where id=%u",
         res.validate_state,
         res.granted_credit,
         res.server_state,
         res.outcome,
         res.opaque,
-        res.random,
         res.runtime_outlier?1:0,
         res.id
     );
@@ -1743,8 +1780,12 @@ int DB_WORK_ITEM::enumerate(
         //
         sprintf(query,
             "select high_priority r1.id, r1.priority, r1.server_state, r1.report_deadline, workunit.* from result r1 force index(ind_res_st), workunit, app "
-            " where r1.server_state=%d and r1.workunitid=workunit.id "
-            " and workunit.appid=app.id and app.deprecated=0 "
+            " where r1.server_state=%d "
+            " and r1.workunitid=workunit.id "
+            " and workunit.appid=app.id "
+            " and app.deprecated=0 "
+            " and workunit.error_mask=0 "
+            " and workunit.transitioner_flags=0 "
             " %s "
             " %s "
             "limit %d",
@@ -1786,6 +1827,7 @@ int DB_WORK_ITEM::enumerate_all(
             "select high_priority r1.id, r1.priority, r1.server_state, r1.report_deadline, workunit.* from result r1 force index(ind_res_st), workunit force index(primary), app"
             " where r1.server_state=%d and r1.workunitid=workunit.id and r1.id>%d "
             " and workunit.appid=app.id and app.deprecated=0 "
+            " and workunit.transitioner_flags=0 "
             " %s "
             "limit %d",
             RESULT_SERVER_STATE_UNSENT,
@@ -2319,10 +2361,12 @@ int DB_FILESET_SCHED_TRIGGER_ITEM_SET::select_by_name_state(
     return 0;
 }
 
-int DB_FILESET_SCHED_TRIGGER_ITEM_SET::contains_trigger(const char* fileset_name) {
+int DB_FILESET_SCHED_TRIGGER_ITEM_SET::contains_trigger(
+    const char* fileset_name
+) {
     // iterate over item vector
-    for(unsigned int i=0; i<items.size(); ++i) {
-        if(strcmp(items[i].fileset.name, fileset_name) == 0) {
+    for (unsigned int i=0; i<items.size(); ++i) {
+        if (strcmp(items[i].fileset.name, fileset_name) == 0) {
             // return 1-indexed position for boolean tests
             return i+1;
         }
@@ -2332,20 +2376,24 @@ int DB_FILESET_SCHED_TRIGGER_ITEM_SET::contains_trigger(const char* fileset_name
 
 void DB_VDA_FILE::db_print(char* buf){
     sprintf(buf,
+        "create_time=%f, "
         "dir='%s', "
-        "name='%s', "
+        "file_name='%s', "
         "size=%f, "
         "chunk_size=%f, "
-        "created=%f, "
         "need_update=%d, "
-        "inited=%d",
+        "initialized=%d, "
+        "retrieving=%d, "
+        "retrieved=%d",
+        create_time,
         dir,
-        name,
+        file_name,
         size,
         chunk_size,
-        created,
         need_update?1:0,
-        inited?1:0
+        initialized?1:0,
+        retrieving?1:0,
+        retrieved?1:0
     );
 }
 
@@ -2353,44 +2401,52 @@ void DB_VDA_FILE::db_parse(MYSQL_ROW &r) {
     int i=0;
     clear();
     id = atoi(r[i++]);
+    create_time = atof(r[i++]);
     strcpy(dir, r[i++]);
-    strcpy(name, r[i++]);
+    strcpy(file_name, r[i++]);
     size = atof(r[i++]);
     chunk_size = atof(r[i++]);
-    created = atof(r[i++]);
     need_update = (atoi(r[i++]) != 0);
-    inited = (atoi(r[i++]) != 0);
+    initialized = (atoi(r[i++]) != 0);
+    retrieving = (atoi(r[i++]) != 0);
+    retrieved = (atoi(r[i++]) != 0);
 }
 
 void DB_VDA_CHUNK_HOST::db_print(char* buf) {
     sprintf(buf,
+        "create_time=%f, "
         "vda_file_id=%d, "
         "host_id=%d, "
-        "name='%s', "
+        "physical_file_name='%s', "
         "present_on_host=%d, "
         "transfer_in_progress=%d, "
         "transfer_wait=%d, "
-        "transition_time=%f ",
+        "transfer_request_time=%f, "
+        "transfer_send_time=%f ",
+        create_time,
         vda_file_id,
         host_id,
-        name,
+        physical_file_name,
         present_on_host,
         transfer_in_progress,
         transfer_wait,
-        transition_time
+        transfer_request_time,
+        transfer_send_time
     );
 }
 
 void DB_VDA_CHUNK_HOST::db_parse(MYSQL_ROW &r) {
     int i=0;
     clear();
+    create_time = atof(r[i++]);
     vda_file_id = atoi(r[i++]);
     host_id = atoi(r[i++]);
-    strcpy(name, r[i++]);
+    strcpy(physical_file_name, r[i++]);
     present_on_host = (atoi(r[i++]) != 0);
     transfer_in_progress = (atoi(r[i++]) != 0);
     transfer_wait = (atoi(r[i++]) != 0);
-    transition_time = atof(r[i++]);
+    transfer_request_time = atof(r[i++]);
+    transfer_send_time = atof(r[i++]);
 }
 
 const char *BOINC_RCSID_ac374386c8 = "$Id$";

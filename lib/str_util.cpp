@@ -31,20 +31,18 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#if HAVE_ALLOCA_H
-#include "alloca.h"
 #endif
+
+#ifdef _USING_FCGI_
+#include "boinc_fcgi.h"
 #endif
 
 #include "error_numbers.h"
 #include "common_defs.h"
 #include "filesys.h"
 #include "str_replace.h"
-#include "str_util.h"
 
-#ifdef _USING_FCGI_
-#include "boinc_fcgi.h"
-#endif
+#include "str_util.h"
 
 using std::string;
 
@@ -82,56 +80,29 @@ size_t strlcat(char *dst, const char *src, size_t size) {
 #endif // !HAVE_STRLCAT
 
 #if !HAVE_STRCASESTR
+// BOINC only uses strcasestr() for short strings,
+// so the following till suffice
+//
 const char *strcasestr(const char *s1, const char *s2) {
-    char *needle=NULL, *haystack=NULL, *p=NULL;
-    bool need_free = false;
-    // Is alloca() really less likely to fail with out of memory error
-    // than strdup?
-#if HAVE_STRDUPA
-    haystack=strdupa(s1);
-    needle=strdupa(s2);
-#elif HAVE_ALLOCA_H || HAVE_ALLOCA
-    haystack=(char *)alloca(strlen(s1)+1);
-    needle=(char *)alloca(strlen(s2)+1);
-    if (needle && haystack) {
-        strlcpy(haystack,s1,strlen(s1)+1);
-        strlcpy(needle,s2,strlen(s2)+1);
+    char needle[1024], haystack[1024], *p=NULL;
+    strlcpy(haystack, s1, sizeof(haystack));
+    strlcpy(needle, s2, sizeof(needle));
+    // convert both strings to lower case
+    p = haystack;
+    while (*p) {
+        *p = tolower(*p);
+        p++;
     }
-#elif HAVE_STRDUP
-    haystack=strdup(s1);
-    needle=strdup(s1)
-    need_free = true;
-#else
-    haystack=(char *)malloc(strlen(s1)+1);
-    needle=(char *)malloc(strlen(s2)+1);
-    if (needle && haystack) {
-        strlcpy(haystack,s1,strlen(s1)+1);
-        strlcpy(needle,s2,strlen(s2)+1);
+    p = needle;
+    while (*p) {
+        *p = tolower(*p);
+        p++;
     }
-    need_free = true;
-#endif
-    if (needle && haystack) {
-        // convert both strings to lower case
-        p = haystack;
-        while (*p) {
-            *p = tolower(*p);
-            p++;
-        }
-        p = needle;
-        while (*p) {
-            *p = tolower(*p);
-            p++;
-        }
-        // find the substring
-        p = strstr(haystack, needle);
-        // correct the pointer to point to the substring within s1
-        if (p) {
-            p = const_cast<char *>(s1)+(p-haystack);
-        }
-    }
-    if (need_free) {
-        if (needle) free(needle);
-        if (haystack) free(haystack);
+    // find the substring
+    p = strstr(haystack, needle);
+    // correct the pointer to point to the substring within s1
+    if (p) {
+        p = const_cast<char *>(s1)+(p-haystack);
     }
     return p;
 }
@@ -209,6 +180,18 @@ int ndays_to_string (double x, int smallest_timescale, char *buf) {
     sprintf(buf, "%s%s%s%s%s", year_buf, day_buf, hour_buf, min_buf, sec_buf);
 
     return 0;
+}
+
+// convert seconds into a string "0h00m00s00"
+//
+void secs_to_hmsf(double secs, char* buf) {
+    int s = secs;
+    int f = (secs - s) * 100.0;
+    int h = s / 3600;
+    s -= h * 3600;
+    int m = s / 60;
+    s -= m * 60;
+    sprintf(buf, "%uh%02um%02us%02u", h, m, s, f);
 }
 
 // Convert nbytes into a string.  If total_bytes is non-zero,
@@ -320,7 +303,7 @@ void strip_whitespace(char *str) {
     }
     if (s != str) strcpy_overlap(str, s);
 
-    int n = strlen(str);
+    size_t n = strlen(str);
     while (n>0) {
         n--;
         if (!isascii(str[n])) break;
@@ -497,14 +480,12 @@ const char* boincerror(int which_error) {
         case ERR_SOCKS_CANT_REACH_HOST: return "SOCKS: can't reach host";
         case ERR_SOCKS_CONN_REFUSED: return "SOCKS: connection refused";
         case ERR_TIMER_INIT: return "timer init";
-        case ERR_RSC_LIMIT_EXCEEDED: return "resource limit exceeded";
         case ERR_INVALID_PARAM: return "invalid parameter";
         case ERR_SIGNAL_OP: return "signal op";
         case ERR_BIND: return "bind() failed";
         case ERR_LISTEN: return "listen() failed";
         case ERR_TIMEOUT: return "timeout";
         case ERR_PROJECT_DOWN: return "project down";
-        case ERR_HTTP_ERROR: return "HTTP error";
         case ERR_RESULT_START: return "result start failed";
         case ERR_RESULT_DOWNLOAD: return "result download failed";
         case ERR_RESULT_UPLOAD: return "result upload failed";
@@ -535,10 +516,10 @@ const char* boincerror(int which_error) {
         case ERR_FFLUSH: return "fflush() failed";
         case ERR_FSYNC: return "fsync() failed";
         case ERR_TRUNCATE: return "truncate() failed";
-        case ERR_ABORTED_BY_PROJECT: return "Aborted by project";
         case ERR_GETGRNAM: return "getgrnam() failed";
         case ERR_CHOWN: return "chown() failed";
-        case ERR_FILE_NOT_FOUND: return "file not found";
+        case ERR_HTTP_PERMANENT: return "permanent HTTP error";
+        case ERR_HTTP_TRANSIENT: return "transient HTTP error";
         case ERR_BAD_FILENAME: return "file name is empty or has '..'";
         case ERR_TOO_MANY_EXITS: return "application exited too many times";
         case ERR_RMDIR: return "rmdir() failed";
@@ -546,8 +527,6 @@ const char* boincerror(int which_error) {
         case ERR_DB_CONN_LOST: return "DB connection lost during enumeration";
         case ERR_CRYPTO: return "encryption error";
         case ERR_ABORTED_ON_EXIT: return "job was aborted on client exit";
-        case ERR_UNSTARTED_LATE: return "job is unstarted and past deadline";
-        case ERR_MISSING_COPROC: return "an expected GPU was not found";
         case ERR_PROC_PARSE: return "a /proc entry was not parsed correctly";
         case 404: return "HTTP file not found";
         case 407: return "HTTP proxy authentication failure";
@@ -598,8 +577,9 @@ const char* suspend_reason_string(int reason) {
     case SUSPEND_REASON_INITIAL_DELAY: return "initial delay";
     case SUSPEND_REASON_EXCLUSIVE_APP_RUNNING: return "an exclusive app is running";
     case SUSPEND_REASON_CPU_USAGE: return "CPU is busy";
-    case SUSPEND_REASON_NETWORK_QUOTA_EXCEEDED: return "network bandwidth limit exceeded";
+    case SUSPEND_REASON_NETWORK_QUOTA_EXCEEDED: return "network transfer limit exceeded";
     case SUSPEND_REASON_OS: return "requested by operating system";
+    case SUSPEND_REASON_WIFI_STATE: return "device is not on wifi";
     }
     return "unknown reason";
 }
@@ -633,16 +613,17 @@ char* windows_error_string(char* pszBuf, int iSize) {
         NULL
     );
 
-    // supplied buffer is not long enough
-    if ( !dwRet || ( (long)iSize < (long)dwRet+14 ) ) {
+    // is supplied buffer long enough?
+    //
+    if (!dwRet || ((long)iSize < (long)dwRet+14)) {
         pszBuf[0] = '\0';
     } else {
-        lpszTemp[lstrlenA(lpszTemp)-2] = '\0';  //remove cr and newline character
-        sprintf ( pszBuf, "%s (0x%x)", lpszTemp, GetLastError() );
+        lpszTemp[lstrlenA(lpszTemp)-2] = '\0';  // remove CRLF
+        sprintf(pszBuf, "%s (0x%x)", lpszTemp, GetLastError());
     }
 
-    if ( lpszTemp ) {
-        LocalFree((HLOCAL) lpszTemp );
+    if (lpszTemp) {
+        LocalFree((HLOCAL) lpszTemp);
     }
 
     return pszBuf;
@@ -668,16 +649,17 @@ char* windows_format_error_string(
         NULL
     );
 
-    // supplied buffer is not long enough
-    if ( !dwRet || ( (long)iSize < (long)dwRet+14 ) ) {
+    // is supplied buffer long enough?
+    //
+    if (!dwRet || ( (long)iSize < (long)dwRet+14)) {
         pszBuf[0] = '\0';
     } else {
-        lpszTemp[lstrlenA(lpszTemp)-2] = '\0';  //remove cr and newline character
-        sprintf( pszBuf, "%s (0x%x)", lpszTemp, dwError );
+        lpszTemp[lstrlenA(lpszTemp)-2] = '\0';  // remove CRLF
+        sprintf(pszBuf, "%s (0x%x)", lpszTemp, dwError);
     }
 
-    if ( lpszTemp ) {
-        LocalFree((HLOCAL) lpszTemp );
+    if (lpszTemp) {
+        LocalFree((HLOCAL) lpszTemp);
     }
 
     return pszBuf;

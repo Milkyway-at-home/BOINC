@@ -92,8 +92,6 @@ bool do_pass(APP& app) {
     int retval;
     int num_assimilated=0;
 
-    check_stop_daemons();
-
     if (wu_id_modulus) {
         sprintf(mod_clause, " and workunit.id %% %d = %d ",
                 wu_id_modulus, wu_id_remainder
@@ -133,7 +131,17 @@ bool do_pass(APP& app) {
         sprintf(buf, "where workunitid=%d", wu.id);
         canonical_result.clear();
         bool found = false;
-        while (!result.enumerate(buf)) {
+        while (1) {
+            retval = result.enumerate(buf);
+            if (retval) {
+                if (retval != ERR_DB_NOT_FOUND) {
+                    log_messages.printf(MSG_DEBUG,
+                        "DB connection lost, exiting\n"
+                    );
+                    exit(0);
+                }
+                break;
+            }
             results.push_back(result);
             if (result.id == wu.canonical_resultid) {
                 canonical_result = result;
@@ -290,9 +298,10 @@ int main(int argc, char** argv) {
     do {
         if (!do_pass(app)) {
             if (!one_pass) {
-                sleep(sleep_interval);
+                daemon_sleep(sleep_interval);
             }
         }
+        check_stop_daemons();
     } while (!one_pass);
 }
 

@@ -37,19 +37,20 @@
 #include "synch.h"
 
 #include "credit.h"
-#include "sched_types.h"
-#include "sched_shmem.h"
-#include "sched_config.h"
-#include "sched_util.h"
-#include "sched_main.h"
-#include "sched_array.h"
-#include "sched_msgs.h"
-#include "sched_hr.h"
 #include "hr.h"
-#include "sched_locality.h"
-#include "sched_timezone.h"
+#include "sched_array.h"
 #include "sched_assign.h"
+#include "sched_config.h"
 #include "sched_customize.h"
+#include "sched_hr.h"
+#include "sched_locality.h"
+#include "sched_main.h"
+#include "sched_msgs.h"
+#include "sched_shmem.h"
+#include "sched_score.h"
+#include "sched_timezone.h"
+#include "sched_types.h"
+#include "sched_util.h"
 #include "sched_version.h"
 
 #include "sched_send.h"
@@ -62,9 +63,64 @@
 //
 const double DEFAULT_RAM_SIZE = 64000000;
 
-void send_work_matchmaker();
-
 int preferred_app_message_index=0;
+
+static inline bool file_present_on_host(const char* name) {
+    for (unsigned i=0; i<g_request->file_infos.size(); i++) {
+        FILE_INFO& fi = g_request->file_infos[i];
+        if (!strstr(name, fi.name)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// return the number of sticky files present on host, used by job
+//
+int nfiles_on_host(WORKUNIT& wu) {
+    MIOFILE mf;
+    mf.init_buf_read(wu.xml_doc);
+    XML_PARSER xp(&mf);
+    int n=0;
+    while (!xp.get_tag()) {
+        if (xp.match_tag("file_info")) {
+            FILE_INFO fi;
+            int retval = fi.parse(xp);
+            if (retval) continue;
+            if (!fi.sticky) continue;
+            if (file_present_on_host(fi.name)) {
+                n++;
+            }
+        }
+    }
+    return n;
+}
+
+// we're going to send the client this job,
+// and the app uses locality scheduling lite.
+// Add the job's sticky files to the list of files present on host.
+//
+void add_job_files_to_host(WORKUNIT& wu) {
+    MIOFILE mf;
+    mf.init_buf_read(wu.xml_doc);
+    XML_PARSER xp(&mf);
+    while (!xp.get_tag()) {
+        if (xp.match_tag("file_info")) {
+            FILE_INFO fi;
+            int retval = fi.parse(xp);
+            if (retval) continue;
+            if (!fi.sticky) continue;
+            if (!file_present_on_host(fi.name)) {
+                if (config.debug_send) {
+                    log_messages.printf(MSG_NORMAL,
+                        "[send] Adding file %s to host file list\n", fi.name
+                    );
+                }
+                g_request->file_infos.push_back(fi);
+            }
+        }
+    }
+}
 
 const char* infeasible_string(int code) {
     switch (code) {
@@ -83,9 +139,6 @@ const char* infeasible_string(int code) {
 const double MIN_REQ_SECS = 0;
 const double MAX_REQ_SECS = (28*SECONDS_IN_DAY);
 
-const int MAX_GPUS = 8;
-    // don't believe clients who claim they have more GPUs than this
-
 // get limits on:
 // # jobs per day
 // # jobs per RPC
@@ -99,9 +152,10 @@ void WORK_REQ::get_job_limits() {
     }
     if (n > config.max_ncpus) n = config.max_ncpus;
     if (n < 1) n = 1;
+    if (n > MAX_CPUS) n = MAX_CPUS;
     effective_ncpus = n;
 
-    n = g_request->coprocs.nvidia.count + g_request->coprocs.ati.count;
+    n = g_request->coprocs.ndevs();
     if (n > MAX_GPUS) n = MAX_GPUS;
     effective_ngpus = n;
 
@@ -300,18 +354,22 @@ static void get_prefs_info() {
     if (parse_bool(buf,"no_gpus", flag)) {
         // deprecated, but need to handle
         if (flag) {
-            g_wreq->no_cuda = true;
-            g_wreq->no_ati = true;
+            for (int i=1; i<NPROC_TYPES; i++) {
+                g_wreq->dont_use_proc_type[i] = true;
+            }
         }
     }
     if (parse_bool(buf,"no_cpu", flag)) {
-        g_wreq->no_cpu = flag;
+        g_wreq->dont_use_proc_type[PROC_TYPE_CPU] = flag;
     }
     if (parse_bool(buf,"no_cuda", flag)) {
-        g_wreq->no_cuda = flag;
+        g_wreq->dont_use_proc_type[PROC_TYPE_NVIDIA_GPU] = flag;
     }
     if (parse_bool(buf,"no_ati", flag)) {
-        g_wreq->no_ati = flag;
+        g_wreq->dont_use_proc_type[PROC_TYPE_AMD_GPU] = flag;
+    }
+    if (parse_bool(buf,"no_intel", flag)) {
+        g_wreq->dont_use_proc_type[PROC_TYPE_INTEL_GPU] = flag;
     }
 }
 
@@ -558,19 +616,22 @@ static inline bool hard_app(APP& app) {
 }
 
 static inline double get_estimated_delay(BEST_APP_VERSION& bav) {
-    if (bav.host_usage.ncudas) {
-        return g_request->coprocs.nvidia.estimated_delay;
-    } else if (bav.host_usage.natis) {
-        return g_request->coprocs.ati.estimated_delay;
-    } else {
+    int pt = bav.host_usage.proc_type;
+    if (pt == PROC_TYPE_CPU) {
         return g_request->cpu_estimated_delay;
     }
+    COPROC* cp = g_request->coprocs.type_to_coproc(pt);
+    return cp->estimated_delay;
 }
 
 static inline void update_estimated_delay(BEST_APP_VERSION& bav, double dt) {
-    g_request->coprocs.nvidia.estimated_delay += dt*bav.host_usage.ncudas/g_request->coprocs.nvidia.count;
-    g_request->coprocs.ati.estimated_delay += dt*bav.host_usage.natis/g_request->coprocs.ati.count;
-    g_request->cpu_estimated_delay += dt*bav.host_usage.avg_ncpus/g_request->host.p_ncpus;
+    int pt = bav.host_usage.proc_type;
+    if (pt == PROC_TYPE_CPU) {
+        g_request->cpu_estimated_delay += dt*bav.host_usage.avg_ncpus/g_request->host.p_ncpus;
+    } else {
+        COPROC* cp = g_request->coprocs.type_to_coproc(pt);
+        cp->estimated_delay += dt*bav.host_usage.gpu_usage/cp->count;
+    }
 }
 
 // return the delay bound to use for this job/host.
@@ -591,6 +652,7 @@ static void get_delay_bound_range(
             // if original deadline has passed, return zeros
             // This will skip deadline check.
             opt = pess = 0;
+            return;
         }
         opt = res_report_deadline - now;
         pess = wu.delay_bound;
@@ -604,6 +666,7 @@ static void get_delay_bound_range(
         ) {
             opt = wu.delay_bound*config.reliable_reduced_delay_bound;
             double est_wallclock_duration = estimate_duration(wu, bav);
+
             // Check to see how reasonable this reduced time is.
             // Increase it to twice the estimated delay bound
             // if all the following apply:
@@ -669,11 +732,7 @@ static inline int check_deadline(
     } else {
         double ewd = estimate_duration(wu, bav);
         if (hard_app(app)) ewd *= 1.3;
-        double est_completion_delay = get_estimated_delay(bav) + ewd;
-        double est_report_delay = std::max(
-            est_completion_delay,
-            g_request->global_prefs.work_buf_min()
-        );
+        double est_report_delay = get_estimated_delay(bav) + ewd;
         double diff = est_report_delay - wu.delay_bound;
         if (diff > 0) {
             if (config.debug_send) {
@@ -727,7 +786,8 @@ int wu_is_infeasible_fast(
     }
 
     // homogeneous redundancy: can't send if app uses HR and
-    // 1) host is of unknown HR class
+    // 1) host is of unknown HR class, or
+    // 2) WU is already committed to different HR class
     //
     if (app_hr_type(app)) {
         if (hr_unknown_class(g_reply->host, app_hr_type(app))) {
@@ -750,6 +810,21 @@ int wu_is_infeasible_fast(
         }
     }
 
+    // homogeneous app version
+    //
+    if (app.homogeneous_app_version) {
+        int avid = wu.app_version_id;
+        if (avid && bav.avp->id != avid) {
+            if (config.debug_send) {
+                log_messages.printf(MSG_NORMAL,
+                    "[send] [HOST#%d] [WU#%d %s] failed homogeneous app version check: %d %d\n",
+                    g_reply->host.id, wu.id, wu.name, avid, bav.avp->id
+                );
+            }
+            return INFEASIBLE_HAV;
+        }
+    }
+
     if (config.one_result_per_user_per_wu || config.one_result_per_host_per_wu) {
         if (wu_already_in_reply(wu)) {
             return INFEASIBLE_DUP;
@@ -763,7 +838,7 @@ int wu_is_infeasible_fast(
     retval = check_bandwidth(wu);
     if (retval) return retval;
 
-    if (config.non_cpu_intensive) {
+    if (app.non_cpu_intensive) {
         return 0;
     }
 
@@ -784,6 +859,12 @@ int wu_is_infeasible_fast(
         retval = check_deadline(wu, app, bav);
     }
     return retval;
+}
+
+// return true if the client has a sticky file used by this job
+//
+bool host_has_job_file(WORKUNIT&) {
+    return false;
 }
 
 // insert "text" right after "after" in the given buffer
@@ -991,27 +1072,11 @@ void unlock_sema() {
     unlock_semaphore(sema_key);
 }
 
-static inline bool have_cpu_apps() {
+static inline bool have_apps(int pt) {
     if (g_wreq->anonymous_platform) {
-        return g_wreq->have_cpu_apps;
+        return g_wreq->client_has_apps_for_proc_type[pt];
     } else {
-        return ssp->have_cpu_apps;
-    }
-}
-
-static inline bool have_cuda_apps() {
-    if (g_wreq->anonymous_platform) {
-        return g_wreq->have_cuda_apps;
-    } else {
-        return ssp->have_cuda_apps;
-    }
-}
-
-static inline bool have_ati_apps() {
-    if (g_wreq->anonymous_platform) {
-        return g_wreq->have_ati_apps;
-    } else {
-        return ssp->have_ati_apps;
+        return ssp->have_apps_for_proc_type[pt];
     }
 }
 
@@ -1095,25 +1160,29 @@ bool work_needed(bool locality_sched) {
 
 #if 0
     if (config.debug_send) {
+        char buf[256], buf2[256];
+        strcpy(buf, "");
+        for (int i=1; i<NPROC_TYPES; i++) {
+            sprintf(buf2, " %s (%.2f, %.2f)",
+                proc_type_name(i),
+                g_wreq->req_secs[i],
+                g_wreq->req_instances[i]
+            );
+            strcat(buf, buf2);
+        }
         log_messages.printf(MSG_NORMAL,
-            "[send] work_needed: spec req %d sec to fill %.2f; CPU (%.2f, %.2f) CUDA (%.2f, %.2f) ATI(%.2f, %.2f)\n",
+            "[send] work_needed: spec req %d sec to fill %.2f; %s\n",
             g_wreq->rsc_spec_request,
             g_wreq->seconds_to_fill,
-            g_wreq->cpu_req_secs, g_wreq->cpu_req_instances,
-            g_wreq->cuda_req_secs, g_wreq->cuda_req_instances,
-            g_wreq->ati_req_secs, g_wreq->ati_req_instances
+            buf
         );
     }
 #endif
     if (g_wreq->rsc_spec_request) {
-        if (g_wreq->need_cpu() && have_cpu_apps()) {
-            return true;
-        }
-        if (g_wreq->need_cuda() && have_cuda_apps()) {
-            return true;
-        }
-        if (g_wreq->need_ati() && have_ati_apps()) {
-            return true;
+        for (int i=0; i<NPROC_TYPES; i++) {
+            if (g_wreq->need_proc_type(i) && have_apps(i)) {
+                return true;
+            }
         }
     } else {
         if (g_wreq->seconds_to_fill > 0) {
@@ -1230,7 +1299,7 @@ int add_result_to_reply(
     double est_dur = estimate_duration(wu, *bavp);
     if (config.debug_send) {
         log_messages.printf(MSG_NORMAL,
-            "[HOST#%d] Sending [RESULT#%d %s] (est. dur. %.2f seconds)\n",
+            "[send] [HOST#%d] sending [RESULT#%d %s] (est. dur. %.2f seconds)\n",
             g_reply->host.id, result.id, result.name, est_dur
         );
     }
@@ -1256,15 +1325,13 @@ int add_result_to_reply(
     result.bav = *bavp;
     g_reply->insert_result(result);
     if (g_wreq->rsc_spec_request) {
-        if (bavp->host_usage.ncudas) {
-            g_wreq->cuda_req_secs -= est_dur;
-            g_wreq->cuda_req_instances -= bavp->host_usage.ncudas;
-        } else if (bavp->host_usage.natis) {
-            g_wreq->ati_req_secs -= est_dur;
-            g_wreq->ati_req_instances -= bavp->host_usage.natis;
+        int pt = bavp->host_usage.proc_type;
+        if (pt == PROC_TYPE_CPU) {
+            g_wreq->req_secs[PROC_TYPE_CPU] -= est_dur;
+            g_wreq->req_instances[PROC_TYPE_CPU] -= bavp->host_usage.avg_ncpus;
         } else {
-            g_wreq->cpu_req_secs -= est_dur;
-            g_wreq->cpu_req_instances -= bavp->host_usage.avg_ncpus;
+            g_wreq->req_secs[pt] -= est_dur;
+            g_wreq->req_instances[pt] -= bavp->host_usage.gpu_usage;
         }
     } else {
         g_wreq->seconds_to_fill -= est_dur;
@@ -1336,6 +1403,13 @@ int add_result_to_reply(
         }
     }
 
+    // if the app uses locality scheduling lite,
+    // add the job's files to the list of those on host
+    //
+    if (app->locality_scheduling == LOCALITY_SCHED_LITE) {
+        add_job_files_to_host(wu);
+    }
+
     return 0;
 }
 
@@ -1383,7 +1457,7 @@ void send_gpu_messages() {
     // Mac client with GPU but too-old client
     //
     if (g_request->coprocs.nvidia.count
-        && ssp->have_cuda_apps
+        && ssp->have_apps_for_proc_type[PROC_TYPE_NVIDIA_GPU]
         && strstr(g_request->host.os_name, "Darwin")
         && g_request->core_client_version < 61028
     ) {
@@ -1395,43 +1469,55 @@ void send_gpu_messages() {
 
     // GPU-only project, client lacks GPU
     //
-    bool usable_gpu = (ssp->have_cuda_apps && g_request->coprocs.nvidia.count)
-        || (ssp->have_ati_apps && g_request->coprocs.ati.count);
-    if (!ssp->have_cpu_apps && !usable_gpu) {
-        if (ssp->have_cuda_apps) {
-            if (ssp->have_ati_apps) {
-                g_reply->insert_message(
-                    _("An NVIDIA or ATI GPU is required to run tasks for this project"),
-                    "notice"
-                );
-            } else {
-                g_reply->insert_message(
-                    _("An NVIDIA GPU is required to run tasks for this project"),
-                    "notice"
-                );
-            }
-        } else if (ssp->have_ati_apps) {
-            g_reply->insert_message(
-                _("An ATI GPU is required to run tasks for this project"),
-                "notice"
-            );
+    bool usable_gpu = false;
+    for (int i=1; i<NPROC_TYPES; i++) {
+        COPROC* cp = g_request->coprocs.type_to_coproc(i);
+        if (ssp->have_apps_for_proc_type[i] && cp->count) {
+            usable_gpu = true;
+            break;
         }
     }
+    if (!ssp->have_apps_for_proc_type[PROC_TYPE_CPU] && !usable_gpu) {
+        char buf[256];
+        strcpy(buf, "");
+        for (int i=1; i<NPROC_TYPES; i++) {
+            if (ssp->have_apps_for_proc_type[i]) {
+                if (strlen(buf)) {
+                    strcat(buf, " or ");
+                }
+                strcat(buf, proc_type_name(i));
+            }
+        }
+        char msg[1024];
+        sprintf(msg,
+            _("An %s GPU is required to run tasks for this project"),
+            buf
+        );
+        g_reply->insert_message(msg, "notice");
+    }
 
-    if (g_request->coprocs.nvidia.count && ssp->have_cuda_apps) {
-        send_gpu_property_messages(cuda_requirements,
-            g_request->coprocs.nvidia.prop.dtotalGlobalMem,
+    if (g_request->coprocs.nvidia.count && ssp->have_apps_for_proc_type[PROC_TYPE_NVIDIA_GPU]) {
+        send_gpu_property_messages(gpu_requirements[PROC_TYPE_NVIDIA_GPU],
+            g_request->coprocs.nvidia.prop.totalGlobalMem,
             g_request->coprocs.nvidia.display_driver_version,
-            "NVIDIA GPU"
+            proc_type_name(PROC_TYPE_NVIDIA_GPU)
         );
     }
-    if (g_request->coprocs.ati.count && ssp->have_ati_apps) {
-        send_gpu_property_messages(ati_requirements,
+    if (g_request->coprocs.ati.count && ssp->have_apps_for_proc_type[PROC_TYPE_AMD_GPU]) {
+        send_gpu_property_messages(gpu_requirements[PROC_TYPE_AMD_GPU],
             g_request->coprocs.ati.attribs.localRAM*MEGA,
             g_request->coprocs.ati.version_num,
-            "ATI GPU"
+            proc_type_name(PROC_TYPE_AMD_GPU)
         );
     }
+    if (g_request->coprocs.intel_gpu.count && ssp->have_apps_for_proc_type[PROC_TYPE_INTEL_GPU]) {
+        send_gpu_property_messages(gpu_requirements[PROC_TYPE_INTEL_GPU],
+            g_request->coprocs.intel_gpu.opencl_prop.global_mem_size,
+            0,
+            proc_type_name(PROC_TYPE_INTEL_GPU)
+        );
+    }
+
 }
 
 // send messages to user about why jobs were or weren't sent,
@@ -1493,7 +1579,7 @@ static void send_user_messages() {
 
     // if client asked for work and we're not sending any, explain why
     //
-    if (g_wreq->njobs_sent == 0) {
+    if (g_wreq->njobs_sent == 0 && g_request->work_req_seconds) {
         g_reply->set_delay(DELAY_NO_WORK_TEMP);
         g_reply->insert_message("No tasks sent", "low");
 
@@ -1560,23 +1646,14 @@ static void send_user_messages() {
                 "Not sending tasks because newer client version required\n"
             );
         }
-        if (g_wreq->no_cuda_prefs) {
-            g_reply->insert_message(
-                _("Tasks for NVIDIA GPU are available, but your preferences are set to not accept them"),
-                "low"
-            );
-        }
-        if (g_wreq->no_ati_prefs) {
-            g_reply->insert_message(
-                _("Tasks for ATI GPU are available, but your preferences are set to not accept them"),
-                "low"
-            );
-        }
-        if (g_wreq->no_cpu_prefs) {
-            g_reply->insert_message(
-                _("Tasks for CPU are available, but your preferences are set to not accept them"),
-                "low"
-            );
+        for (i=0; i<NPROC_TYPES; i++) {
+            if (g_wreq->dont_use_proc_type[i] && ssp->have_apps_for_proc_type[i]) {
+                sprintf(buf,
+                    _("Tasks for %s are available, but your preferences are set to not accept them"),
+                    proc_type_name(i)
+                );
+                g_reply->insert_message(buf, "low");
+            }
         }
         DB_HOST_APP_VERSION* havp = quota_exceeded_version();
         if (havp) {
@@ -1616,53 +1693,57 @@ void send_work_setup() {
     unsigned int i;
 
     g_wreq->seconds_to_fill = clamp_req_sec(g_request->work_req_seconds);
-    g_wreq->cpu_req_secs = clamp_req_sec(g_request->cpu_req_secs);
-    g_wreq->cpu_req_instances = g_request->cpu_req_instances;
+    g_wreq->req_secs[PROC_TYPE_CPU] = clamp_req_sec(g_request->cpu_req_secs);
+    g_wreq->req_instances[PROC_TYPE_CPU] = g_request->cpu_req_instances;
     g_wreq->anonymous_platform = is_anonymous(g_request->platforms.list[0]);
+
+    // decide on attributes of HOST_APP_VERSIONS
+    //
+    get_reliability_and_trust();
+
+    // parse project preferences (e.g. no GPUs)
+    //
+    get_prefs_info();
 
     if (g_wreq->anonymous_platform) {
         estimate_flops_anon_platform();
 
-        g_wreq->have_cpu_apps = false;
-        g_wreq->have_cuda_apps = false;
-        g_wreq->have_ati_apps = false;
+        for (i=0; i<NPROC_TYPES; i++) {
+            g_wreq->client_has_apps_for_proc_type[i] = false;
+        }
         for (i=0; i<g_request->client_app_versions.size(); i++) {
             CLIENT_APP_VERSION& cav = g_request->client_app_versions[i];
-            if (cav.host_usage.ncudas) {
-                g_wreq->have_cuda_apps = true;
-            } else if (cav.host_usage.natis) {
-                g_wreq->have_ati_apps = true;
-            } else {
-                g_wreq->have_cpu_apps = true;
-            }
+            int pt = cav.host_usage.proc_type;
+            g_wreq->client_has_apps_for_proc_type[pt] = true;
         }
     }
-    cuda_requirements.clear();
-    ati_requirements.clear();
+    for (i=1; i<NPROC_TYPES; i++) {
+        gpu_requirements[i].clear();
+    }
 
     g_wreq->disk_available = max_allowable_disk();
     get_mem_sizes();
     get_running_frac();
     g_wreq->get_job_limits();
 
-    if (g_request->coprocs.nvidia.count) {
-        g_wreq->cuda_req_secs = clamp_req_sec(g_request->coprocs.nvidia.req_secs);
-        g_wreq->cuda_req_instances = g_request->coprocs.nvidia.req_instances;
-        if (g_request->coprocs.nvidia.estimated_delay < 0) {
-            g_request->coprocs.nvidia.estimated_delay = g_request->cpu_estimated_delay;
+    // do sanity checking on GPU scheduling parameters
+    //
+    for (i=1; i<NPROC_TYPES; i++) {
+        COPROC* cp = g_request->coprocs.type_to_coproc(i);
+        if (cp->count) {
+            g_wreq->req_secs[i] = clamp_req_sec(cp->req_secs);
+            g_wreq->req_instances[i] = cp->req_instances;
+            if (cp->estimated_delay < 0) {
+                cp->estimated_delay = g_request->cpu_estimated_delay;
+            }
         }
     }
-    if (g_request->coprocs.ati.count) {
-        g_wreq->ati_req_secs = clamp_req_sec(g_request->coprocs.ati.req_secs);
-        g_wreq->ati_req_instances = g_request->coprocs.ati.req_instances;
-        if (g_request->coprocs.ati.estimated_delay < 0) {
-            g_request->coprocs.ati.estimated_delay = g_request->cpu_estimated_delay;
+    g_wreq->rsc_spec_request = false;
+    for (i=0; i<NPROC_TYPES; i++) {
+        if (g_wreq->req_secs[i]) {
+            g_wreq->rsc_spec_request = true;
+            break;
         }
-    }
-    if (g_wreq->cpu_req_secs || g_wreq->cuda_req_secs || g_wreq->ati_req_secs) {
-        g_wreq->rsc_spec_request = true;
-    } else {
-        g_wreq->rsc_spec_request = false;
     }
 
     for (i=0; i<g_request->other_results.size(); i++) {
@@ -1704,22 +1785,21 @@ void send_work_setup() {
         );
         log_messages.printf(MSG_NORMAL,
             "[send] CPU: req %.2f sec, %.2f instances; est delay %.2f\n",
-            g_wreq->cpu_req_secs, g_wreq->cpu_req_instances,
+            g_wreq->req_secs[PROC_TYPE_CPU],
+            g_wreq->req_instances[PROC_TYPE_CPU],
             g_request->cpu_estimated_delay
         );
-        if (g_request->coprocs.nvidia.count) {
-            log_messages.printf(MSG_NORMAL,
-                "[send] CUDA: req %.2f sec, %.2f instances; est delay %.2f\n",
-                g_wreq->cuda_req_secs, g_wreq->cuda_req_instances,
-                g_request->coprocs.nvidia.estimated_delay
-            );
-        }
-        if (g_request->coprocs.ati.count) {
-            log_messages.printf(MSG_NORMAL,
-                "[send] ATI: req %.2f sec, %.2f instances; est delay %.2f\n",
-                g_wreq->ati_req_secs, g_wreq->ati_req_instances,
-                g_request->coprocs.ati.estimated_delay
-            );
+        for (i=1; i<NPROC_TYPES; i++) {
+            COPROC* cp = g_request->coprocs.type_to_coproc(i);
+            if (cp->count) {
+                log_messages.printf(MSG_NORMAL,
+                    "[send] %s: req %.2f sec, %.2f instances; est delay %.2f\n",
+                    proc_type_name(i),
+                    g_wreq->req_secs[i],
+                    g_wreq->req_instances[i],
+                    cp->estimated_delay
+                );
+            }
         }
         log_messages.printf(MSG_NORMAL,
             "[send] work_req_seconds: %.2f secs\n",
@@ -1737,21 +1817,39 @@ void send_work_setup() {
         );
         if (g_wreq->anonymous_platform) {
             log_messages.printf(MSG_NORMAL,
-                "Anonymous platform app versions:\n"
+                "[send] Anonymous platform app versions:\n"
             );
             for (i=0; i<g_request->client_app_versions.size(); i++) {
                 CLIENT_APP_VERSION& cav = g_request->client_app_versions[i];
+                char buf[256];
+                strcpy(buf, "");
+                int pt = cav.host_usage.proc_type;
+                if (pt) {
+                    sprintf(buf, " %.2f %s GPU",
+                        cav.host_usage.gpu_usage,
+                        proc_type_name(pt)
+                    );
+                }
+
                 log_messages.printf(MSG_NORMAL,
-                    "   app: %s version %d cpus %.2f cudas %.2f atis %.2f flops %fG\n",
+                    "   app: %s version %d cpus %.2f%s flops %fG\n",
                     cav.app_name,
                     cav.version_num,
                     cav.host_usage.avg_ncpus,
-                    cav.host_usage.ncudas,
-                    cav.host_usage.natis,
+                    buf,
                     cav.host_usage.projected_flops/1e9
                 );
             }
         }
+#if 0
+        log_messages.printf(MSG_NORMAL,
+            "[send] p_vm_extensions_disabled: %s\n",
+            g_request->host.p_vm_extensions_disabled?"yes":"no"
+        );
+#endif
+        log_messages.printf(MSG_NORMAL,
+            "[send] CPU features: %s\n", g_request->host.p_features
+        );
     }
 }
 
@@ -1811,15 +1909,7 @@ int update_host_app_versions(vector<SCHED_DB_RESULT>& results, int hostid) {
 void send_work() {
     int retval;
 
-    if (!work_needed(false)) {
-        send_user_messages();
-        return;
-    }
     g_wreq->no_jobs_available = true;
-
-    if (!g_wreq->rsc_spec_request && g_wreq->seconds_to_fill == 0) {
-        return;
-    }
 
     if (all_apps_use_hr && hr_unknown_platform(g_request->host)) {
         log_messages.printf(MSG_NORMAL,
@@ -1828,12 +1918,6 @@ void send_work() {
         g_wreq->hr_reject_perm = true;
         return;
     }
-
-    // decide on attributes of HOST_APP_VERSIONS
-    //
-    get_reliability_and_trust();
-
-    get_prefs_info();
 
     if (config.enable_assignment) {
         if (send_assigned_jobs()) {
@@ -1862,6 +1946,17 @@ void send_work() {
             g_request->global_prefs.work_buf_min(),
             g_wreq->effective_ncpus, g_request->ip_results
         );
+    }
+
+    // send non-CPU-intensive jobs if needed
+    //
+    if (ssp->have_nci_app && g_request->work_req_seconds > 0) {
+        send_nci();
+    }
+
+    if (!work_needed(false)) {
+        send_user_messages();
+        return;
     }
 
     if (config.locality_scheduler_fraction > 0) {

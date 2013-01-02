@@ -33,15 +33,21 @@
 #endif
 #endif
 
+#include "filesys.h"
+#include "parse.h"
 #include "str_util.h"
 #include "str_replace.h"
 #include "util.h"
-#include "filesys.h"
-#include "parse.h"
-#include "file_names.h"
-#include "cpu_benchmark.h"
+
 #include "client_msgs.h"
 #include "client_state.h"
+#include "cpu_benchmark.h"
+#include "file_names.h"
+#include "project.h"
+
+#ifdef ANDROID
+#include "android_log.h"
+#endif
 
 using std::min;
 using std::string;
@@ -108,48 +114,81 @@ int CLIENT_STATE::get_disk_usages() {
     return 0;
 }
 
-// populate PROJECT::disk_share for all projects
+// populate PROJECT::disk_share for all projects,
+// i.e. the max space we should allocate to the project.
+// This is calculated as follows:
+// - each project has a "disk_resource_share" (DRS)
+//   This is the resource share plus .1*(max resource share).
+//   This ensures that backup projects get some disk.
+// - each project as a "desired_disk_usage (DDU)", 
+//   which is either its current usage
+//   or an amount sent from the scheduler.
+// - each project has a "quota": (available space)*(drs/total_drs).
+// - a project is "greedy" if DDU > quota.
+// - if a project is non-greedy, share = quota
+// - X = available space - space used by non-greedy projects
+// - if a project is greedy, share = quota
+//   + X*drs/(total drs of greedy projects)
 //
 void CLIENT_STATE::get_disk_shares() {
     PROJECT* p;
     unsigned int i;
 
-    double rss = 0;
+    // compute disk resource shares
+    //
+    double trs = 0;
+    double max_rs = 0;
     for (i=0; i<projects.size(); i++) {
         p = projects[i];
-        rss += p->resource_share;
-        p->disk_share = p->disk_usage;
+        p->ddu = std::max(p->disk_usage, p->desired_disk_usage);
+        double rs = p->resource_share;
+        trs += rs;
+        if (rs > max_rs) max_rs = rs;
     }
-    if (!rss) return;
+    if (trs) {
+        max_rs /= 10;
+        for (i=0; i<projects.size(); i++) {
+            p = projects[i];
+            p->disk_resource_share = p->resource_share + max_rs;
+        }
+    } else {
+        for (i=0; i<projects.size(); i++) {
+            p = projects[i];
+            p->disk_resource_share = 1;
+        }
+    }
 
-    // a project is "greedy" if it's using more than its share of disk
+    // Compute:
+    // greedy_drs: total disk resource share of greedy projects
+    // non_greedy_ddu: total desired disk usage of non-greedy projects
     //
-    double greedy_rs = 0;
-    double non_greedy_usage = 0;
+    double greedy_drs = 0;
+    double non_greedy_ddu = 0;
     double allowed = allowed_disk_usage(total_disk_usage);
     for (i=0; i<projects.size(); i++) {
         p = projects[i];
-        double rs = p->resource_share/rss;
-        if (p->disk_usage > allowed*rs) {
-            greedy_rs += p->resource_share;
+        p->disk_quota = allowed*p->disk_resource_share/trs;
+        if (p->ddu > p->disk_quota) {
+            greedy_drs += p->disk_resource_share;
         } else {
-            non_greedy_usage += p->disk_usage;
+            non_greedy_ddu += p->ddu;
         }
     }
-    if (!greedy_rs) greedy_rs = 1;      // handle projects w/ zero resource share
 
-    double greedy_allowed = allowed - non_greedy_usage;
+    double greedy_allowed = allowed - non_greedy_ddu;
     if (log_flags.disk_usage_debug) {
         msg_printf(0, MSG_INFO,
             "[disk_usage] allowed %.2fMB used %.2fMB",
-            allowed, total_disk_usage
+            allowed/MEGA, total_disk_usage/MEGA
         );
     }
     for (i=0; i<projects.size(); i++) {
         p = projects[i];
-        double rs = p->resource_share/rss;
-        if (p->disk_usage > allowed*rs) {
-            p->disk_share = greedy_allowed*p->resource_share/greedy_rs;
+        double rs = p->disk_resource_share/trs;
+        if (p->ddu > allowed*rs) {
+            p->disk_share = greedy_allowed*p->disk_resource_share/greedy_drs;
+        } else {
+            p->disk_share = p->disk_quota;
         }
         if (log_flags.disk_usage_debug) {
             msg_printf(p, MSG_INFO,
@@ -167,7 +206,7 @@ int CLIENT_STATE::check_suspend_processing() {
         return SUSPEND_REASON_BENCHMARKS;
     }
 
-    if (config.start_delay && now < client_start_time + config.start_delay) {
+    if (config.start_delay && now < time_stats.client_start_time + config.start_delay) {
         return SUSPEND_REASON_INITIAL_DELAY;
     }
 
@@ -190,7 +229,7 @@ int CLIENT_STATE::check_suspend_processing() {
         if (!global_prefs.run_if_user_active && user_active) {
             return SUSPEND_REASON_USER_ACTIVE;
         }
-        if (global_prefs.cpu_times.suspended()) {
+        if (global_prefs.cpu_times.suspended(now)) {
             return SUSPEND_REASON_TIME_OF_DAY;
         }
         if (global_prefs.suspend_if_no_recent_input) {
@@ -295,11 +334,14 @@ void CLIENT_STATE::check_suspend_network() {
     network_suspended = false;
     file_xfers_suspended = false;
     network_suspend_reason = 0;
+    bool recent_rpc;
 
+    // don't start network ops if system is shutting down
+    //
     if (os_requested_suspend) {
         network_suspend_reason = SUSPEND_REASON_OS;
         network_suspended = true;
-        return;
+        goto done;
     }
 
     // no network traffic if we're allowing unsigned apps
@@ -308,23 +350,35 @@ void CLIENT_STATE::check_suspend_network() {
         network_suspended = true;
         file_xfers_suspended = true;
         network_suspend_reason = SUSPEND_REASON_USER_REQ;
-        return;
+        goto done;
     }
 
     // was there a recent GUI RPC that needs network?
     //
-    bool recent_rpc = gui_rpcs.recent_rpc_needs_network(
+    recent_rpc = gui_rpcs.recent_rpc_needs_network(
         ALLOW_NETWORK_IF_RECENT_RPC_PERIOD
     );
 
     switch(network_run_mode.get_current()) {
     case RUN_MODE_ALWAYS: 
-        return;
+        goto done;
     case RUN_MODE_NEVER:
         file_xfers_suspended = true;
         if (!recent_rpc) network_suspended = true;
         network_suspend_reason = SUSPEND_REASON_USER_REQ;
+        goto done;
     }
+
+#ifdef ANDROID
+    //verify that device is on wifi before making project transfers.
+    //
+    if (global_prefs.network_wifi_only && !host_info.host_wifi_online()) {
+        file_xfers_suspended = true;
+        if (!recent_rpc) network_suspended = true;
+        network_suspend_reason = SUSPEND_REASON_WIFI_STATE;
+        LOGD("supended due to wifi state");
+    }
+#endif
 
     if (global_prefs.daily_xfer_limit_mb && global_prefs.daily_xfer_period_days) {
         double up, down;
@@ -343,7 +397,7 @@ void CLIENT_STATE::check_suspend_network() {
         if (!recent_rpc) network_suspended = true;
         network_suspend_reason = SUSPEND_REASON_USER_ACTIVE;
     }
-    if (global_prefs.net_times.suspended()) {
+    if (global_prefs.net_times.suspended(now)) {
         file_xfers_suspended = true;
         if (!recent_rpc) network_suspended = true;
         network_suspend_reason = SUSPEND_REASON_TIME_OF_DAY;
@@ -352,6 +406,13 @@ void CLIENT_STATE::check_suspend_network() {
         file_xfers_suspended = true;
         if (!recent_rpc) network_suspended = true;
         network_suspend_reason = SUSPEND_REASON_EXCLUSIVE_APP_RUNNING;
+    }
+
+done:
+    if (log_flags.suspend_debug) {
+        msg_printf(0, MSG_INFO, "[suspend] net_susp %d file_xfer_susp %d reason %d",
+            network_suspended, file_xfers_suspended, network_suspend_reason
+        );
     }
 }
 
@@ -622,4 +683,3 @@ double CLIENT_STATE::max_available_ram() {
         global_prefs.ram_max_used_busy_frac, global_prefs.ram_max_used_idle_frac
     );
 }
-

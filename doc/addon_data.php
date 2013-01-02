@@ -12,6 +12,29 @@ array(
     'unix date'
 );
 
+$mobile = array(
+array(
+    'http://code.google.com/p/androboinc/',
+    'AndroBOINC',
+    'beta',
+    'BOINC graphical interface for Android devices',
+    'http://code.google.com/p/androboinc/',
+    'Android',
+    'AndroBOINC lets you monitor and control a BOINC client from an Android device.',
+    1347081659
+),
+array(
+    'http://www.efmer.eu/boinc/boinc_tasks/mobile.html',
+    'BoincTasks Mobile',
+    '',
+    'BOINC graphical interface for mobile devices (Android, iPhone, iPad)',
+    'http://www.efmer.eu/boinc/boinc_tasks/mobile.html',
+    'Android, iOS',
+    'BoincTasks Mobile lets you monitor and control BOINC clients from a mobile device.  Requires BoincTasks to be running on a desktop computer.',
+    1347081659
+),
+);
+
 $win = array(
 array(
     'http://www.myfavoritegadgets.info/monitors/BOINCMonitor/BOINCMonitor.html',
@@ -23,16 +46,16 @@ array(
     'BOINC Monitor shows BOINC tasks progress. Resizable! Save settings to file.  Color changeable for all gadget\'s elements, include background. You can add new BOINC projects in XML list file.',
     '1305409902'
 ),
-array(
-    'http://boincdotnet.tnmshouse.com/',
-    'Boinc.NET',
-    'beta',
-    'A GUI for managing groups of BOINC clients',
-    'http://boincdotnet.tnmshouse.com/',
-    'Windows, .NET 3.5 required',
-    'A GUI for managing groups of BOINC clients',
-    '1266617628'
-),
+//array(
+//    'http://boincdotnet.tnmshouse.com/',
+//    'Boinc.NET',
+//    'beta',
+//    'A GUI for managing groups of BOINC clients',
+//    'http://boincdotnet.tnmshouse.com/',
+//    'Windows, .NET 3.5 required',
+//    'A GUI for managing groups of BOINC clients',
+//    '1266617628'
+//),
 array(
     'http://www.efmer.eu/boinc/boinc_tasks/download.html',
     'BoincTasks',
@@ -229,6 +252,16 @@ array('http://mion.faireal.net/BES/',
 );
 
 $linux = array(
+array(
+    'http://code.google.com/p/boinctui/',
+    'boinctui',
+    '',
+    'Fullscreen text mode manager for BOINC',
+    'http://code.google.com/p/boinctui/',
+    'Linux',
+    'boinctui is a full-featured curses-based text user interface for BOINC.  It can manage local and remote clients, and allows you to switch between clients with a hot key.',
+    1355388740
+),
 array(
     'http://www.efmer.eu/boinc/boinc_tasks/download.html',
     'BoincTasks',
@@ -493,16 +526,16 @@ array('scr0.9.dmg',
 );
 
 $browser = array(
-array('http://setihometoolbar.ourtoolbar.com/',
-    'SETI@home Toolbar',
-    '',
-    'Toolbar for Firefox and IE (Windows);
-    includes search, links, radio, RSS',
-    'http://setihometoolbar.ourtoolbar.com/',
-    '',
-    '',
-    1162833635
-),
+//array('http://setihometoolbar.ourtoolbar.com/',
+//    'SETI@home Toolbar',
+//    '',
+//    'Toolbar for Firefox and IE (Windows);
+//    includes search, links, radio, RSS',
+//    'http://setihometoolbar.ourtoolbar.com/',
+//    '',
+//    '',
+//    1162833635
+//),
 array('http://widgets.yahoo.com/gallery/view.php?widget=41595',
     'BOINC Statistics',
     '',

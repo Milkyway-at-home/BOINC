@@ -18,13 +18,12 @@
 #ifndef _BOINC_API_
 #define _BOINC_API_
 
-#ifdef __APPLE__
-#include <Carbon/Carbon.h>
-#endif
+#include <stddef.h>     // for NULL
 
 #ifdef _WIN32
 #include "boinc_win.h"
 #endif
+#include "app_ipc.h"
 
 // ANSI C API BEGINS HERE
 // Do not put implementation stuff here
@@ -71,7 +70,6 @@ typedef struct BOINC_OPTIONS {
 typedef struct BOINC_STATUS {
     int no_heartbeat;
     int suspended;
-    int suspend_request;
     int quit_request;
     int reread_init_data_file;
     int abort_request;
@@ -88,10 +86,10 @@ struct APP_INIT_DATA;
 
 extern int boinc_init(void);
 extern int boinc_finish(int status);
-extern int boinc_temporary_exit(int delay);
 extern int boinc_get_init_data_p(struct APP_INIT_DATA*);
 extern int boinc_parse_init_data_file(void);
 extern int boinc_send_trickle_up(char* variety, char* text);
+extern int boinc_set_min_checkpoint_period(int);
 extern int boinc_checkpoint_completed(void);
 extern int boinc_fraction_done(double);
 extern int boinc_suspend_other_activities(void);
@@ -106,6 +104,7 @@ extern void boinc_end_critical_section();
 extern void boinc_need_network();
 extern int boinc_network_poll();
 extern void boinc_network_done();
+extern void boinc_network_usage(double sent, double received);
 extern int boinc_is_standalone(void);
 extern void boinc_ops_per_cpu_sec(double fp, double integer);
 extern void boinc_ops_cumulative(double fp, double integer);
@@ -133,7 +132,6 @@ extern int setMacIcon(char *filename, char *iconData, long iconSize);
 #ifdef __cplusplus
 #include <string>
 
-#include "app_ipc.h"
 extern int boinc_get_init_data(APP_INIT_DATA&);
 extern int boinc_wu_cpu_time(double&);
 extern double boinc_elapsed_time();
@@ -144,6 +142,7 @@ extern int boinc_report_app_status_aux(
     double cpu_time, double checkpoint_cpu_time, double _fraction_done,
     int other_pid, double bytes_sent, double bytes_received
 );
+extern int boinc_temporary_exit(int delay, const char* reason=NULL);
 
 /////////// API ENDS HERE
 

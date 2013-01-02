@@ -95,15 +95,17 @@ function result_granted_credit_string($result, $string_to_show) {
 define("STATE_ALL", 0);
 define("STATE_IN_PROGRESS", 1);
 define("STATE_PENDING", 2);
-define("STATE_VALID", 3);
-define("STATE_INVALID", 4);
-define("STATE_ERROR", 5);
-define("NSTATES", 6);
+define("STATE_INCONCLUSIVE", 3);
+define("STATE_VALID", 4);
+define("STATE_INVALID", 5);
+define("STATE_ERROR", 6);
+define("NSTATES", 7);
 
 $state_name = array(
     tra("All"),
     tra("In progress"),
-    tra("Pending"),
+    tra("Validation pending"),
+    tra("Validation inconclusive"),
     tra("Valid"),
     tra("Invalid"),
     tra("Error"),
@@ -112,7 +114,8 @@ $state_name = array(
 $state_clause = array(
     "",
     " and server_state=4 ",
-    " and server_state=5 and outcome=1 and (validate_state=0 or validate_state=4) ",
+    " and server_state=5 and outcome=1 and validate_state=0 ",
+    " and server_state=5 and outcome=1 and validate_state=4 ",
     " and server_state=5 and outcome=1 and validate_state=1 ",
     " and server_state=5 and (outcome=6 or (outcome=1 and (validate_state=2 or validate_state=3 or validate_state=5))) ",
     " and server_state=5 and (outcome=3 or outcome=4 or outcome=7) ",
@@ -120,17 +123,19 @@ $state_clause = array(
 
 function state_num($result) {
 	if ($result->server_state == 4) return 1;
-	if ($result->server_state == 5
-		&& $result->outcome == 1
-		&& ($result->validate_state == 0 or $result->validate_state == 4)
-	) {
-		return 2;
+	if ($result->server_state == 5 && $result->outcome == 1) {
+        if ($result->validate_state == 0) {
+            return STATE_PENDING;
+        }
+        if ($result->validate_state == 4) {
+            return STATE_INCONCLUSIVE;
+        }
 	}
 	if ($result->server_state == 5
 		&& $result->outcome == 1
 		&& $result->validate_state == 1
 	) {
-		return 3;
+		return STATE_VALID;
 	}
 	if ($result->server_state == 5
 		&& ($result->outcome == 6
@@ -142,7 +147,7 @@ function state_num($result) {
 			)
 		)
 	) {
-		return 4;
+		return STATE_INVALID;
 	}
 	if ($result->server_state == 5
 		&& ($result->outcome == 3
@@ -150,7 +155,7 @@ function state_num($result) {
 			|| $result->outcome = 7
 		)
 	) {
-		return 5;
+		return STATE_ERROR;
 	}
 	return 0;
 }
@@ -174,8 +179,15 @@ function state_string($result) {
             return tra("Completed");
         case 2: return tra("Couldn't send");
         case 3:
-            if ($result->exit_status == -221) {
+            if ($result->exit_status == -221
+                || $result->exit_status == 202
+            ) {
                 return tra("Cancelled by server");
+            }
+            if ($result->exit_status == -233
+                || $result->exit_status == 200
+            ) {
+                return tra("Not started by deadline - canceled");
             }
             switch($result->client_state) {
             case 1: return tra("Error while downloading");
@@ -337,6 +349,12 @@ function result_table_start($show_wu_link, $show_host_link, $info) {
     }
     if ($show_wu_link) {
         echo "<th>".tra("Work unit")."<br><span class=\"smalltext\">".tra("click for details")."</span></th>\n";
+        if (function_exists('project_result_info_heading')) {
+            $x = project_result_info_heading();
+            if ($x) {
+                echo "<th>$x</th>\n";
+            }
+        }
     }
     if ($show_host_link) {
         echo "<th>".tra("Computer")."</th>\n";
@@ -395,6 +413,12 @@ function show_result_row(
     echo "<td><a href=\"result.php?resultid=$result->id\">$x</a></td>\n";
     if ($show_wu_link) {
         echo "<td><a href=\"workunit.php?wuid=$result->workunitid\">$result->workunitid</a></td>\n";
+        if (function_exists('project_result_info_link')) {
+            $x = project_result_info_link($result);
+            if ($x) {
+                echo "<td>$x</td>\n";
+            }
+        }
     }
     if ($show_host_link) {
         echo "<td>", host_link($result->hostid), "</td>\n";
@@ -427,9 +451,11 @@ function version_string($version_num) {
     }
 }
 
-// Decode ErrorNumber into human readable, taken from lib/error_numbers.h keep this up to date
+// Decode ErrorNumber into semi-human-readable,
+// taken from lib/error_numbers.h keep this up to date
 // @return String A human readable error message
 // @param Integer $x An error number
+//
 function result_error_mask_str($x){
     switch($x){
     case 0: return "";
@@ -437,6 +463,15 @@ function result_error_mask_str($x){
 	case 193: return "EXIT_SIGNAL";
 	case 194: return "EXIT_ABORTED_BY_CLIENT";
 	case 195: return "EXIT_CHILD_FAILED";
+	case 196: return "EXIT_DISK_LIMIT_EXCEEDED";
+	case 197: return "EXIT_TIME_LIMIT_EXCEEDED";
+	case 198: return "EXIT_MEM_LIMIT_EXCEEDED";
+	case 199: return "EXIT_CLIENT_EXITING";
+	case 200: return "EXIT_UNSTARTED_LATE";
+	case 201: return "EXIT_MISSING_COPROC";
+	case 202: return "EXIT_ABORTED_BY_PROJECT";
+	case 203: return "EXIT_ABORTED_VIA_GUI";
+	case 204: return "EXIT_UNKNOWN";
 	case -100: return "ERR_SELECT";
 	case -102: return "ERR_READ";
     case -103: return "ERR_WRITE";
@@ -610,7 +645,7 @@ function show_result($result, $show_outfile_links=false) {
         $i = 0;
         $x = "";
         foreach ($names as $name) {
-            if ($i) $x .= " | ";
+            if ($i) $x .= " &middot; ";
             $url = dir_hier_url($name, "upload", $fanout);
             echo $name;
             $x .= " <a href=$url>$i</a> ";
@@ -658,7 +693,7 @@ function result_navigation($info, $where_clause) {
         $x .= "<a href=$url>".tra("Previous")." ".$info->results_per_page."</a>";
     }
     if ($show_prev && $show_next) {
-        $x .= "&nbsp;|&nbsp;";
+        $x .= "&nbsp;&middot;&nbsp;";
     }
     if ($show_next) {
         $i2 = clone $info;
@@ -668,7 +703,7 @@ function result_navigation($info, $where_clause) {
     }
     $x .= "<br>".tra("State").": ";
     for ($i=0; $i<NSTATES; $i++) {
-        if ($i) $x .= " | ";
+        if ($i) $x .= " &middot; ";
         if ($info->state == $i) {
             $x .= $state_name[$i];
         } else {
@@ -697,7 +732,7 @@ function result_navigation($info, $where_clause) {
         foreach ($apps as $app) {
             $i2->appid = $app->id;
             $url = result_page_url($i2);
-            $x .= ' | ';
+            $x .= ' &middot; ';
             if ($info->appid == $app->id) {
                 $x .= $app->user_friendly_name;
             } else {

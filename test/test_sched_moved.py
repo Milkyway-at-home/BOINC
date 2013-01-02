@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-## $Id$
+## $Id: test_sched_moved.py 1656 2003-07-10 00:59:56Z quarl $
 
 # DOESN"T WORK YET
 

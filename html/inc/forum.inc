@@ -220,54 +220,71 @@ function start_forum_table($headings, $extra=null) {
     echo "</tr>\n";
 }
 
-// return a string containing a paged navigation bar 
-// for the given forum.  The default start place is 0. 
-//
-function show_page_nav($forum, $sort, $start=0){
-    // How many pages to potentially show before and after this one:
-    $preshow = 5; $postshow = 10;
-    $navbar = "";
-    
-    if ($forum->threads > THREADS_PER_PAGE) {
-        $total = ceil($forum->threads / THREADS_PER_PAGE);
-        $curpage = ceil($start / THREADS_PER_PAGE);
-        // If this is not the first page, display "previous"
-        if ($curpage > 0){
-            $navbar = '<a href="forum_forum.php?id='.$forum->id.'&amp;start='.(($curpage-1)*THREADS_PER_PAGE);
-            if ($sort) $navbar.='&amp;sort='.$sort;
-            $navbar.= '"> &lt;-- '.tra("Previous")."</a> ";
-        }
-        
-        // Display a list of pages surrounding this one
-        for ($i=$curpage-$preshow;$i<($curpage+$postshow);$i++){
-            if ($i<1) continue;
-            if ($i>$total) break;
-            // If this is the current page, emphasize it.
-            if ($i == $curpage+1) {
-                $navbar .= "<b>$i</b>";
-            } else {
-				$navbar.='<a href="forum_forum.php?id='.$forum->id.'&amp;start='.(($i-1)*THREADS_PER_PAGE);
-				if ($sort) $navbar.='&amp;sort='.$sort;
-				$navbar.='">'.$i.'</a>';
-			}
-			$navbar .= " | ";
-        }
-
-        // If there is a next page
-        if ($curpage+1 < $total){
-            $navbar.= '<a href="forum_forum.php?id='.$forum->id.'&amp;start='.(($curpage+1)*THREADS_PER_PAGE);
-            if ($sort) $navbar.='&amp;sort='.$sort;
-            $navbar.= '"> '.tra("Next")." --&gt;</a>";
-        }
-
-    }
-    return $navbar;
+function page_link($url, $page_num, $items_per_page, $text) {
+    return " <a href=\"$url&amp;start=" . $page_num*$items_per_page . "\">$text</a> ";
 }
 
-function thread_last_visit($user, $thread) {
-    if (!$user) return false;
-    $log = BoincForumLogging::lookup($user->id, $thread->id);
-    return $log->timestamp;
+// return a string for navigating pages
+//
+function page_links($url, $nitems, $items_per_page, $start){
+    // How many pages to potentially show before and after this one:
+    $preshow = 3;
+    $postshow = 3;
+
+    $x = "";
+    
+    if ($nitems <= $items_per_page) return "";
+    $npages = ceil($nitems / $items_per_page);
+    $curpage = ceil($start / $items_per_page);
+
+    // If this is not the first page, display "previous"
+    //
+    if ($curpage > 0){
+        $x .= page_link(
+            $url, $curpage-1, $items_per_page,
+            tra("Previous")." &middot; "
+        );
+    }
+
+    if ($curpage - $preshow > 0) {
+        $x .= page_link($url, 0, $items_per_page, "1");
+        if ($curpage - $preshow > 1) {
+            $x .= " . . . ";
+        } else {
+            $x .= " &middot; ";
+        }
+    }
+    // Display a list of pages surrounding this one
+    //
+    for ($i=$curpage-$preshow; $i<=$curpage+$postshow; $i++){
+        $page_str = (string)($i+1);
+        if ($i < 0) continue;
+        if ($i >= $npages) break;
+
+        if ($i == $curpage) {
+            $x .= "<b>$page_str</b>";
+        } else {
+            $x .= page_link($url, $i, $items_per_page, $page_str);
+        }
+        if ($i == $npages-1) break;
+        if ($i == $curpage+$postshow) break;
+        $x .= " &middot; ";
+    }
+
+    if ($curpage + $postshow < $npages-1) {
+        $x .= " . . . ";
+        $x .= page_link($url, $npages-1, $items_per_page, $npages);
+    }
+    // If there is a next page
+    //
+    if ($curpage < $npages-1){
+        $x .= page_link(
+            $url, $curpage+1, $items_per_page,
+            " &middot; ".tra("Next")
+        );
+    }
+    $x .= "\n";
+    return $x;
 }
 
 function thread_is_unread($user, $thread) {
@@ -294,119 +311,142 @@ function can_reply($thread, $forum, $user) {
     return true;
 }
 
-function should_show_post(
-    $logged_in_user, $postcount, $postnumber, $post, $sort_style, $last_visit, $nowrap
-){
-    // If no user logged in, display everything (useful for Google bots etc)
-    //
-    if (!$logged_in_user) return true;
-   
-    // If the user hasn't enabled the feature to display only
-    // a certain amount of posts, simply display all of them.
-    //
-    if (!$logged_in_user->prefs->minimum_wrap_postcount) return true;
-    
-    // If the user has asked to display all the posts just display them
-    //
-    if ($nowrap) return true;
-    
-    // If it is enabled and we haven't yet hit the limit, display all
-    //
-    if ($postcount < $logged_in_user->prefs->minimum_wrap_postcount) return true;
-    
-    // display the post if it is the first post
-    //
-    if ($postnumber==1 || $postnumber==($postcount+1)) return true;
-
-    // if this post is unread, show it
-    //
-    if ($post->timestamp > $last_visit) return true;
-   
-    // The user can choose to display the last X posts in a thread only,
-    // "last" here depends on sorting criteria:
-    //
-    if ($sort_style == CREATE_TIME_OLD){
-        if ($postnumber > $postcount+1-$logged_in_user->prefs->display_wrap_postcount) return true;
-    } else if ($sort_style == CREATE_TIME_NEW){
-        if ($postnumber <= $logged_in_user->prefs->display_wrap_postcount) return true;
-    } else {
-        // For other sorting criteria we do not know how to define "last"
-        // so simply display it all
-        //
-        return true;
-    }
-    
-    // In all other cases we should not show this particular post
-    return false;
-}
-
 // Show the posts in a thread for a user.
+// If $start is null, enforce jump-to-first-unread
 //
 function show_posts(
-    $thread, $forum, $sort_style, $filter, $logged_in_user, $nowrap, $show_controls=true
+    $thread, $forum, $start, $postid, $sort_style, $filter, $logged_in_user
 ) {
     $n = 1;
-    $first_unread_post = null;
-    $last_visit = 0;
-    
-    if ($show_controls) {
-        $controls = FORUM_CONTROLS;
-    } else {
-        $controls = NO_CONTROLS;
+
+    $num_to_show = 20;
+    if ($logged_in_user && $logged_in_user->prefs->display_wrap_postcount > 0) {
+        $num_to_show = $logged_in_user->prefs->display_wrap_postcount;
     }
 
-    // If logged in user is moderator,
-    // let him see all posts - including hidden ones
+    // let moderators see all posts, including hidden ones
     //
     if (is_moderator($logged_in_user, $forum)) {
         $show_hidden = true;
     } else {
         $show_hidden = false;
     }
+
     $posts = get_thread_posts($thread->id, $sort_style, $show_hidden);
-    $postcount = (sizeof($posts)-1);
-    if ($logged_in_user) {
-        $last_visit = thread_last_visit($logged_in_user, $thread);
-    }
 
-    $postnumber=0; $previous_post=0;
-    foreach ($posts as $post){
-        $postnumber++;
-        if (should_show_post(
-            $logged_in_user, $postcount, $postnumber, $post,
-            $sort_style, $last_visit, $nowrap
-		)) {
-            if ($postnumber!=$previous_post+1){
-                // A number of posts were hidden, display a way to unhide them:
-                //
-                echo "<tr class=\"postseparator\"><td></td><td>
-                    Only the first post and the last ".($logged_in_user->prefs->display_wrap_postcount)." posts 
-                    (of the ".($postcount+1)." posts in this thread) are displayed. <br>
-                    <a href=\"?id=".$thread->id."&amp;nowrap=true\">Click here to also display the remaining posts</a>.</td></tr>
-                ";
-            }
-            $previous_post=$postnumber;
-            show_post($post, $thread, $forum, $logged_in_user, $last_visit, $n, $controls, $filter);
-            $n = ($n+1)%2;
-            
-            if (($post->timestamp>$last_visit) && 
-                ((!$first_unread_post) || ($post->timestamp<$first_unread_post->timestamp))
-               ){
-                $first_unread_post=$post;
-            }
+    $latest_viewed = 0;
+    $forum_log = null;
+    if ($logged_in_user) {
+        $forum_log = BoincForumLogging::lookup($logged_in_user->id, $thread->id);
+        if ($forum_log) {
+            $latest_viewed = $forum_log->timestamp;
         }
     }
 
-    if ($logged_in_user && $logged_in_user->prefs->jump_to_unread){
-        if ($first_unread_post){
-            echo "<script>function jumpToUnread(){location.href='#".$first_unread_post->id."';}</script>";
+    if ($sort_style == CREATE_TIME_OLD) {
+        // show the last page
+        //
+        $nposts = sizeof($posts);
+        if ($nposts) $nposts -= 1;
+        $page = (int)($nposts/$num_to_show);
+        $default_start = $page*$num_to_show;
+    } else {
+        $default_start = 0;
+    }
+
+    // jump to a specific post if needed
+    //
+    $jump_to_post = null;
+    if ($start === null) {
+        if ($postid) {
+            // jump to a specific post
+            //
+            $i = 0;
+            foreach ($posts as $post) {
+                if ($post->id == $postid) {
+                    $start = $i - ($i % $num_to_show);
+                    $jump_to_post = $post;
+                    break;
+                }
+                $i++;
+            }
+            if ($start === null) {
+                echo "Post $postid not found.";
+                return;
+            }
+        } else if ($logged_in_user && $logged_in_user->prefs->jump_to_unread) {
+            // jump to the first unread post
+            //
+            $i = 0;
+            $ibest = 0;
+            foreach ($posts as $post) {
+                if ($post->timestamp > $latest_viewed) {
+                    if (!$jump_to_post || ($post->timestamp < $jump_to_post->timestamp)) {
+                        $jump_to_post = $post;
+                        $ibest = $i;
+                    }
+                }
+                $i++;
+            }
+            if ($jump_to_post) {
+                $start = $ibest - ($ibest % $num_to_show);
+            } else {
+                $start = $default_start;
+            }
         } else {
-            echo "<script>function jumpToUnread(){};</script>";
+            $start = $default_start;
         }
     }
 
+    $page_nav = page_links(
+        "forum_thread.php?id=$thread->id&sort_style=$sort_style",
+        sizeof($posts),
+        $num_to_show,
+        $start
+    );
+
+    echo $page_nav;
+
+    $num_shown = 0;
+    $num_skipped = 0;
+    $headings = array(array(tra("Author"),"authorcol"), array(tra("Message"),""));
+    start_forum_table($headings, "id=\"thread\" cellspacing=0");
+
+    $latest_shown_timestamp = 0;
+    foreach ($posts as $post) {
+        if ($num_skipped < $start) {
+            $num_skipped++;
+            continue;
+        }
+        if ($num_shown == $num_to_show) {
+            break;
+        }
+        show_post(
+            $post, $thread, $forum, $logged_in_user, $latest_viewed, $n,
+            FORUM_CONTROLS, $filter
+        );
+        $n = ($n+1)%2;
+        
+        if ($post->timestamp > $latest_shown_timestamp) {
+            $latest_shown_timestamp = $post->timestamp;
+        }
+        $num_shown++;
+    }
+    end_table();
+    echo $page_nav;
+
+    if ($jump_to_post) {
+        echo "<script>function jumpToUnread(){location.href='#".$jump_to_post->id."';}</script>";
+    } else {
+        echo "<script>function jumpToUnread(){};</script>";
+    }
+
     if ($logged_in_user) {
-        BoincForumLogging::replace($logged_in_user->id, $thread->id, time());
+        if (!$forum_log || $latest_shown_timestamp > $forum_log->timestamp) {
+            BoincForumLogging::replace(
+                $logged_in_user->id, $thread->id, $latest_shown_timestamp
+            );
+        }
     }
 }
 
@@ -445,7 +485,8 @@ function is_ignoring($user, $other_user) {
 // Display an individual post
 //
 function show_post(
-    $post, $thread, $forum, $logged_in_user, $last_visit, $n, $controls=FORUM_CONTROLS, $filter=true
+    $post, $thread, $forum, $logged_in_user, $latest_viewed, $n,
+    $controls=FORUM_CONTROLS, $filter=true
 ) {
     global $country_to_iso3166_2;
 
@@ -454,7 +495,9 @@ function show_post(
     if (is_banished($user) && !is_moderator($logged_in_user, $forum)) {
         return;
     }
+
     // If the user no longer exists, skip the post
+    //
     if (!$user){
         return;
     }
@@ -494,6 +537,7 @@ function show_post(
 
 
     // Print the special user lines, if any
+    //
     global $special_user_bitfield;
     $fstatus="";
     $keys = array_keys($special_user_bitfield);
@@ -506,6 +550,7 @@ function show_post(
     }
     
     // Highlight special users if set in prefs;
+    //
     if ($logged_in_user && $logged_in_user->prefs){
         $highlight = $logged_in_user->prefs->highlight_special && $is_posted_by_special;
     } else {
@@ -570,16 +615,16 @@ function show_post(
         echo "<form action=\"forum_rate.php?post=", $post->id, "\" method=\"post\">";
     }
 
-    if ($logged_in_user && $post->timestamp>$last_visit){
+    if ($logged_in_user && $post->timestamp>$latest_viewed){
         show_image(NEW_IMAGE, tra("You haven't read this message yet"), tra("Unread"), NEW_IMAGE_HEIGHT);
     }
 
-    echo " <a href=\"forum_thread.php?id=".$thread->id."&amp;nowrap=true#$post->id\">".tra("Message %1", $post->id)."</a> - ";
+    echo " <a href=\"forum_thread.php?id=".$thread->id."&amp;postid=$post->id\">".tra("Message %1", $post->id)."</a> - ";
     if ($post->hidden) echo "<font color=red>[".tra("hidden")."] </font>";
     echo tra("Posted: %1", pretty_time_str($post->timestamp)), " ";
 
     if ($post->parent_post) {
-        echo tra(" - in response to ")."<a href=\"forum_thread.php?id=".$thread->id."&amp;nowrap=true#".$post->parent_post."\">".tra("Message %1", $post->parent_post)."</a>.";
+        echo tra(" - in response to ")."<a href=\"forum_thread.php?id=".$thread->id."&amp;postid=".$post->parent_post."\">".tra("Message %1", $post->parent_post)."</a>.";
     }
     if ($can_edit && $controls != NO_CONTROLS) {
         show_button("forum_edit.php?id=".$post->id."$tokens", tra("Edit"), tra("Edit this message"));
@@ -618,12 +663,12 @@ function show_post(
         echo "<p>", $posttext, "</p>";
         echo "</td></tr><tr><td class=\"postfooter\">ID: <i>", $post->id;
         if ($no_forum_rating) {
-            echo " | <a href=\"forum_report_post.php?post=".$post->id."\">";
+            echo " &middot; <a href=\"forum_report_post.php?post=".$post->id."\">";
             show_image(REPORT_POST_IMAGE, tra("Report this post as offensive"), tra("Report as offensive"), REPORT_POST_IMAGE_HEIGHT);
             echo "</a>";
         } else {
             $rating = $post->rating();
-            echo " | ".tra("Rating: %1", $rating)."</i> | ".tra("rate: ")."
+            echo " &middot; ".tra("Rating: %1", $rating)."</i> &middot; ".tra("rate: ")."
                 <a href=\"forum_rate.php?post=".$post->id."&amp;choice=p$tokens\">
             ";
             show_image(RATE_POSITIVE_IMAGE, tra("Click if you like this message"), tra("Rate +"), RATE_POSITIVE_IMAGE_HEIGHT);
@@ -678,7 +723,7 @@ function show_post_and_context($post, $thread, $forum, $options, $n) {
         break;
     }
     echo "
-        (<a href=\"forum_thread.php?id=".$thread->id."&amp;nowrap=true#".$post->id."\">".tra("Message %1", $post->id)."</a>)
+        (<a href=\"forum_thread.php?id=".$thread->id."&amp;postid=".$post->id."\">".tra("Message %1", $post->id)."</a>)
         <br>
         ".tra("Posted %1 by %2", $when, user_links($user))." $deleted
         <hr>
@@ -773,6 +818,7 @@ function create_post($content, $parent_id, $user, $forum, $thread, $signature) {
     $user->prefs->update("posts=posts+1");
     $thread->update("replies=replies+1, timestamp=$now");
     $forum->update("posts=posts+1, timestamp=$now");
+    return $id;
 }
 
 // call this when hide or delete a post;

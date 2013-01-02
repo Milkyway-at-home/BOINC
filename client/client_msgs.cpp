@@ -39,6 +39,10 @@ using std::deque;
 
 #include "client_msgs.h"
 
+#ifdef ANDROID
+#include "android_log.h"
+#endif
+
 MESSAGE_DESCS message_descs;
 
 #ifdef SIM
@@ -117,6 +121,11 @@ void show_message(PROJ_AM *p, char* msg, int priority, bool is_html, const char*
     } else {
         x = "---";
     }
+#ifdef ANDROID // print message to Logcat
+    char amessage[2048];
+    snprintf(amessage, sizeof(amessage), "client_msgs: %s", message);
+    LOGD(amessage);
+#endif //ANDROID
     printf("%s [%s] %s\n", time_string, x, message);
 #ifdef _WIN32
     if (gstate.executing_as_daemon) {
@@ -163,16 +172,15 @@ void msg_printf_notice(PROJ_AM *p, bool is_html, const char* link, const char *f
 // add to cache, and delete old messages if cache too big.
 // If high priority, create a notice.
 //
-void MESSAGE_DESCS::insert(
-    PROJ_AM* p, int priority, int now, char* message
-) {
+void MESSAGE_DESCS::insert(PROJ_AM* p, int priority, int now, char* message) {
     MESSAGE_DESC* mdp = new MESSAGE_DESC;
     static int seqno = 1;
-    strcpy(mdp->project_name, "");
     if (p) {
         strlcpy(
             mdp->project_name, p->get_project_name(), sizeof(mdp->project_name)
         );
+    } else {
+        strcpy(mdp->project_name, "");
     }
     mdp->priority = (priority==MSG_SCHEDULER_ALERT)?MSG_USER_ALERT:priority;
     mdp->timestamp = now;

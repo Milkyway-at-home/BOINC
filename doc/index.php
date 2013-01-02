@@ -17,7 +17,7 @@ require_once("../html/inc/translation.inc");
 function show_participant() {
     $i = rand(0, 99);
     $j = $i+1;
-    echo "<table cellpadding=8 cellspacing=0>
+    echo "<table cellpadding=8 cellspacing=0 width=100%>
         <tr><td class=heading_right>
         <center>
         <span class=section_title>".tra("Computing power")."</span>
@@ -36,7 +36,8 @@ function show_participant() {
 function show_totals() {
     $fn = "boinc_state.xml";
     if (!file_exists($fn) || filemtime($fn) < time()-86400) {
-        $x = file_get_contents("http://www.boincstats.com/xml/boinc_state.php");
+        $uid = time();
+        $x = file_get_contents("http://boincstats.com/en/xml/boincState?uid=$uid");
         if ($x) {
             $f = fopen($fn, "w");
             fwrite($f, $x);
@@ -83,6 +84,8 @@ function show_participate() {
         <a class=heading href=download.php><b>".tra("Download")."</b></a>
         &middot; <a class=heading href=\"/wiki/BOINC_Help\"><b>".tra("Help")."</b></a>
         &middot; <a class=heading href=\"wiki/User_manual\"><b><span class=nobr>".tra("Documentation")."</span></b></a> 
+        &middot; <a class=heading href=addons.php><b><span class=nobr>".tra("Add-ons")."</span></b></a> 
+        &middot; <a class=heading href=links.php><b><span class=nobr>".tra("Links")."</span></b></a> 
         </center>
         </td></tr>
         <tr><td>

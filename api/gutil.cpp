@@ -29,7 +29,6 @@
 
 #ifdef _WIN32
 
-#ifndef SANS_JPEGLIB
 #ifdef __cplusplus
 extern "C" {
 #include "jpeglib.h"
@@ -37,28 +36,16 @@ extern "C" {
 #else
 #include "jpeglib.h"
 #endif
-#endif
 
 #include "bmplib.h"
 #include "tgalib.h"
 #endif
 
 #ifndef _WIN32
-#if HAVE_MALLOC_H || defined(_WIN32)
-#include <malloc.h>
-#if defined(__MINGW32__) && !defined(alloca)
-#define alloca(x) _alloca(x)
-#endif
-#endif
-#if HAVE_ALLOCA_H
-#include <alloca.h>
-#endif
 
-#ifndef SANS_JPEGLIB
 extern "C"{
 #include <jpeglib.h>
 }
-#endif
 
 #endif
 
@@ -550,48 +537,6 @@ Vertex g_quadVertices[] = {
     { 0.0f,1.0f, -1.0f, 1.0f, 0.0f }
 };
 
-// read a PPM file
-// to generate PPM from JPEG:
-// mogrify -format ppm foo.jpg
-// or xv foo.jpg; right click on image, choose PPM
-//
-int read_ppm_file(const char* name, int& w, int& h, unsigned char** arrayp) {
-    FILE* f;
-    char buf[256];
-    char img_type;
-    unsigned char* array;
-    int i;
-
-    f = boinc_fopen(name, "rb");
-    if (!f) return -1;
-    do {fgets(buf, 256, f);} while (buf[0] == '#');
-    if (buf[0] != 'P') {
-        return -1;
-    }
-    img_type = buf[1];
-    do {fgets(buf, 256, f);} while (buf[0] == '#');
-    sscanf(buf, "%d %d", &w, &h);
-    do {fgets(buf, 256, f);} while (buf[0] == '#');
-    array = (unsigned char*)malloc(w*h*3);
-    if (!array) return -1;
-    switch(img_type) {  // TODO: pad image dimension to power of 2
-    case '3':
-        for (i=0; i<w*h*3; i++) {
-            int x;
-            fscanf(f, "%d", &x);
-            array[i] = x;
-        }
-    case '6':
-        fread(array, 3, w*h, f);
-        break;
-    }
-
-    *arrayp = array;
-    fclose(f);
-    return 0;
-}
-
-
 // draw a texture at a given position and size.
 // Change size if needed so aspect ratio of texture isn't changed
 //
@@ -655,7 +600,6 @@ void printdata(const char* filename, int x, int y, unsigned char* data) {
 }
 #endif
 
-#ifndef SANS_JPEGLIB
 void DecodeJPG(jpeg_decompress_struct* cinfo, tImageJPG *pImageData) {
 	jpeg_read_header(cinfo, TRUE);
 	jpeg_start_decompress(cinfo);
@@ -698,10 +642,6 @@ tImageJPG *LoadJPG(const char *filename) {
 	struct jpeg_decompress_struct cinfo;
 	tImageJPG *pImageData = NULL;
 	FILE *pFile;
-#if HAVE_ALLOCA || defined(_WIN32)
-	alloca(16);  // Force a frame pointer even when compiled with
-                 // -fomit-frame-pointer
-#endif
 
 	if((pFile = boinc_fopen(filename, "rb")) == NULL) {
 		fprintf(stderr,"Unable to load JPG File!");
@@ -734,7 +674,10 @@ tImageJPG *LoadJPG(const char *filename) {
 
 int TEXTURE_DESC::CreateTextureJPG(const char* strFileName) {
 	if(!strFileName) return -1;
-	tImageJPG *pImage = LoadJPG(strFileName);			// Load the image and store the data
+
+    // Load the image and store the data
+    //
+	tImageJPG *pImage = LoadJPG(strFileName);
 	if(pImage == NULL) return -1;
 	glPixelStorei(GL_UNPACK_ALIGNMENT,1);
 	glGenTextures(1, (GLuint*)&id);
@@ -745,110 +688,12 @@ int TEXTURE_DESC::CreateTextureJPG(const char* strFileName) {
     xsize = pImage->sizeX;
     ysize = pImage->sizeY;
 
-	if (pImage) {
-		if (pImage->data) {
-			free(pImage->data);
-		}
-		free(pImage);
-	}
-	return 0;
-}
-#endif
-
-#ifdef _WIN32
-int TEXTURE_DESC::CreateTextureBMP(const char* strFileName) {
-	DIB_BITMAP image;
-    if(image.loadBMP(strFileName) == false) {
-		return -1;
+    if (pImage->data) {
+        free(pImage->data);
     }
-	glPixelStorei(GL_UNPACK_ALIGNMENT,4);
-	glGenTextures(1, &id);
-	glBindTexture(GL_TEXTURE_2D, id);
-	gluBuild2DMipmaps(GL_TEXTURE_2D, image.get_channels(), image.get_width(),
-        image.get_height(), GL_BGR_EXT, GL_UNSIGNED_BYTE,
-        image.getLinePtr(0)
-    );
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR_MIPMAP_LINEAR);
-    xsize = image.get_width();
-    ysize = image.get_height();
+    free(pImage);
 	return 0;
 }
-#endif  // _WIN32
-
-
-int TEXTURE_DESC::CreateTexturePPM(const char* strFileName) {
-	unsigned char* pixels;
-    int width, height, retval;
-    retval = read_ppm_file(strFileName, width, height, &pixels);
-    if (retval) return retval;
-	glPixelStorei(GL_UNPACK_ALIGNMENT,1);
-    glGenTextures(1, (GLuint*)&id);
-    glBindTexture(GL_TEXTURE_2D, id);
-	gluBuild2DMipmaps(GL_TEXTURE_2D,3,width,height,GL_RGB,GL_UNSIGNED_BYTE,pixels);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR_MIPMAP_LINEAR);
-    xsize = width;
-    ysize = height;
-    if (pixels) {
-        free(pixels);
-    }
-	return 0;
-}
-
-
-int TEXTURE_DESC::CreateTextureRGB(const char* strFileName) {
-	if(!strFileName) return -1;
-	int sizeX;
-	int sizeY;
-	int sizeZ;
-	// Load the image and store the data
-	unsigned int *pImage = read_rgb_texture(strFileName,&sizeX,&sizeY,&sizeZ);
-	if(pImage == NULL) return -1;
-	glPixelStorei(GL_UNPACK_ALIGNMENT,1);
-	glGenTextures(1, (GLuint*)&id);
-	glBindTexture(GL_TEXTURE_2D, id);
-	gluBuild2DMipmaps(GL_TEXTURE_2D, 3, sizeX, sizeY, GL_RGBA, GL_UNSIGNED_BYTE, pImage);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR_MIPMAP_LINEAR);
-    if (pImage)
-		free(pImage);
-	return 0;
-}
-
-#ifdef _WIN32
-int TEXTURE_DESC::CreateTextureTGA(const char* strFileName) {
-	if(!strFileName)									// Return from the function if no file name was passed in
-		return -1;
-
-	tImageTGA *pImage = LoadTGA(strFileName);			// Load the image and store the data
-    if(pImage == NULL) {
-		return -1;
-    }
-	glPixelStorei(GL_UNPACK_ALIGNMENT,1);
-	glGenTextures(1, &id);
-	glBindTexture(GL_TEXTURE_2D, id);
-	int textureType = GL_RGB;
-	if(pImage->channels == 4) {
-		textureType = GL_RGBA;
-	}
-	gluBuild2DMipmaps(GL_TEXTURE_2D, pImage->channels, pImage->sizeX,
-	pImage->sizeY, textureType, GL_UNSIGNED_BYTE, pImage->data);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR_MIPMAP_LINEAR);
-    xsize = pImage->sizeX;
-    ysize = pImage->sizeY;
-
-    if (pImage)	{									// If we loaded the image
-        if (pImage->data) {							// If there is texture data
-			delete[] pImage->data;					// Free the texture data, we don't need it anymore
-		}
-		free(pImage);								// Free the image structure
-	}
-	return 0;
-}
-#endif  // _WIN32
-
 
 int TEXTURE_DESC::load_image_file(const char* filename) {
     int retval;
@@ -860,36 +705,11 @@ int TEXTURE_DESC::load_image_file(const char* filename) {
     // for now, just try all the image types in turn
 
     present = true;
-#ifndef SANS_JPEGLIB
 	retval = CreateTextureJPG(filename);
     if (!retval) {
         fprintf(stderr, "Successfully loaded '%s'.\n", filename);
         return 0;
     }
-#endif
-#ifdef _WIN32
-    retval = CreateTexturePPM(filename);
-    if (!retval) {
-        fprintf(stderr, "Successfully loaded '%s'.\n", filename);
-        return 0;
-    }
-    retval = CreateTextureBMP(filename);
-    if (!retval) {
-        fprintf(stderr, "Successfully loaded '%s'.\n", filename);
-        return 0;
-    }
-    retval = CreateTextureTGA(filename);
-    if (!retval) {
-        fprintf(stderr, "Successfully loaded '%s'.\n", filename);
-        return 0;
-    }
-#endif
-	retval = CreateTextureRGB(filename);
-    if (!retval) {
-        fprintf(stderr, "Successfully loaded '%s'.\n", filename);
-        return 0;
-    }
-
 done:
     present = false;
     fprintf(stderr, "Failed to load '%s'.\n", filename);

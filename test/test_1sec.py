@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-## $Id$
+## $Id: test_1sec.py 1734 2003-07-18 21:43:12Z quarl $
 
 # This tests whether the client handles multiple projects, and whether CPU
 # time is divided correctly between projects The client should do work for

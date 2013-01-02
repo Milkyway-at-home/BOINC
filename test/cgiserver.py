@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# $Id$
+# $Id: cgiserver.py 2680 2003-11-25 07:40:45Z quarl $
 # cgi/php web server
 
 import BaseHTTPServer, CGIHTTPServer

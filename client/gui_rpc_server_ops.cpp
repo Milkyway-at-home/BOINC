@@ -50,20 +50,22 @@
 #endif
 #endif
 
+#include "error_numbers.h"
+#include "filesys.h"
+#include "network.h"
+#include "parse.h"
 #include "str_util.h"
 #include "url.h"
-#include "client_state.h"
 #include "util.h"
-#include "error_numbers.h"
-#include "parse.h"
-#include "network.h"
-#include "filesys.h"
 
-#include "file_names.h"
+#include "client_state.h"
 #include "client_msgs.h"
 #include "client_state.h"
 #include "cs_proxy.h"
 #include "cs_notice.h"
+#include "file_names.h"
+#include "project.h"
+#include "result.h"
 
 using std::string;
 using std::vector;
@@ -78,7 +80,7 @@ void GUI_RPC_CONN::handle_auth1(MIOFILE& fout) {
 }
 
 int GUI_RPC_CONN::handle_auth2(char* buf, MIOFILE& fout) {
-    char nonce_hash[256], nonce_hash_correct[256], buf2[256];
+    char nonce_hash[256], nonce_hash_correct[256], buf2[512];
     if (!parse_str(buf, "<nonce_hash>", nonce_hash, 256)) {
         auth_failure(fout);
         return ERR_AUTHENTICATOR;
@@ -116,7 +118,7 @@ static void handle_get_simple_gui_info(GUI_RPC_CONN& grc) {
         PROJECT* p = gstate.projects[i];
         p->write_state(grc.mfout, true);
     }
-    gstate.write_tasks_gui(grc.mfout, false);
+    gstate.write_tasks_gui(grc.mfout, true);
     grc.mfout.printf("</simple_gui_info>\n");
 }
 
@@ -144,7 +146,7 @@ static void handle_get_disk_usage(GUI_RPC_CONN& grc) {
         // If launched by Manager, get Manager's size on disk
         ProcessSerialNumber managerPSN;
         FSRef ourFSRef;
-        char path[1024];
+        char path[MAXPATHLEN];
         double manager_size = 0.0;
         OSStatus err;
         err = GetProcessForPID(getppid(), &managerPSN);
@@ -521,9 +523,9 @@ static void handle_result_op(GUI_RPC_CONN& grc, const char* op) {
         msg_printf(p, MSG_INFO, "task %s aborted by user", result_name);
         atp = gstate.lookup_active_task_by_result(rp);
         if (atp) {
-            atp->abort_task(ERR_ABORTED_VIA_GUI, "aborted by user");
+            atp->abort_task(EXIT_ABORTED_VIA_GUI, "aborted by user");
         } else {
-            rp->abort_inactive(ERR_ABORTED_VIA_GUI);
+            rp->abort_inactive(EXIT_ABORTED_VIA_GUI);
         }
         gstate.request_work_fetch("result aborted by user");
     } else if (!strcmp(op, "suspend")) {
@@ -826,7 +828,7 @@ static void handle_project_attach(GUI_RPC_CONN& grc) {
 
     // if project_init.xml refers to this project,
     // delete the file, otherwise we'll just
-    // reattach the next time the core client starts
+    // reattach the next time the client starts
     //
     if (!strcmp(url.c_str(), gstate.project_init.url)) {
         retval = gstate.project_init.remove();

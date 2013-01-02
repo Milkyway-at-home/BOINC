@@ -35,6 +35,7 @@
 #include <string>
 #include <signal.h>
 #include <sys/time.h>
+#include <sys/param.h>
 
 #include "boinc_db.h"
 #include "util.h"
@@ -330,11 +331,14 @@ int handle_wu(
         wu_item.error_mask |= WU_ERROR_COULDNT_SEND_RESULT;
     }
 
-    // if WU has results with errors and no success yet,
+    // if WU has results with errors and there are no results that are
+    // - successful
+    // - in progress
+    // - timed out (but could still be returned)
     // reset homogeneous redundancy class to give other platforms a try;
     // also reset app version ID if using HAV
     //
-    if (nerrors && !(nsuccess || ninprogress)) {
+    if (nerrors && !(nsuccess || ninprogress || nno_reply)) {
         wu_item.hr_class = 0;
         wu_item.app_version_id = 0;
     }
@@ -506,7 +510,7 @@ int handle_wu(
         }
     }
 
-    // If we are deferring assimilation until all results are over and validated,
+    // If we're deferring assimilation until all results are over and validated,
     // when that happens make sure that WU state is advanced to assimilate ready
     // the items.size is a kludge
     //
@@ -628,7 +632,7 @@ int handle_wu(
     if (deferred_file_delete_time
         && deferred_file_delete_time < wu_item.transition_time
     ) {
-        wu_item.transition_time = deferred_file_delete_time;
+        wu_item.transition_time = (int)deferred_file_delete_time;
     }
 
     // Handle transitioner overload.
@@ -724,7 +728,7 @@ void main_loop() {
             pause();
 #else
             log_messages.printf(MSG_DEBUG, "sleeping %d\n", sleep_interval);
-            sleep(sleep_interval);
+            daemon_sleep(sleep_interval);
 #endif
         }
     }
@@ -750,7 +754,7 @@ void usage(char *name) {
 
 int main(int argc, char** argv) {
     int i, retval;
-    char path[256];
+    char path[MAXPATHLEN];
 
     startup_time = time(0);
     for (i=1; i<argc; i++) {

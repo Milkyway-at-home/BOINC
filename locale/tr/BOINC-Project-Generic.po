@@ -5,16 +5,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: BOINC Project Generic\n"
 "Report-Msgid-Bugs-To: BOINC translation team <boinc_loc@boinc.berkeley.edu>\n"
-"POT-Creation-Date: 2011-08-25 15:10 PDT\n"
-"PO-Revision-Date: 2010-11-12 13:16+0200\n"
+"POT-Creation-Date: 2012-01-16 11:31 PST\n"
+"PO-Revision-Date: 2012-10-31 08:57+0200\n"
 "Last-Translator: Aycan Demirel <aycandemirel@hotmail.com>\n"
 "Language-Team: Donanım Haber\n"
-"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Generator: Translate Toolkit 1.2.1\n"
-"X-Poedit-SourceCharset: utf-8\n"
+"X-Generator: Poedit 1.5.4\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"Plural-Forms: nplurals=2; plural=(n>1);\n"
 
 msgid "LANG_NAME_NATIVE"
 msgstr "Türkçe"
@@ -22,29 +22,159 @@ msgstr "Türkçe"
 msgid "LANG_NAME_INTERNATIONAL"
 msgstr "Turkish"
 
+#: ../inc/bbcode_html.inc:11
+msgid "Bold text: [b]text[/b]  (alt+b)"
+msgstr "Kalın metin: [b]metin[/b]  (alt+b)"
+
+#: ../inc/bbcode_html.inc:14
+msgid "Italic text: [i]text[/i]  (alt+i)"
+msgstr "İtalik metin: [i]metin[/i]  (alt+i)"
+
+#: ../inc/bbcode_html.inc:17
+msgid "Underline text: [u]text[/u]  (alt+u)"
+msgstr "Altı çizili metin: [u]metin[/u]  (alt+u)"
+
+#: ../inc/bbcode_html.inc:20
+msgid "Quote text: [quote]text[/quote]  (alt+q)"
+msgstr "Alıntı yapılmış metin: [quote]metin[/quote]  (alt+q)"
+
+#: ../inc/bbcode_html.inc:23
+msgid "Code display: [code]code[/code]  (alt+c)"
+msgstr "Kod görünümü: [code]kod[/code]  (alt+c)"
+
+#: ../inc/bbcode_html.inc:26
+msgid "List: [list]text[/list] (alt+l)"
+msgstr "Liste: [list]metin[/list] (alt+l)"
+
+#: ../inc/bbcode_html.inc:29
+msgid "Ordered list: [list=]text[/list]  (alt+o)"
+msgstr "Numaralanmış liste: [list=]metin[/list]  (alt+o)"
+
+#: ../inc/bbcode_html.inc:32
+msgid "Insert image: [img]http://image_url[/img]  (alt+p)"
+msgstr "Resim ekle: [img]http://resim_adresi[/img]  (alt+p)"
+
+#: ../inc/bbcode_html.inc:35
+msgid ""
+"Insert URL: [url]http://url[/url] or [url=http://url]URL text[/url]  (alt+w)"
+msgstr ""
+"Adres gir: [url]http://adres[/url] ya da [url=http://url]adres metni[/url]  "
+"(alt+w)"
+
+#: ../inc/bbcode_html.inc:42
+msgid "Font color"
+msgstr "Font rengi"
+
+#: ../inc/bbcode_html.inc:43
+msgid ""
+"Font color: [color=red]text[/color]  Tip: you can also use color=#FF0000"
+msgstr ""
+"Font rengi: [color=red]metin[/color]  İpucu: color=#FF0000 şeklinde de "
+"yazabilirsiniz"
+
+#: ../inc/bbcode_html.inc:44 ../inc/bbcode_html.inc:59 ../inc/prefs.inc:625
+msgid "Default"
+msgstr "Varsayılan"
+
+#: ../inc/bbcode_html.inc:45
+msgid "Dark Red"
+msgstr "Koyu kırmızı"
+
+#: ../inc/bbcode_html.inc:46
+msgid "Red"
+msgstr "Kırmızı"
+
+#: ../inc/bbcode_html.inc:47
+msgid "Orange"
+msgstr "Turuncu"
+
+#: ../inc/bbcode_html.inc:48
+msgid "Brown"
+msgstr "Kahverengi"
+
+#: ../inc/bbcode_html.inc:49
+msgid "Yellow"
+msgstr "Sarı"
+
+#: ../inc/bbcode_html.inc:50
+msgid "Green"
+msgstr "Yeşil"
+
+#: ../inc/bbcode_html.inc:51
+msgid "Olive"
+msgstr "Zeytin yeşili"
+
+#: ../inc/bbcode_html.inc:52
+msgid "Cyan"
+msgstr "Camgöbeği"
+
+#: ../inc/bbcode_html.inc:53
+msgid "Blue"
+msgstr "Mavi"
+
+#: ../inc/bbcode_html.inc:54
+msgid "Dark Blue"
+msgstr "Koyu mavi"
+
+#: ../inc/bbcode_html.inc:55
+msgid "Indigo"
+msgstr "Çivit"
+
+#: ../inc/bbcode_html.inc:56
+msgid "Violet"
+msgstr "Mor"
+
+#: ../inc/bbcode_html.inc:57
+msgid "Font size"
+msgstr "Font boyu"
+
+#: ../inc/bbcode_html.inc:58
+msgid "Font size: [size=x-small]small text[/size]"
+msgstr "Font boyu: [size=x-small]küçük metin[/size]"
+
+#: ../inc/bbcode_html.inc:60
+msgid "Small"
+msgstr "Küçük"
+
+#: ../inc/bbcode_html.inc:61
+msgid "Normal"
+msgstr "Normal"
+
+#: ../inc/bbcode_html.inc:62
+msgid "Large"
+msgstr "Büyük"
+
+#: ../inc/bbcode_html.inc:65
+msgid "Close all open bbCode tags"
+msgstr "Açık bbCode etiketlerini kapat"
+
+#: ../inc/bbcode_html.inc:65
+msgid "Close Tags"
+msgstr "Etiketleri kapat"
+
 #: ../inc/forum.inc:37
 msgid "Oldest first"
-msgstr ""
+msgstr "Eskiler başta"
 
 #: ../inc/forum.inc:38 ../inc/forum.inc:44
 msgid "Newest first"
-msgstr ""
+msgstr "Yeniler başta"
 
 #: ../inc/forum.inc:39
 msgid "Highest rated posts first"
-msgstr ""
+msgstr "En çok oylananlar başta"
 
 #: ../inc/forum.inc:41
 msgid "Newest post first"
-msgstr ""
+msgstr "Yeni gönderiler başa"
 
 #: ../inc/forum.inc:42
 msgid "Most views first"
-msgstr ""
+msgstr "En çok okunanlar başa"
 
 #: ../inc/forum.inc:43
 msgid "Most posts first"
-msgstr ""
+msgstr "En çok yanıtlananlar başa"
 
 #: ../inc/forum.inc:125
 msgid "Search for words in forum messages"
@@ -58,18 +188,18 @@ msgstr "Forumlarda ara"
 msgid "Advanced search"
 msgstr "Gelişmiş arama"
 
-#: ../inc/forum.inc:132 ../inc/user.inc:251 ../user/pm.php:69
+#: ../inc/forum.inc:132 ../inc/user.inc:250 ../user/pm.php:69
 #: ../user/pm.php:133
 msgid "Private messages"
 msgstr "Özel mesajlar"
 
 #: ../inc/forum.inc:151 ../user/forum_forum.php:71
-#: ../user/sample_index.php:112
+#: ../user/sample_index.php:119
 msgid "Questions and Answers"
 msgstr "Soru ve Yanıtlar"
 
-#: ../inc/forum.inc:151 ../inc/forum.inc:183 ../inc/user.inc:248
-#: ../inc/user.inc:371 ../user/forum_forum.php:74 ../user/sample_index.php:111
+#: ../inc/forum.inc:151 ../inc/forum.inc:183 ../inc/user.inc:247
+#: ../inc/user.inc:370 ../user/forum_forum.php:73 ../user/sample_index.php:118
 #: ../project.sample/project.inc:46
 msgid "Message boards"
 msgstr "Mesaj panoları"
@@ -78,7 +208,231 @@ msgstr "Mesaj panoları"
 msgid "%1 message board"
 msgstr "%1 mesaj panosu"
 
-#: ../inc/forum.inc:1077
+#: ../inc/forum.inc:238 ../inc/result.inc:658
+msgid "Previous"
+msgstr "Önceki"
+
+#: ../inc/forum.inc:260 ../inc/result.inc:667
+msgid "Next"
+msgstr "Sonraki"
+
+#: ../inc/forum.inc:535
+msgid "Send&nbsp;message"
+msgstr "Mesaj&nbsp;gönder"
+
+#: ../inc/forum.inc:535
+msgid "Send %1 a private message"
+msgstr "%1 kişisine özel mesaj gönder"
+
+#: ../inc/forum.inc:536
+msgid "Joined: %1"
+msgstr "Katılım: %1"
+
+#: ../inc/forum.inc:545
+msgid "Posts: %1"
+msgstr "Gönderiler: %1"
+
+#: ../inc/forum.inc:551
+msgid "Credit: %1"
+msgstr "Kredi:  %1"
+
+#: ../inc/forum.inc:552
+msgid "RAC: %1"
+msgstr "Güncel kredi: %1"
+
+#: ../inc/forum.inc:574
+msgid "You haven't read this message yet"
+msgstr "Bu mesajı henüz okumadınız"
+
+#: ../inc/forum.inc:574
+msgid "Unread"
+msgstr "Okunmamış"
+
+#: ../inc/forum.inc:577 ../inc/forum.inc:582 ../inc/forum.inc:681
+msgid "Message %1"
+msgstr "Mesaj %1"
+
+#: ../inc/forum.inc:578 ../inc/user.inc:324 ../user/forum_forum.php:172
+msgid "hidden"
+msgstr "gizli"
+
+#: ../inc/forum.inc:579
+msgid "Posted: %1"
+msgstr "Gönderildi: %1"
+
+#: ../inc/forum.inc:582
+msgid " - in response to "
+msgstr "şu mesaja yanıt olarak: "
+
+#: ../inc/forum.inc:585 ../inc/prefs.inc:691 ../inc/prefs.inc:693
+msgid "Edit"
+msgstr "Düzenle"
+
+#: ../inc/forum.inc:585
+msgid "Edit this message"
+msgstr "Bu mesajı düzenler"
+
+#: ../inc/forum.inc:591
+msgid "Last modified: %1"
+msgstr "Son düzenleme: %1"
+
+#: ../inc/forum.inc:594
+msgid ""
+"This post is not shown because the sender is on your 'ignore' list.  Click "
+"%1here%2 to view this post"
+msgstr ""
+"Bu gönderi gösterilemiyor, çünkü gönderici 'yoksay' listenizde.  Bu "
+"gönderiyi okumak için %1buraya%2 tıklayın"
+
+#: ../inc/forum.inc:622 ../inc/forum.inc:633
+msgid "Report this post as offensive"
+msgstr "Bu gönderiyi yöneticiye şikayet et"
+
+#: ../inc/forum.inc:622 ../inc/forum.inc:633
+msgid "Report as offensive"
+msgstr "Şikayet et"
+
+#: ../inc/forum.inc:626
+msgid "Rating: %1"
+msgstr "Oy: %1"
+
+#: ../inc/forum.inc:626
+msgid "rate: "
+msgstr "oyla:"
+
+# 83%
+#: ../inc/forum.inc:629
+msgid "Click if you like this message"
+msgstr "Bu mesajdan hoşlandıysanız tıklayın"
+
+#: ../inc/forum.inc:629
+msgid "Rate +"
+msgstr "+ Oy"
+
+#: ../inc/forum.inc:631
+msgid "Click if you don't like this message"
+msgstr "Bu mesajdan hoşlanmadıysanız tıklayın"
+
+#: ../inc/forum.inc:631
+msgid "Rate -"
+msgstr "- Oy"
+
+#: ../inc/forum.inc:639 ../user/pm.php:106 ../user/pm.php:146
+msgid "Reply"
+msgstr "Yanıtla"
+
+#: ../inc/forum.inc:639
+msgid "Post a reply to this message"
+msgstr "Bu mesaja yanıt ver"
+
+#: ../inc/forum.inc:641
+msgid "Quote"
+msgstr "Alıntı"
+
+#: ../inc/forum.inc:641
+msgid "Post a reply by quoting this message"
+msgstr "Bu mesaja alıntı yaparak yanıt ver"
+
+#: ../inc/forum.inc:662
+msgid "Hidden by a moderator"
+msgstr "Moderatör tarafından gizlendi"
+
+#: ../inc/forum.inc:683
+msgid "Posted %1 by %2"
+msgstr "%2 tarafından gönderildi, %1"
+
+#: ../inc/forum.inc:701
+msgid "You may not post or rate messages until %1"
+msgstr "Bu zamana kadar gönderim yapamaz ya da oylayamazsınız: "
+
+#: ../inc/forum.inc:712
+msgid ""
+"\n"
+"        <ul>\n"
+"        <li> Posts must be 'kid friendly': they may not contain\n"
+"            content that is obscene, hate-related,\n"
+"            sexually explicit or suggestive.\n"
+"        <li> No commercial advertisements.\n"
+"        <li> No links to web sites involving sexual content,\n"
+"            gambling, or intolerance of others.\n"
+"        <li> No messages intended to annoy or antagonize other people,\n"
+"            or to hijack a thread.\n"
+"        <li> No messages that are deliberately hostile or insulting.\n"
+"        <li> No abusive comments involving race, religion,\n"
+"            nationality, gender, class or sexuality.\n"
+"        "
+msgstr ""
+"\n"
+"        <ul>\n"
+"        <li> Gönderiler mutlaka 'çocuk dostu' olmalıdır: İçerikleri açık "
+"saçık,\n"
+"            nefretle ilişkili, cinsel açıdan müstehcen ya da imalı "
+"olmamalıdır.\n"
+"        <li> Mesajlarda ticari reklamlar olmamalı,\n"
+"        <li> Seksüel içerikli, kumar oynatan ya da başkalarını rahatsız "
+"edecek\n"
+"            internet sitelerine bağlantı içermemeli,\n"
+"        <li> İnsanları yönlendirmeyi ya da kışkırtmayı, ya da bir konuda\n"
+"            kandırmayı amaçlamamalı,\n"
+"        <li> Kasıtlı şekilde düşmanca ya da aşağılayıcı olmamalı,\n"
+"        <li> Irk, din, milliyet, cinsiyet, sınıf veya cinsellik içeren "
+"küfürlü\n"
+"            yorumlar olmamalıdır.\n"
+"        "
+
+#: ../inc/forum.inc:734
+msgid "Rules:"
+msgstr "Kurallar:"
+
+#: ../inc/forum.inc:735
+msgid "More info"
+msgstr "Daha fazla bilgi"
+
+#: ../inc/forum.inc:1008 ../user/forum_thread.php:185
+msgid "Unhide"
+msgstr "Gizliliği kaldır"
+
+#: ../inc/forum.inc:1008
+msgid "Unhide this post"
+msgstr "Bu gönderinin gizliliğini kaldırır"
+
+#: ../inc/forum.inc:1010 ../user/forum_thread.php:191
+msgid "Hide"
+msgstr "Gizle"
+
+#: ../inc/forum.inc:1010
+msgid "Hide this post"
+msgstr "Bu gönderiyi gizler"
+
+#: ../inc/forum.inc:1015 ../user/forum_thread.php:224
+msgid "Move"
+msgstr "Taşı"
+
+#: ../inc/forum.inc:1015
+msgid "Move post to a different thread"
+msgstr "Bu gönderiyi başka bir foruma taşır"
+
+#: ../inc/forum.inc:1020
+msgid "Banish author"
+msgstr ""
+
+#: ../inc/forum.inc:1027
+msgid "Vote to banish author"
+msgstr ""
+
+#: ../inc/forum.inc:1031
+msgid "Vote not to banish author"
+msgstr ""
+
+#: ../inc/forum.inc:1036
+msgid "Start vote to banish author"
+msgstr ""
+
+#: ../inc/forum.inc:1069
+msgid "Only team members can post to the team message board"
+msgstr "Takım mesaj panosuna yalnızca takım üyeleri gönderim yapabilir"
+
+#: ../inc/forum.inc:1079
 msgid ""
 "In order to create a new thread in %1 you must have a certain amount of "
 "credit. This is to prevent and protect against abuse of the system."
@@ -87,7 +441,7 @@ msgstr ""
 "miktarına sahip olmalısınız. Bu uygulamayla, sistemin kural dışı kullanımını "
 "ve suistimal edilmesini önlemeyi amaçlıyoruz."
 
-#: ../inc/forum.inc:1084
+#: ../inc/forum.inc:1086
 msgid ""
 "You cannot create any more threads right now. Please wait a while before "
 "trying again. This delay has been enforced to protect against abuse of the "
@@ -97,38 +451,62 @@ msgstr ""
 "denemek için bir süre bekleyin. Bu gecikmeyle, sistemin kural dışı "
 "kullanımını önlemeyi amaçlıyoruz."
 
-#: ../inc/forum.inc:1124
+#: ../inc/forum.inc:1093
+msgid ""
+"This thread is locked. Only forum moderators and administrators are allowed "
+"to post there."
+msgstr ""
+"Bu konu başlığı kilitli. Yalnızca forum moderatörleri ya da yöneticilerin "
+"gönderi yapmasına izin var."
+
+#: ../inc/forum.inc:1098
+msgid "Can't post to a hidden thread."
+msgstr "Gizli bir konu başlığına gönderi yapılamaz."
+
+#: ../inc/forum.inc:1126
 msgid "Thread"
 msgstr "Konu Başlığı"
 
-#: ../inc/forum.inc:1125 ../inc/team.inc:120 ../user/forum_forum.php:137
+#: ../inc/forum.inc:1127 ../inc/team.inc:120 ../user/forum_forum.php:135
 #: ../user/forum_index.php:94
 msgid "Posts"
 msgstr "Cevaplar"
 
-#: ../inc/forum.inc:1126 ../user/forum_forum.php:138
+#: ../inc/forum.inc:1128 ../user/forum_forum.php:136
 #: ../user/forum_reply.php:115 ../user/forum_report_post.php:75
-#: ../user/forum_thread.php:265
+#: ../user/forum_thread.php:263
 msgid "Author"
 msgstr "Başlatan"
 
-#: ../inc/forum.inc:1127 ../user/forum_forum.php:139
+#: ../inc/forum.inc:1129 ../user/forum_forum.php:137
 msgid "Views"
 msgstr "Okunma"
 
-#: ../inc/forum.inc:1128 ../inc/team.inc:120 ../user/forum_forum.php:140
+#: ../inc/forum.inc:1130 ../inc/team.inc:120 ../user/forum_forum.php:138
 #: ../user/forum_help_desk.php:46 ../user/forum_index.php:95
 msgid "Last post"
 msgstr "Son mesaj"
 
-#: ../inc/forum.inc:1201
-msgid "Mark all threads as read"
-msgstr "Tümünü \"okundu\" olarak işaretle"
+#: ../inc/forum.inc:1188
+msgid "New posts in the thread %1"
+msgstr "%1 konu başlığındaki yeni gönderiler"
 
-#: ../inc/forum.inc:1201
-msgid "Mark all threads in all message boards as 'read'."
+#: ../inc/forum.inc:1193
+msgid "New posts in subscribed thread"
+msgstr "Abone olunan konu başlığındaki yeni gönderiler"
+
+#: ../inc/forum.inc:1194
+msgid "There are new posts in the thread '%1'"
+msgstr "'%1' konu başlığında yöne gönderiler var"
+
+#: ../inc/forum.inc:1204
+msgid "Mark all threads as read"
+msgstr "Tümünü okundu olarak işaretle"
+
+#: ../inc/forum.inc:1205
+msgid "Mark all threads in all message boards as read."
 msgstr ""
-"Tüm mesaj panolarındaki tüm konu başlıklarını 'okundu' olarak işaretler."
+"Tüm mesaj panolarındaki tüm konu başlıklarını -okundu- olarak işaretler."
 
 #: ../inc/host.inc:24
 msgid "No host"
@@ -188,41 +566,41 @@ msgstr "Yerel Standart Zaman"
 msgid "UTC %1 hours"
 msgstr "UTC %1 saat"
 
-#: ../inc/host.inc:98 ../inc/host.inc:612 ../inc/result.inc:419
+#: ../inc/host.inc:98 ../inc/host.inc:645 ../inc/result.inc:591
 #: ../inc/team.inc:202 ../inc/team.inc:350 ../inc/user.inc:200
-#: ../user/account_finish.php:41 ../user/create_account_form.php:87
+#: ../user/account_finish.php:41 ../user/create_account_form.php:89
 #: ../user/team_admins.php:62 ../user/team_change_founder_form.php:77
 #: ../user/team_email_list.php:64 ../user/top_users.php:49
-#: ../user/user_search.php:104 ../user/user_search.php:160
+#: ../user/user_search.php:105 ../user/user_search.php:163
 msgid "Name"
 msgstr "İsim"
 
-#: ../inc/host.inc:102 ../inc/host.inc:104 ../inc/host.inc:213
+#: ../inc/host.inc:102 ../inc/host.inc:104 ../inc/host.inc:216
 msgid "Owner"
 msgstr "Sahibi"
 
-#: ../inc/host.inc:104 ../inc/host.inc:318
+#: ../inc/host.inc:104 ../inc/host.inc:333
 msgid "Anonymous"
 msgstr "Anonim"
 
-#: ../inc/host.inc:108 ../inc/result.inc:421
+#: ../inc/host.inc:108 ../inc/result.inc:593
 msgid "Created"
 msgstr "Oluşturulma"
 
-#: ../inc/host.inc:109 ../inc/host.inc:217 ../inc/host.inc:222
-#: ../inc/host.inc:621 ../inc/team.inc:94 ../inc/team.inc:207
+#: ../inc/host.inc:109 ../inc/host.inc:220 ../inc/host.inc:225
+#: ../inc/host.inc:654 ../inc/team.inc:94 ../inc/team.inc:207
 #: ../inc/team.inc:212 ../inc/team.inc:214 ../inc/team.inc:356
 #: ../inc/team.inc:361 ../inc/user.inc:122 ../inc/user.inc:136
 #: ../user/profile_search_action.php:43
 #: ../user/team_change_founder_form.php:78 ../user/team_email_list.php:64
 #: ../user/team_remove_inactive_form.php:41 ../user/top_users.php:54
-#: ../user/top_users.php:59 ../user/user_search.php:104
-#: ../user/user_search.php:160
+#: ../user/top_users.php:59 ../user/user_search.php:105
+#: ../user/user_search.php:163
 msgid "Total credit"
 msgstr "Toplam kredi"
 
 #: ../inc/host.inc:110 ../inc/user.inc:122 ../user/team_search.php:70
-#: ../user/user_search.php:104 ../user/user_search.php:160
+#: ../user/user_search.php:105 ../user/user_search.php:163
 msgid "Average credit"
 msgstr "Ortalama kredi"
 
@@ -242,11 +620,11 @@ msgstr "İşlemci adedi"
 msgid "Coprocessors"
 msgstr "Yardımcı işlemciler"
 
-#: ../inc/host.inc:119 ../inc/host.inc:627
+#: ../inc/host.inc:119 ../inc/host.inc:660
 msgid "Operating System"
 msgstr "İşletim sistemi"
 
-#: ../inc/host.inc:122 ../inc/host.inc:226
+#: ../inc/host.inc:122 ../inc/host.inc:229
 msgid "BOINC version"
 msgstr "BOINC sürümü"
 
@@ -302,9 +680,10 @@ msgstr "Ortalama gönderme hızı"
 msgid "%1 KB/sec"
 msgstr "%1 KB/sn"
 
-#: ../inc/host.inc:153 ../inc/host.inc:160 ../inc/result.inc:192
-#: ../inc/result.inc:202 ../inc/result.inc:220 ../inc/result.inc:252
-#: ../user/explain_state.php:56 ../user/host_app_versions.php:29
+#: ../inc/host.inc:153 ../inc/host.inc:160 ../inc/result.inc:195
+#: ../inc/result.inc:205 ../inc/result.inc:223 ../inc/result.inc:241
+#: ../inc/result.inc:257 ../user/explain_state.php:56
+#: ../user/host_app_versions.php:29
 msgid "Unknown"
 msgstr "Bilinmiyor"
 
@@ -329,13 +708,13 @@ msgstr "Uygulama detayları"
 msgid "Show"
 msgstr "Göster"
 
-#: ../inc/host.inc:175 ../inc/host.inc:302 ../inc/user.inc:153
+#: ../inc/host.inc:175 ../inc/host.inc:317 ../inc/user.inc:153
 msgid "Tasks"
 msgstr "İşler"
 
-#: ../inc/host.inc:179
-msgid "Number of times BOINC has contacted server"
-msgstr "BOINC'in sunucuya bağlanma sayısı"
+#: ../inc/host.inc:179 ../inc/host.inc:200
+msgid "Number of times client has contacted server"
+msgstr "İstemcinin sunucuya bağlanma sayısı"
 
 #: ../inc/host.inc:180
 msgid "Last time contacted server"
@@ -366,7 +745,7 @@ msgstr "Ortalama CPU verimi"
 msgid "Task duration correction factor"
 msgstr "İş süre düzeltme çarpanı"
 
-#: ../inc/host.inc:192 ../inc/host.inc:614
+#: ../inc/host.inc:192 ../inc/host.inc:647
 msgid "Location"
 msgstr "Konum"
 
@@ -382,20 +761,24 @@ msgstr "Bu bilgisayarın yinelenen kayıtlarını birleştir"
 msgid "Merge"
 msgstr "Birleştir"
 
-#: ../inc/host.inc:211
+#: ../inc/host.inc:201 ../inc/host.inc:662
+msgid "Last contact"
+msgstr "Son bağlantı"
+
+#: ../inc/host.inc:214
 msgid "Computer info"
 msgstr "Bilgisayar bilgisi"
 
-#: ../inc/host.inc:212 ../inc/host.inc:616 ../inc/team.inc:349
+#: ../inc/host.inc:215 ../inc/host.inc:649 ../inc/team.inc:349
 #: ../user/top_users.php:48
 msgid "Rank"
 msgstr "Sıra"
 
-#: ../inc/host.inc:216 ../inc/host.inc:619
+#: ../inc/host.inc:219 ../inc/host.inc:652
 msgid "Avg. credit"
 msgstr "Ort. kredi"
 
-#: ../inc/host.inc:221 ../inc/team.inc:95 ../inc/team.inc:208
+#: ../inc/host.inc:224 ../inc/team.inc:95 ../inc/team.inc:208
 #: ../inc/team.inc:217 ../inc/team.inc:219 ../inc/team.inc:355
 #: ../inc/team.inc:360 ../inc/user.inc:137
 #: ../user/team_change_founder_form.php:79 ../user/team_email_list.php:64
@@ -404,96 +787,92 @@ msgstr "Ort. kredi"
 msgid "Recent average credit"
 msgstr "Güncel ortalama kredi"
 
-#: ../inc/host.inc:227 ../inc/host.inc:624 ../inc/result.inc:45
+#: ../inc/host.inc:230 ../inc/host.inc:657 ../inc/result.inc:47
 #: ../user/host_app_versions.php:25
 msgid "CPU"
 msgstr "CPU"
 
-#: ../inc/host.inc:228 ../inc/host.inc:625
+#: ../inc/host.inc:231 ../inc/host.inc:658
 msgid "GPU"
 msgstr "GPU"
 
-#: ../inc/host.inc:229
+#: ../inc/host.inc:232
 msgid "Operating system"
 msgstr "İşletim sistemi"
 
-#: ../inc/host.inc:281
+#: ../inc/host.inc:296
 msgid "(%1 processors)"
 msgstr "(%1 işlemci)"
 
-#: ../inc/host.inc:301
+#: ../inc/host.inc:316
 msgid "Details"
 msgstr "Detaylar"
 
-#: ../inc/host.inc:306
+#: ../inc/host.inc:321
 msgid "Cross-project stats:"
 msgstr "Çapraz-proje ist.:"
 
-#: ../inc/host.inc:460
+#: ../inc/host.inc:493
 msgid "Host %1 has overlapping lifetime:"
 msgstr "Sunucu %1 kullanım süresi olarak örtüşmüyor:"
 
-#: ../inc/host.inc:467
+#: ../inc/host.inc:500
 msgid "Host %1 has an incompatible OS:"
 msgstr "Sunucu %1 farklı bir işletim sistemine sahip:"
 
-#: ../inc/host.inc:473
+#: ../inc/host.inc:506
 msgid "Host %1 has an incompatible CPU:"
 msgstr "Sunucu %1 farklı bir CPU'ya sahip:"
 
-#: ../inc/host.inc:540
+#: ../inc/host.inc:573
 msgid "same host"
 msgstr "aynı sunucu"
 
-#: ../inc/host.inc:543
+#: ../inc/host.inc:576
 msgid "Can't merge host %1 into %2 - they're incompatible"
 msgstr "Sunucu %1 ile %2 birleştirilemedi. Birbirlerinden farklılar"
 
-#: ../inc/host.inc:546
+#: ../inc/host.inc:579
 msgid "Merging host %1 into host %2"
 msgstr "Sunucu %1, %2 ile birleştiriliyor"
 
-#: ../inc/host.inc:563
+#: ../inc/host.inc:596
 msgid "Couldn't update credit of new computer"
 msgstr "Yeni bilgisayarın kredisi güncellenemedi"
 
-#: ../inc/host.inc:567
+#: ../inc/host.inc:600
 msgid "Couldn't update results"
 msgstr "Sonuçlar güncellenemedi"
 
-#: ../inc/host.inc:572
+#: ../inc/host.inc:605
 msgid "Couldn't retire old computer"
 msgstr "Eski bilgisayar kullanımdan kaldırılamadı"
 
-#: ../inc/host.inc:574
+#: ../inc/host.inc:607
 msgid "Retired old computer %1"
 msgstr "Eski bilgisayar %1 kullanımdan kaldırıldı"
 
-#: ../inc/host.inc:597 ../inc/host.inc:600
+#: ../inc/host.inc:630 ../inc/host.inc:633
 msgid "Show:"
 msgstr "Göster:"
 
-#: ../inc/host.inc:597 ../inc/host.inc:600
+#: ../inc/host.inc:630 ../inc/host.inc:633
 msgid "All computers"
 msgstr "Tüm bilgisayarlar"
 
-#: ../inc/host.inc:597 ../inc/host.inc:600
+#: ../inc/host.inc:630 ../inc/host.inc:633
 msgid "Only computers active in past 30 days"
 msgstr "Yalnızca son 30 gün içerisinde aktif olan bilgisayarlar"
 
-#: ../inc/host.inc:609 ../inc/result.inc:428
+#: ../inc/host.inc:642 ../inc/result.inc:600
 msgid "Computer ID"
 msgstr "Bilgisayar NO"
 
-#: ../inc/host.inc:622
+#: ../inc/host.inc:655
 msgid "BOINC<br>version"
 msgstr "BOINC<br>sürümü"
 
-#: ../inc/host.inc:629
-msgid "Last contact"
-msgstr "Son bağlantı"
-
-#: ../inc/host.inc:678
+#: ../inc/host.inc:711 ../user/merge_by_name.php:67
 msgid "Merge computers by name"
 msgstr "Bilgisayarları isme göre birleştir"
 
@@ -514,7 +893,7 @@ msgstr "Gelen kutusu"
 msgid "Write"
 msgstr "Yaz"
 
-#: ../inc/pm.inc:33 ../inc/user.inc:374
+#: ../inc/pm.inc:33 ../inc/user.inc:373
 msgid "Send private message"
 msgstr "Özel mesaj gönder"
 
@@ -527,6 +906,10 @@ msgstr "Özel mesaj gönder"
 #: ../user/forum_reply.php:108 ../user/forum_reply.php:153 ../user/pm.php:181
 msgid "Preview"
 msgstr "Önizleme"
+
+#: ../inc/pm.inc:48 ../user/pm.php:131
+msgid "no such message"
+msgstr "eşleşen mesaj yok"
 
 #: ../inc/pm.inc:82
 msgid "To"
@@ -542,7 +925,7 @@ msgstr "Konu"
 
 #: ../inc/pm.inc:86 ../user/forum_edit.php:128 ../user/forum_edit.php:133
 #: ../user/forum_post.php:116 ../user/forum_reply.php:115
-#: ../user/forum_report_post.php:75 ../user/forum_thread.php:265
+#: ../user/forum_report_post.php:75 ../user/forum_thread.php:263
 #: ../user/pm.php:90 ../user/pm.php:144
 msgid "Message"
 msgstr "Mesaj"
@@ -571,7 +954,7 @@ msgstr ""
 "Çok sık aralıklarla özel mesaj gönderemezsiniz. Yeni mesaj göndermek için "
 "lütfen bir süre bekleyin."
 
-#: ../inc/pm.inc:176 ../user/forum_forum.php:186
+#: ../inc/pm.inc:176 ../user/forum_forum.php:184
 msgid "unread"
 msgstr "okunmamış"
 
@@ -580,9 +963,8 @@ msgid "For email notification, %1edit community prefs%2"
 msgstr "E-posta uyarısı için, %1topluluk tercihlerini düzenleyin%2"
 
 #: ../inc/pm.inc:198
-#, fuzzy
 msgid "Private message"
-msgstr "Özel mesajlar"
+msgstr "Özel mesaj"
 
 #: ../inc/prefs.inc:76
 msgid ""
@@ -622,13 +1004,12 @@ msgstr ""
 "bilgisayarlarda, düşük güç moduna geçmek için gerekli. %2"
 
 #: ../inc/prefs.inc:113
-#, fuzzy
 msgid ""
 "Suspend work when non-BOINC CPU usage is above %1 0 means no "
 "restriction<br>Enforced by version 6.10.30+ %2"
 msgstr ""
-"CPU kullanımı bu orandan fazlaysa çalışma duraklasın %1 0 yazılırsa "
-"sınırlama olmaz<br>Sürüm 6.10.30 ve üzeri için. %2"
+"BOINC dışındaki uygulamaların CPU kullanımı bu orandan fazlaysa çalışma "
+"duraklasın %1 0 yazılırsa sınırlama olmaz<br>Sürüm 6.10.30 ve üzeri için. %2"
 
 #: ../inc/prefs.inc:121
 msgid "Do work only between the hours of %1 No restriction if equal %2"
@@ -717,17 +1098,17 @@ msgid "Memory: when computer is not in use, use at most"
 msgstr "Bellek: Bilgisayar boştayken en fazla kullanım"
 
 #: ../inc/prefs.inc:217
-#, fuzzy
 msgid ""
 "Computer is connected to the Internet about every %1 Leave blank or 0 if "
 "always connected. %2 BOINC will try to maintain at least this much work (max "
 "10 days). %3"
 msgstr ""
 "Bilgisayar internete bu kadar sürede bir bağlanır %1 Sürekli bağlıysa 0 "
-"yazın. %2 BOINC, bu süre kadar yeterli olacak iş indirmeyi deneyecek. %3"
+"yazın. %2 BOINC, bu süre kadar yeterli olacak iş indirmeyi deneyecek (en "
+"fazla 10 gün). %3"
 
 #: ../inc/prefs.inc:223 ../inc/prefs.inc:228 ../inc/prefs.inc:270
-#: ../inc/util.inc:236
+#: ../inc/util.inc:244
 msgid "days"
 msgstr "gün"
 
@@ -753,7 +1134,7 @@ msgstr ""
 
 #: ../inc/prefs.inc:249
 msgid "Maximum download rate:"
-msgstr "En yüksek indirme hızı:"
+msgstr "En yüksek indirme hızı"
 
 #: ../inc/prefs.inc:251 ../inc/prefs.inc:256
 msgid "Kbytes/sec"
@@ -761,7 +1142,7 @@ msgstr "KB/sn"
 
 #: ../inc/prefs.inc:254
 msgid "Maximum upload rate:"
-msgstr "En yüksek gönderme hızı:"
+msgstr "En yüksek gönderme hızı"
 
 #: ../inc/prefs.inc:259
 msgid "Use network only between the hours of"
@@ -874,31 +1255,23 @@ msgstr "geçersiz yetki: %1"
 msgid "bad subset: %1"
 msgstr "geçersiz altküme: %1"
 
-#: ../inc/prefs.inc:625
-msgid "Default"
-msgstr "Varsayılan"
-
 #: ../inc/prefs.inc:657 ../inc/prefs.inc:660 ../inc/prefs.inc:1003
-#: ../inc/prefs_util.inc:93 ../project.sample/project_specific_prefs.inc:74
+#: ../inc/prefs_util.inc:93 ../project.sample/project_specific_prefs.inc:75
 msgid "yes"
 msgstr "Evet"
 
 #: ../inc/prefs.inc:657 ../inc/prefs.inc:660 ../inc/prefs.inc:1005
-#: ../inc/prefs_util.inc:93 ../project.sample/project_specific_prefs.inc:76
+#: ../inc/prefs_util.inc:93 ../project.sample/project_specific_prefs.inc:77
 msgid "no"
 msgstr "Hayır"
 
-#: ../inc/prefs.inc:665
+#: ../inc/prefs.inc:665 ../user/forum_search.php:53
 msgid "no limit"
 msgstr "Sınırlama yok"
 
 #: ../inc/prefs.inc:690 ../user/team_admins.php:79
 msgid "Add"
 msgstr "Ekle"
-
-#: ../inc/prefs.inc:691 ../inc/prefs.inc:693
-msgid "Edit"
-msgstr "Düzenle"
 
 #: ../inc/prefs.inc:692 ../inc/prefs.inc:818
 #: ../user/edit_forum_preferences_form.php:161 ../user/team_admins.php:34
@@ -937,9 +1310,9 @@ msgstr "Projeye özel ayarlar"
 msgid "Primary (default) preferences"
 msgstr "Birincil (varsayılan) tercihler"
 
-#: ../inc/prefs.inc:854 ../user/add_venue.php:43 ../user/add_venue.php:68
-#: ../user/prefs_edit.php:40 ../user/prefs_edit.php:65
-#: ../user/prefs_edit.php:93
+#: ../inc/prefs.inc:854 ../user/add_venue.php:43 ../user/add_venue.php:67
+#: ../user/prefs_edit.php:40 ../user/prefs_edit.php:64
+#: ../user/prefs_edit.php:92
 msgid "Edit %1 preferences"
 msgstr "%1 tercihlerini düzenle"
 
@@ -998,14 +1371,14 @@ msgid "Database error"
 msgstr "Veritabanı hatası"
 
 #: ../inc/profile.inc:192
-#, fuzzy
 msgid ""
 "To prevent spam, profiles of users with an average credit of less than %1 "
 "are displayed only to logged-in users. We apologize for this inconvenience."
 msgstr ""
-"Sitemize saldırıların önüne geçmek amacıyla, ortalama kredisi %1'den az olan "
-"kullanıcılar, yalnızca giriş yapmış kullanıcılara görünür.  Verdiğimiz "
-"rahatsızlık nedeniyle özür dileriz."
+"Çok sayıda sahte hesap oluşturularak sitemize saldırının önüne geçmek "
+"amacıyla, ortalama kredisi %1'den az olan kullanıcıların profilleri, "
+"yalnızca giriş yapmış kullanıcılara görünür.  Verdiğimiz rahatsızlık "
+"nedeniyle özür dileriz."
 
 #: ../inc/profile.inc:196
 msgid "User is banished"
@@ -1039,337 +1412,332 @@ msgstr "Uygunsuz profili yöneticilere bildir:"
 msgid "I %1do not like%2 this profile"
 msgstr "Bu profilden %1hiç hoşlanmadım%2"
 
-#: ../inc/result.inc:32
+#: ../inc/result.inc:34
 msgid "Anonymous platform"
 msgstr "Anonim platform"
 
-#: ../inc/result.inc:46
+#: ../inc/result.inc:48
 msgid "NVIDIA GPU"
 msgstr "NVIDIA GPU"
 
-#: ../inc/result.inc:47 ../user/host_app_versions.php:27
+#: ../inc/result.inc:49 ../user/host_app_versions.php:27
 msgid "ATI GPU"
 msgstr "ATI GPU"
 
-#: ../inc/result.inc:54
+#: ../inc/result.inc:56
 msgid "Not in DB"
 msgstr "DB içinde yok"
 
-#: ../inc/result.inc:80
+#: ../inc/result.inc:82
 msgid "pending"
 msgstr "beklemede"
 
-#: ../inc/result.inc:102 ../user/forum_search.php:59
+#: ../inc/result.inc:104 ../user/forum_search.php:60
 msgid "All"
 msgstr "Tümü"
 
-#: ../inc/result.inc:103 ../inc/result.inc:160 ../inc/result.inc:199
+#: ../inc/result.inc:105 ../inc/result.inc:162 ../inc/result.inc:202
 msgid "In progress"
 msgstr "Sürmekte"
 
-#: ../inc/result.inc:104 ../user/workunit.php:67
+#: ../inc/result.inc:106 ../user/workunit.php:67
 msgid "Pending"
 msgstr "Beklemede"
 
-#: ../inc/result.inc:105 ../inc/result.inc:242
+#: ../inc/result.inc:107 ../inc/result.inc:247
 msgid "Valid"
 msgstr "Geçerli"
 
-#: ../inc/result.inc:106 ../inc/result.inc:245
+#: ../inc/result.inc:108 ../inc/result.inc:250
 msgid "Invalid"
 msgstr "Geçersiz"
 
-#: ../inc/result.inc:107 ../inc/result.inc:185
+#: ../inc/result.inc:109 ../inc/result.inc:188
 msgid "Error"
 msgstr "Hatalı"
 
-#: ../inc/result.inc:158 ../inc/result.inc:197 ../user/explain_state.php:34
+#: ../inc/result.inc:160 ../inc/result.inc:200 ../user/explain_state.php:34
 msgid "Inactive"
 msgstr "Pasif"
 
-#: ../inc/result.inc:159 ../inc/result.inc:198 ../user/explain_state.php:37
+#: ../inc/result.inc:161 ../inc/result.inc:201 ../user/explain_state.php:37
 msgid "Unsent"
 msgstr "Gönderilmemiş"
 
-#: ../inc/result.inc:165
+#: ../inc/result.inc:167
 msgid "Completed, waiting for validation"
 msgstr "Tamamlandı, doğrulanmayı bekliyor"
 
-#: ../inc/result.inc:166
+#: ../inc/result.inc:168
 msgid "Completed and validated"
 msgstr "Tamamlandı ve doğrulandı"
 
-#: ../inc/result.inc:167
+#: ../inc/result.inc:169
 msgid "Completed, marked as invalid"
 msgstr "Tamamlandı, geçersiz olarak işaretlendi"
 
-#: ../inc/result.inc:168
+#: ../inc/result.inc:170
 msgid "Completed, can't validate"
 msgstr "Tamamlandı, doğrulanamadı"
 
-#: ../inc/result.inc:169
+#: ../inc/result.inc:171
 msgid "Completed, validation inconclusive"
 msgstr "Tamamlandı, doğrulama sonuçsuz"
 
-#: ../inc/result.inc:170
+#: ../inc/result.inc:172
 msgid "Completed, too late to validate"
 msgstr "Tamamlandı, doğrulama için çok gecikti"
 
-#: ../inc/result.inc:172
+#: ../inc/result.inc:174
 msgid "Completed"
 msgstr "Tamamlandı"
 
-#: ../inc/result.inc:173 ../inc/result.inc:209 ../user/explain_state.php:62
+#: ../inc/result.inc:175 ../inc/result.inc:212 ../user/explain_state.php:62
 msgid "Couldn't send"
 msgstr "Gönderilemedi"
 
-#: ../inc/result.inc:176 ../inc/result.inc:233
+#: ../inc/result.inc:178 ../inc/result.inc:236
 msgid "Cancelled by server"
 msgstr "Sunucu tarafından iptal edildi"
 
-#: ../inc/result.inc:179
+#: ../inc/result.inc:181
 msgid "Error while downloading"
 msgstr "İndirilirken hata oluştu"
 
-#: ../inc/result.inc:181
+#: ../inc/result.inc:183
 msgid "Error while computing"
 msgstr "Hesaplanırken hata oluştu"
 
-#: ../inc/result.inc:182
+#: ../inc/result.inc:184
 msgid "Error while uploading"
 msgstr "Alınırken hata oluştu"
 
-#: ../inc/result.inc:183 ../inc/result.inc:235
+#: ../inc/result.inc:185 ../inc/result.inc:238
 msgid "Aborted by user"
 msgstr "Kullanıcı tarafından iptal edildi"
 
-#: ../inc/result.inc:186
+#: ../inc/result.inc:186 ../inc/result.inc:239
+msgid "Upload failed"
+msgstr "Gönderme başarısız"
+
+#: ../inc/result.inc:189
 msgid "Timed out - no response"
 msgstr "Zaman doldu - yanıt yok"
 
-#: ../inc/result.inc:187 ../inc/result.inc:216 ../user/explain_state.php:71
+#: ../inc/result.inc:190 ../inc/result.inc:219 ../user/explain_state.php:71
 msgid "Didn't need"
 msgstr "İhtiyaç yok"
 
-#: ../inc/result.inc:188 ../inc/result.inc:217 ../user/explain_state.php:74
+#: ../inc/result.inc:191 ../inc/result.inc:220 ../user/explain_state.php:74
 msgid "Validate error"
 msgstr "Doğrulama hatası"
 
-#: ../inc/result.inc:189 ../inc/result.inc:218
+#: ../inc/result.inc:192 ../inc/result.inc:221
 msgid "Abandoned"
 msgstr "İptal edildi"
 
-#: ../inc/result.inc:200 ../user/explain_state.php:43
+#: ../inc/result.inc:203 ../user/explain_state.php:43
 msgid "Over"
 msgstr "Sona erdi"
 
-#: ../inc/result.inc:208 ../user/explain_state.php:59
+#: ../inc/result.inc:211 ../user/explain_state.php:59
 msgid "Success"
 msgstr "Başarılı"
 
-#: ../inc/result.inc:212
+#: ../inc/result.inc:215
 msgid "Computation error"
 msgstr "Hesaplama hatası"
 
-#: ../inc/result.inc:214
+#: ../inc/result.inc:217
 msgid "Redundant result"
 msgstr "İhtiyaç fazlası sonuç"
 
-#: ../inc/result.inc:215 ../user/explain_state.php:68
+#: ../inc/result.inc:218 ../user/explain_state.php:68
 msgid "No reply"
 msgstr "Yanıt yok"
 
-#: ../inc/result.inc:225 ../user/explain_state.php:85
+#: ../inc/result.inc:228 ../user/explain_state.php:85
 msgid "New"
 msgstr "Yeni"
 
-#: ../inc/result.inc:226 ../user/explain_state.php:91
+#: ../inc/result.inc:229 ../user/explain_state.php:91
 msgid "Downloading"
 msgstr "İndiriliyor"
 
-#: ../inc/result.inc:227
+#: ../inc/result.inc:230
 msgid "Processing"
 msgstr "Sürüyor"
 
-#: ../inc/result.inc:228
+#: ../inc/result.inc:231
 msgid "Compute error"
 msgstr "Hesaplama hatası"
 
-#: ../inc/result.inc:229 ../user/explain_state.php:97
+#: ../inc/result.inc:232 ../user/explain_state.php:97
 msgid "Uploading"
 msgstr "Gönderiliyor"
 
-#: ../inc/result.inc:230 ../user/explain_state.php:88
+#: ../inc/result.inc:233 ../user/explain_state.php:88
 msgid "Done"
 msgstr "Tamamlandı"
 
-#: ../inc/result.inc:241
+#: ../inc/result.inc:246
 msgid "Initial"
 msgstr "Başlangıcında"
 
-#: ../inc/result.inc:247
+#: ../inc/result.inc:252
 msgid "Not necessary"
 msgstr "Gerekli değil"
 
-#: ../inc/result.inc:248
+#: ../inc/result.inc:253
 msgid "Workunit error - check skipped"
 msgstr "İş birimi hatası - kontrol atlandı"
 
-#: ../inc/result.inc:249
+#: ../inc/result.inc:254
 msgid "Checked, but no consensus yet"
 msgstr "Kontrol edildi, ancak henüz uzlaşılamadı"
 
-#: ../inc/result.inc:250
+#: ../inc/result.inc:255
 msgid "Task was reported too late to validate"
 msgstr "İşin doğrulama için çok geciktiği bildirildi"
 
-#: ../inc/result.inc:258
+#: ../inc/result.inc:281
 msgid "Couldn't send result"
 msgstr "Sonuç gönderilemedi"
 
-#: ../inc/result.inc:262
+#: ../inc/result.inc:285
 msgid "Too many errors (may have bug)"
 msgstr "Çok fazla hata oluştu (yazılımsal bir hata olabilir)"
 
-#: ../inc/result.inc:266
+#: ../inc/result.inc:289
 msgid "Too many results (may be nondeterministic)"
 msgstr "Çok fazla sonuç var (belirleyici olmayabilir)"
 
-#: ../inc/result.inc:270
+#: ../inc/result.inc:293
 msgid "Too many total results"
 msgstr "Çok fazla toplam sonuç var"
 
-#: ../inc/result.inc:274
+#: ../inc/result.inc:297
 msgid "WU cancelled"
 msgstr "İş birimi iptal edildi"
 
-#: ../inc/result.inc:278
+#: ../inc/result.inc:301
 msgid "Unrecognized Error: %1"
 msgstr "Bilinmeyen hata: %1"
 
-#: ../inc/result.inc:305
+#: ../inc/result.inc:328
 msgid "Task name"
 msgstr "İş adı"
 
-#: ../inc/result.inc:305 ../inc/result.inc:310 ../inc/result.inc:313
-#: ../inc/result.inc:316
+#: ../inc/result.inc:328 ../inc/result.inc:333 ../inc/result.inc:336
+#: ../inc/result.inc:339
 msgid "click for details"
 msgstr "detaylar için tıklayın"
 
-#: ../inc/result.inc:305
+#: ../inc/result.inc:328
 msgid "Show IDs"
 msgstr "NO'ları göster"
 
-#: ../inc/result.inc:310
+#: ../inc/result.inc:333
 msgid "Show names"
 msgstr "İsimleri göster"
 
-#: ../inc/result.inc:313
+#: ../inc/result.inc:336
 msgid "Task"
 msgstr "İş"
 
-#: ../inc/result.inc:316
+#: ../inc/result.inc:339
 msgid "Work unit"
 msgstr "İş birimi"
 
-#: ../inc/result.inc:319
+#: ../inc/result.inc:342
 msgid "Computer"
 msgstr "Bilgisayar"
 
-#: ../inc/result.inc:322 ../inc/result.inc:422
+#: ../inc/result.inc:345 ../inc/result.inc:594
 msgid "Sent"
 msgstr "Gönderilme"
 
-#: ../inc/result.inc:323
+#: ../inc/result.inc:346
 msgid "Time reported<br />or deadline"
 msgstr "Raporlanma ya da<br />son teslim tarihi"
 
-#: ../inc/result.inc:324
+#: ../inc/result.inc:347
 msgid "explain"
 msgstr "açıklama"
 
-#: ../inc/result.inc:326 ../user/server_status.php:246
+#: ../inc/result.inc:349 ../user/server_status.php:246
 msgid "Status"
 msgstr "Durum"
 
-#: ../inc/result.inc:327
+#: ../inc/result.inc:350
 msgid "Run time<br />(sec)"
 msgstr "Çalışma zamanı<br />(sn)"
 
-#: ../inc/result.inc:328
+#: ../inc/result.inc:351
 msgid "CPU time<br />(sec)"
 msgstr "CPU zamanı<br />(sn)"
 
-#: ../inc/result.inc:329 ../inc/result.inc:433
+#: ../inc/result.inc:352 ../inc/result.inc:605
 msgid "Credit"
 msgstr "Kredi"
 
-#: ../inc/result.inc:330 ../inc/result.inc:515
+#: ../inc/result.inc:353 ../inc/result.inc:687
 msgid "Application"
 msgstr "Uygulama"
 
-#: ../inc/result.inc:420
+#: ../inc/result.inc:592
 msgid "Workunit"
 msgstr "İş birimi"
 
-#: ../inc/result.inc:423
+#: ../inc/result.inc:595
 msgid "Received"
 msgstr "Alınma tarihi"
 
-#: ../inc/result.inc:424
+#: ../inc/result.inc:596
 msgid "Server state"
 msgstr "Sunucu durumu"
 
-#: ../inc/result.inc:425
+#: ../inc/result.inc:597
 msgid "Outcome"
 msgstr "Sonuç"
 
-#: ../inc/result.inc:426
+#: ../inc/result.inc:598
 msgid "Client state"
 msgstr "İstemci durumu"
 
-#: ../inc/result.inc:427
+#: ../inc/result.inc:599
 msgid "Exit status"
 msgstr "Çıkış kodu"
 
-#: ../inc/result.inc:429
+#: ../inc/result.inc:601
 msgid "Report deadline"
 msgstr "Son teslim tarihi"
 
-#: ../inc/result.inc:430
+#: ../inc/result.inc:602
 msgid "Run time"
 msgstr "Çalışma zamanı"
 
-#: ../inc/result.inc:431
+#: ../inc/result.inc:603
 msgid "CPU time"
 msgstr "CPU zamanı"
 
-#: ../inc/result.inc:432
+#: ../inc/result.inc:604
 msgid "Validate state"
 msgstr "Doğrulama durumu"
 
-#: ../inc/result.inc:434
+#: ../inc/result.inc:606
 msgid "Application version"
 msgstr "Uygulama sürümü"
 
-#: ../inc/result.inc:447
+#: ../inc/result.inc:619
 msgid "Output files"
-msgstr ""
+msgstr "Çıktı dosyaları"
 
-#: ../inc/result.inc:450
+#: ../inc/result.inc:622
 msgid "Stderr output"
 msgstr "Stderr çıktısı"
 
-#: ../inc/result.inc:486
-msgid "Previous"
-msgstr "Önceki"
-
-#: ../inc/result.inc:495
-msgid "Next"
-msgstr "Sonraki"
-
-#: ../inc/result.inc:497
-#, fuzzy
+#: ../inc/result.inc:669
 msgid "State"
 msgstr "Durum"
 
@@ -1387,12 +1755,12 @@ msgstr "Takımları, isimleri ya da tanıtımlarındaki bu kelimelere göre bul"
 
 #: ../inc/team.inc:36 ../inc/team.inc:114 ../inc/team.inc:225
 #: ../inc/team.inc:365 ../inc/team.inc:449 ../inc/user.inc:206
-#: ../inc/user.inc:315 ../user/account_finish.php:45
-#: ../user/create_account_form.php:106 ../user/edit_user_info_form.php:40
+#: ../inc/user.inc:314 ../user/account_finish.php:45
+#: ../user/create_account_form.php:108 ../user/edit_user_info_form.php:40
 #: ../user/profile_search_action.php:42 ../user/team_email_list.php:64
 #: ../user/team_search.php:72 ../user/top_users.php:63
-#: ../user/user_search.php:104 ../user/user_search.php:121
-#: ../user/user_search.php:160
+#: ../user/user_search.php:105 ../user/user_search.php:123
+#: ../user/user_search.php:163
 msgid "Country"
 msgstr "Ülke"
 
@@ -1404,7 +1772,7 @@ msgstr "Takımın tipi"
 msgid "Show only active teams"
 msgstr "Yalnızca aktif takımları göster"
 
-#: ../inc/team.inc:45 ../user/profile_menu.php:77 ../user/user_search.php:134
+#: ../inc/team.inc:45 ../user/profile_menu.php:77 ../user/user_search.php:136
 msgid "Search"
 msgstr "Ara"
 
@@ -1424,8 +1792,8 @@ msgstr "Değişim talep ettiniz"
 msgid "founder response deadline is %1"
 msgstr "kurucunun son yanıt tarihi %1."
 
-#: ../inc/team.inc:65 ../inc/team.inc:549 ../inc/user.inc:279
-#: ../inc/user.inc:367
+#: ../inc/team.inc:65 ../inc/team.inc:549 ../inc/user.inc:278
+#: ../inc/user.inc:366
 msgid "None"
 msgstr "Yok"
 
@@ -1461,7 +1829,7 @@ msgstr "Tip"
 msgid "Message board"
 msgstr "Mesaj panosu"
 
-#: ../inc/team.inc:120 ../user/forum_forum.php:136 ../user/forum_index.php:93
+#: ../inc/team.inc:120 ../user/forum_forum.php:134 ../user/forum_index.php:93
 msgid "Threads"
 msgstr "Konu Başlıkları"
 
@@ -1529,13 +1897,13 @@ msgstr "Kredisi bulunan üye"
 msgid "Admin"
 msgstr "Yönetici"
 
-#: ../inc/team.inc:269 ../user/forum_user_posts.php:116
+#: ../inc/team.inc:269 ../user/forum_user_posts.php:122
 #: ../user/top_hosts.php:93 ../user/top_teams.php:121
 #: ../user/top_users.php:127
 msgid "Previous %1"
 msgstr "Önceki %1"
 
-#: ../inc/team.inc:273 ../user/forum_user_posts.php:125
+#: ../inc/team.inc:273 ../user/forum_user_posts.php:131
 #: ../user/profile_search_action.php:61 ../user/top_hosts.php:98
 #: ../user/top_teams.php:126 ../user/top_users.php:132
 msgid "Next %1"
@@ -1638,12 +2006,12 @@ msgstr "Katılma tarihi"
 msgid "Computing and credit"
 msgstr "Hesaplama ve kredi"
 
-#: ../inc/user.inc:150
+#: ../inc/user.inc:150 ../user/pending.php:64
 msgid "Pending credit"
 msgstr "Beklenen kredi"
 
 #: ../inc/user.inc:150 ../inc/user.inc:152 ../inc/user.inc:153
-#: ../inc/user.inc:241 ../inc/user.inc:323 ../inc/user.inc:398
+#: ../inc/user.inc:240 ../inc/user.inc:322 ../inc/user.inc:397
 #: ../user/view_profile.php:56
 msgid "View"
 msgstr "Bak"
@@ -1664,8 +2032,8 @@ msgstr "Çapraz-proje istatistikleri"
 msgid "Account"
 msgstr "Hesap"
 
-#: ../inc/user.inc:166 ../inc/user.inc:279 ../inc/user.inc:365
-#: ../inc/user.inc:367 ../user/user_search.php:104 ../user/user_search.php:160
+#: ../inc/user.inc:166 ../inc/user.inc:278 ../inc/user.inc:364
+#: ../inc/user.inc:366 ../user/user_search.php:105 ../user/user_search.php:163
 msgid "Team"
 msgstr "Takım"
 
@@ -1694,7 +2062,7 @@ msgstr "Hesap bilgisi"
 msgid "Email address"
 msgstr "E-posta adresi"
 
-#: ../inc/user.inc:204 ../inc/user.inc:317
+#: ../inc/user.inc:204 ../inc/user.inc:316
 msgid "URL"
 msgstr "Site"
 
@@ -1702,7 +2070,7 @@ msgstr "Site"
 msgid "Postal code"
 msgstr "Posta kodu"
 
-#: ../inc/user.inc:208 ../inc/user.inc:314
+#: ../inc/user.inc:208 ../inc/user.inc:313
 msgid "%1 member since"
 msgstr "%1 üyelik tarihi"
 
@@ -1722,7 +2090,7 @@ msgstr "parola"
 msgid "other account info"
 msgstr "diğer hesap bilgisi"
 
-#: ../inc/user.inc:214 ../inc/user.inc:313
+#: ../inc/user.inc:214 ../inc/user.inc:312
 msgid "User ID"
 msgstr "Kullanıcı NO"
 
@@ -1730,163 +2098,148 @@ msgstr "Kullanıcı NO"
 msgid "Used in community functions"
 msgstr "Topluluk işlevlerinde kullanılır (özel mesaj için vs.)"
 
-#: ../inc/user.inc:216
-msgid "Account key"
-msgstr "Hesap anahtarı"
-
-#: ../inc/user.inc:216
-msgid "Provides full access to your account"
-msgstr "Hesabınıza tam erişimi sağlar"
-
-#: ../inc/user.inc:217 ../user/weak_auth.php:27
+#: ../inc/user.inc:216 ../user/weak_auth.php:27
 msgid "Weak account key"
 msgstr "Zayıf hesap anahtarı"
 
-#: ../inc/user.inc:217
+#: ../inc/user.inc:216
 msgid "Provides %1limited access%2 to your account"
 msgstr "Hesabınıza %1sınırlı erişimi%2 sağlar"
 
-#: ../inc/user.inc:220
+#: ../inc/user.inc:219
 msgid "Preferences"
 msgstr "Tercihler"
 
-#: ../inc/user.inc:223
+#: ../inc/user.inc:222
 msgid "When and how BOINC uses your computer"
 msgstr "BOINC bilgisayarınızı ne zaman ve nasıl kullanacak"
 
-#: ../inc/user.inc:224
+#: ../inc/user.inc:223
 msgid "Computing preferences"
 msgstr "Hesaplama tercihleri"
 
-#: ../inc/user.inc:227
+#: ../inc/user.inc:226
 msgid "Message boards and private messages"
 msgstr "Mesaj panoları ve özel mesajlar"
 
-#: ../inc/user.inc:228 ../user/edit_forum_preferences_form.php:31
+#: ../inc/user.inc:227 ../user/edit_forum_preferences_form.php:31
 msgid "Community preferences"
 msgstr "Topluluk tercihleri"
 
-#: ../inc/user.inc:231
+#: ../inc/user.inc:230
 msgid "Preferences for this project"
 msgstr "Bu proje için tercihler"
 
-#: ../inc/user.inc:232 ../user/prefs.php:33
+#: ../inc/user.inc:231 ../user/prefs.php:33
 msgid "%1 preferences"
 msgstr "%1 tercihleri"
 
-#: ../inc/user.inc:238 ../user/sample_index.php:107
+#: ../inc/user.inc:237 ../user/sample_index.php:114
 msgid "Community"
 msgstr "Topluluk"
 
-#: ../inc/user.inc:241 ../user/pm.php:107 ../user/pm.php:147
+#: ../inc/user.inc:240 ../user/pm.php:107 ../user/pm.php:147
 msgid "Delete"
 msgstr "Sil"
 
-#: ../inc/user.inc:243
+#: ../inc/user.inc:242
 msgid "Create"
 msgstr "Oluştur"
 
-#: ../inc/user.inc:245 ../inc/user.inc:398 ../inc/util.inc:476
+#: ../inc/user.inc:244 ../inc/user.inc:397 ../inc/util.inc:484
 msgid "Profile"
 msgstr "Profil"
 
-#: ../inc/user.inc:248 ../inc/user.inc:371
+#: ../inc/user.inc:247 ../inc/user.inc:370
 msgid "%1 posts"
 msgstr "%1 gönderi"
 
-#: ../inc/user.inc:260 ../user/edit_forum_preferences_form.php:51
+#: ../inc/user.inc:259 ../user/edit_forum_preferences_form.php:51
 msgid "Notifications"
 msgstr "Uyarılar"
 
-#: ../inc/user.inc:267
+#: ../inc/user.inc:266
 msgid "Quit team"
 msgstr "Takımdan ayrıl"
 
-#: ../inc/user.inc:269 ../inc/user.inc:286
+#: ../inc/user.inc:268 ../inc/user.inc:285
 msgid "Administer"
 msgstr "Yönet"
 
-#: ../inc/user.inc:275 ../inc/user.inc:288
+#: ../inc/user.inc:274 ../inc/user.inc:287
 msgid "(foundership change request pending)"
 msgstr "(kurucu değişim isteği beklemede)"
 
-#: ../inc/user.inc:277
+#: ../inc/user.inc:276
 msgid "Member of team"
 msgstr "Takım üyeliği"
 
-#: ../inc/user.inc:279
+#: ../inc/user.inc:278
 msgid "find a team"
 msgstr "bir takım bul"
 
-#: ../inc/user.inc:290
+#: ../inc/user.inc:289
 msgid "Founder but not member of"
 msgstr "Kurucusu fakat üyesi değil"
 
-#: ../inc/user.inc:296
+#: ../inc/user.inc:295
 msgid "Find friends"
 msgstr "Arkadaş bul"
 
-#: ../inc/user.inc:303 ../inc/user.inc:305 ../inc/user.inc:381
-#: ../inc/user.inc:383 ../inc/user.inc:392
+#: ../inc/user.inc:302 ../inc/user.inc:304 ../inc/user.inc:380
+#: ../inc/user.inc:382 ../inc/user.inc:391
 msgid "Friends"
 msgstr "Arkadaşlar"
 
-#: ../inc/user.inc:323 ../inc/user.inc:325 ../user/server_status.php:396
+#: ../inc/user.inc:322 ../inc/user.inc:324 ../user/server_status.php:396
 msgid "Computers"
 msgstr "Bilgisayarlar"
 
-#: ../inc/user.inc:325 ../user/forum_forum.php:174
-msgid "hidden"
-msgstr "Gizli"
-
-#: ../inc/user.inc:332
+#: ../inc/user.inc:331
 msgid "Donor"
 msgstr "Bağışçı"
 
-#: ../inc/user.inc:374
+#: ../inc/user.inc:373
 msgid "Contact"
 msgstr "İrtibat"
 
-#: ../inc/user.inc:377
+#: ../inc/user.inc:376
 msgid "This person is a friend"
 msgstr "Bu kişi arkadaşınız"
 
-#: ../inc/user.inc:378 ../user/friend.php:238
+#: ../inc/user.inc:377 ../user/friend.php:238
 msgid "Cancel friendship"
 msgstr "Arkadaşlığı bitir"
 
-#: ../inc/user.inc:381 ../user/friend.php:37
+#: ../inc/user.inc:380 ../user/friend.php:37
 msgid "Request pending"
 msgstr "İstek beklemede"
 
-#: ../inc/user.inc:383
+#: ../inc/user.inc:382
 msgid "Add as friend"
 msgstr "Arkadaş olarak ekle"
 
 #: ../inc/util.inc:113
-#, fuzzy
 msgid "log out"
-msgstr "Çıkış"
+msgstr "çıkış"
 
 #: ../inc/util.inc:115
-#, fuzzy
 msgid "log in"
-msgstr "Oturum aç"
+msgstr "oturum aç"
 
-#: ../inc/util.inc:171 ../user/login_form.php:37 ../user/login_form.php:60
+#: ../inc/util.inc:174 ../user/login_form.php:37 ../user/login_form.php:62
 msgid "Log in"
 msgstr "Oturum aç"
 
-#: ../inc/util.inc:172 ../user/create_account_form.php:38
+#: ../inc/util.inc:175 ../user/create_account_form.php:38
 msgid "Create an account"
 msgstr "Bir hesap oluştur"
 
-#: ../inc/util.inc:173
-#, fuzzy
+#: ../inc/util.inc:176
 msgid "Server status page"
 msgstr "Sunucu durumu"
 
-#: ../inc/util.inc:210
+#: ../inc/util.inc:218
 msgid ""
 "A database error occurred while handling your request; please try again "
 "later."
@@ -1894,100 +2247,97 @@ msgstr ""
 "İsteğiniz gerçekleştirilirken veritabanı hatası oluştu; lütfen daha sonra "
 "tekrar deneyin."
 
-#: ../inc/util.inc:219
+#: ../inc/util.inc:227
 msgid "Unable to handle request"
 msgstr "Talep gerçekleştirilemedi"
 
-#: ../inc/util.inc:239
+#: ../inc/util.inc:247
 msgid "hours"
 msgstr "saat"
 
-#: ../inc/util.inc:242
+#: ../inc/util.inc:250
 msgid "min"
 msgstr "dak"
 
-#: ../inc/util.inc:245
+#: ../inc/util.inc:253
 msgid "sec"
 msgstr "san"
 
-#: ../inc/util.inc:406
+#: ../inc/util.inc:414
 msgid "Link has timed out. Please click Back, refresh the page, and try again."
 msgstr ""
 "Bağlantı zaman aşımına uğradı. Lütfen Geri'ye tıklayın ve sayfayı yenileyip, "
 "yeniden deneyin."
 
-#: ../inc/util.inc:475
+#: ../inc/util.inc:483
 msgid "View the profile of %1"
 msgstr "%1 kullanıcısının profilini gör"
 
-#: ../inc/util.inc:531
+#: ../inc/util.inc:539
 msgid "Use BBCode tags to format your text"
 msgstr "Yazınızı biçimlendirmek için BBCode etiketleri kullanın"
 
-#: ../inc/util.inc:735
+#: ../inc/util.inc:750
 msgid "Project down for maintenance"
 msgstr "Proje bakım için kapatıldı"
 
-#: ../inc/util.inc:738
-#, fuzzy
+#: ../inc/util.inc:753
 msgid "%1 is temporarily shut down for maintenance.  Please try again later."
 msgstr ""
-"Bu sayfa veritabanı erişimi gerektirir.  Veritabanı sunucumuz bakım için "
-"geçiçi olarak kapalı durumda.  Lütfen taha sonra tekrar deneyin."
+"%1 sunucumuz bakım için geçiçi olarak kapalı durumda.  Lütfen taha sonra "
+"tekrar deneyin."
 
-#: ../inc/util.inc:756
+#: ../inc/util.inc:771
 msgid "Unable to connect to database - please try again later"
 msgstr "Veritabanına erişilemedi - lütfen daha sonra tekrar deneyin"
 
-#: ../inc/util.inc:757
+#: ../inc/util.inc:772
 msgid "Error:"
 msgstr "Hata:"
 
-#: ../inc/util.inc:761
+#: ../inc/util.inc:776
 msgid "Unable to select database - please try again later"
 msgstr "Veritabanı seçilemedi - lütfen daha sonra tekrar deneyin"
 
-#: ../inc/util_ops.inc:131 ../user/get_passwd.php:72
+#: ../inc/util_ops.inc:130 ../user/get_passwd.php:72
 msgid "Stay logged in on this computer"
 msgstr "Bu bilgisayarda oturumumu açık tut"
 
 #: ../user/account_finish.php:34
 msgid "Finish account setup"
-msgstr ""
+msgstr "Hesap kurulumunu bitir"
 
-#: ../user/account_finish.php:41 ../user/create_account_form.php:87
+#: ../user/account_finish.php:41 ../user/create_account_form.php:89
 msgid "Identifies you on our web site. Use your real name or a nickname."
 msgstr ""
 "Sitemizde bu isimle yer alacaksınız. Gerçek adınızı ya da takma adınızı "
 "kullanın."
 
-#: ../user/account_finish.php:45 ../user/create_account_form.php:106
+#: ../user/account_finish.php:45 ../user/create_account_form.php:108
 msgid "Select the country you want to represent, if any."
 msgstr "Temsil ettiğiniz ülkeyi seçin, eğer mevcutsa."
 
-#: ../user/account_finish.php:51 ../user/create_account_form.php:112
+#: ../user/account_finish.php:51 ../user/create_account_form.php:114
 msgid "Postal or ZIP Code"
 msgstr "Posta ya da ZIP Kodu"
 
-#: ../user/account_finish.php:51 ../user/create_account_form.php:112
+#: ../user/account_finish.php:51 ../user/create_account_form.php:114
 msgid "Optional"
 msgstr "İsteğe bağlı"
 
-#: ../user/account_finish_action.php:27 ../user/create_account_action.php:84
-#, fuzzy
+#: ../user/account_finish_action.php:27 ../user/create_account_action.php:86
 msgid "You must supply a name for your account"
-msgstr "Hesabınız için bir isim belirlemelisiniz."
+msgstr "Hesabınız için bir isim belirlemelisiniz"
 
-#: ../user/account_finish_action.php:30 ../user/create_account_action.php:87
-#, fuzzy
+#: ../user/account_finish_action.php:30 ../user/create_account_action.php:89
 msgid "HTML tags not allowed in name"
-msgstr "İsminizde HTML etiketlerinin kullanımı kabul edilmiyor."
+msgstr "İsminizde HTML etiketleri kullanamazsınız"
 
-#: ../user/add_venue.php:86
+#: ../user/add_venue.php:85
 msgid "Add %1 preferences for %2"
 msgstr "%2 için %1 farklı tercihleri ekle"
 
-#: ../user/apps.php:32 ../user/sample_index.php:102
+#: ../user/apps.php:32 ../user/sample_index.php:109
 msgid "Applications"
 msgstr "Uygulamalar"
 
@@ -2018,7 +2368,7 @@ msgstr "Yayınlanma tarihi"
 
 #: ../user/bbcode.php:23
 msgid "BBCode tags"
-msgstr ""
+msgstr "BBCode etiketleri"
 
 #: ../user/bbcode.php:25
 msgid ""
@@ -2027,158 +2377,162 @@ msgid ""
 "have used %1 in HTML) and end with ] (where you would have used %2 in\n"
 "HTML)."
 msgstr ""
+"BBCode etiketleri, profilinizdeki ve mesaj panolarındaki metinleri "
+"şekillendirmenizi sağlar.\n"
+"HTML'e benzer, fakat daha basittir. Etiketler bir [ ile başlar (HTML'de "
+"kullanılan\n"
+"%1 gibi) ve bir ] ile biter (HTML'de kullanılan %2 gibi)."
 
 #: ../user/bbcode.php:31
 msgid "Examples"
-msgstr ""
+msgstr "Örnekler"
 
 #: ../user/bbcode.php:32
 msgid "Bold"
-msgstr ""
+msgstr "Kalın"
 
 #: ../user/bbcode.php:33
-#, fuzzy
 msgid "Italic"
-msgstr "Geçersiz"
+msgstr "İtalik"
 
 #: ../user/bbcode.php:34
-#, fuzzy
 msgid "Underline"
-msgstr "Reddet"
+msgstr "Altı çizili"
 
 #: ../user/bbcode.php:35
-#, fuzzy
-msgid "Big text"
-msgstr "salt metin"
+msgid "Superscript"
+msgstr "Üstsimge"
 
 #: ../user/bbcode.php:36
-#, fuzzy
-msgid "Red text"
-msgstr "salt metin"
+msgid "Big text"
+msgstr "Büyük metin"
 
 #: ../user/bbcode.php:37
+msgid "Red text"
+msgstr "Kırmızı metin"
+
+#: ../user/bbcode.php:38
 msgid "link to website"
-msgstr ""
-
-#: ../user/bbcode.php:38
-#, fuzzy
-msgid "Quoted text"
-msgstr "Takımdan ayrıl"
-
-#: ../user/bbcode.php:38
-msgid "use for quoted blocks of text"
-msgstr ""
+msgstr "internet sitesine bağlantı"
 
 #: ../user/bbcode.php:39
+msgid "Quoted text"
+msgstr "Alıntı yapılmış metin"
+
+#: ../user/bbcode.php:39
+msgid "use for quoted blocks of text"
+msgstr "metinden alıntı bloğu yapmak için"
+
+#: ../user/bbcode.php:40
 msgid "use to display an image"
-msgstr ""
+msgstr "bir resmi görüntülemek için"
 
-#: ../user/bbcode.php:40
+#: ../user/bbcode.php:41
 msgid "Code snippet here"
-msgstr ""
+msgstr "Kod parçası"
 
-#: ../user/bbcode.php:40
+#: ../user/bbcode.php:41
 msgid "use to display some code"
-msgstr ""
+msgstr "bir kodu düzgün görüntülemek için"
 
-#: ../user/bbcode.php:41
+#: ../user/bbcode.php:42
 msgid "Pre-formatted text"
-msgstr ""
+msgstr "Önceden biçimlenmiş metin"
 
-#: ../user/bbcode.php:41
+#: ../user/bbcode.php:42
 msgid "use to display pre-formatted (usually monospaced) text"
-msgstr ""
+msgstr "önceden biçimlenmiş (genellikle eşaralıklı) metin görüntülemek için"
 
-#: ../user/bbcode.php:42
+#: ../user/bbcode.php:43
 msgid "Item 1"
-msgstr ""
+msgstr "Öğe 1"
 
-#: ../user/bbcode.php:42
+#: ../user/bbcode.php:43
 msgid "Item2"
-msgstr ""
+msgstr "Öğe 2"
 
-#: ../user/bbcode.php:42
+#: ../user/bbcode.php:43
 msgid "Item 2"
-msgstr ""
+msgstr "Öğe 3"
 
-#: ../user/bbcode.php:44
+#: ../user/bbcode.php:45
 msgid "use to link to Trac ticket on BOINC website"
-msgstr ""
+msgstr "BOINC sitesindeki Trac biletine bağlantı için"
 
-#: ../user/bbcode.php:46
+#: ../user/bbcode.php:47
 msgid "use to link to Trac Wiki on BOINC website"
-msgstr ""
+msgstr "BOINC sitesindeki Trac Wiki'sine bağlantı için"
 
-#: ../user/bbcode.php:48
+#: ../user/bbcode.php:49
 msgid "use to link to SVN changeset on BOINC website"
-msgstr ""
+msgstr "BOINC sitesindeki SVN değişiklik setine bağlantı için"
 
-#: ../user/bbcode.php:52
+#: ../user/bbcode.php:53
 msgid ""
 "If you don't close a tag or don't specify a parameter correctly,\n"
 "the raw tag itself will display instead of the formatted text."
 msgstr ""
+"Eğer bir etiketi kapatmaz ya da parametreyi doğru girmezseniz,\n"
+"biçimlenmiş metin yerine, etiketin ham hali görüntülenecektir."
 
 #: ../user/create_account_action.php:26
-#, fuzzy
 msgid "Can't create account"
-msgstr "Hesap oluştur"
+msgstr "Hesap oluşturulamadı"
 
 #: ../user/create_account_action.php:29
 msgid "Click your browser's <b>Back</b> button to try again."
-msgstr ""
+msgstr "Yeniden denemek için, tarayıcınızın <b>Geri</b> butonuna tıklayın."
 
-#: ../user/create_account_action.php:36 ../user/create_account_action.php:38
+#: ../user/create_account_action.php:38 ../user/create_account_action.php:40
 #: ../user/create_account_form.php:43
 msgid "Account creation is disabled"
 msgstr "Hesap oluşturma devre dışı"
 
-#: ../user/create_account_action.php:39
+#: ../user/create_account_action.php:41
 msgid ""
 "Sorry, this project has disabled the creation of new accounts.\n"
 "Please try again later."
 msgstr ""
+"Üzgünüm, bu projede yeni hesapların yaratılması devredışı bırakıldı.\n"
+"Lütfen daha sonra yeniden deneyin."
 
-#: ../user/create_account_action.php:51
-#, fuzzy
+#: ../user/create_account_action.php:53
 msgid "Your reCAPTCHA response was not correct. Please try again."
-msgstr "ReCaptcha yanıtınız doğru değil.  Lütfen tekrar deneyin."
+msgstr "reCAPTCHA yanıtınız doğru değil.  Lütfen tekrar deneyin."
 
-#: ../user/create_account_action.php:75
+#: ../user/create_account_action.php:77
 msgid "You must supply an invitation code to create an account."
 msgstr "Hesap oluşturmak için bir davet kodu temin etmelisiniz."
 
-#: ../user/create_account_action.php:78
+#: ../user/create_account_action.php:80
 msgid "The invitation code you gave is not valid."
 msgstr "Sahip olduğunuz davet kodu geçersiz."
 
-#: ../user/create_account_action.php:92
-#, fuzzy
+#: ../user/create_account_action.php:94
 msgid ""
 "Invalid email address: you must enter a valid address of the form name@domain"
-msgstr "'isim@site' biçiminde geçerli bir adres olmalı"
+msgstr ""
+"Geçersiz e-posta adresi: 'isim@site' biçiminde geçerli bir adres girmelisiniz"
 
-#: ../user/create_account_action.php:96
+#: ../user/create_account_action.php:98
 msgid "There's already an account with that email address."
-msgstr ""
+msgstr "Bu e-posta adresiyle bir hesap zaten var."
 
-#: ../user/create_account_action.php:102 ../user/edit_passwd_action.php:33
-#, fuzzy
+#: ../user/create_account_action.php:104 ../user/edit_passwd_action.php:33
 msgid "New passwords are different"
-msgstr "Yeni parola, yeniden"
+msgstr "Yeni parola bölümleri birbirinden farklı"
 
-#: ../user/create_account_action.php:109 ../user/edit_passwd_action.php:41
+#: ../user/create_account_action.php:111 ../user/edit_passwd_action.php:41
 msgid "Passwords may only include ASCII characters."
-msgstr ""
+msgstr "Parolalar yalnızca ASCII karakterleri içerebilir."
 
-#: ../user/create_account_action.php:114 ../user/edit_passwd_action.php:45
+#: ../user/create_account_action.php:116 ../user/edit_passwd_action.php:45
 msgid "New password is too short: minimum password length is %1 characters."
-msgstr ""
+msgstr "Yeni parola çok kısa. En az %1 karakter olmalı."
 
-#: ../user/create_account_action.php:135
-#, fuzzy
+#: ../user/create_account_action.php:137
 msgid "Couldn't create account"
-msgstr "Hesap oluştur"
+msgstr "Hesap oluşturulamadı"
 
 #: ../user/create_account_form.php:44
 msgid "Account creation is currently disabled. Please try again later."
@@ -2188,13 +2542,13 @@ msgstr ""
 
 #: ../user/create_account_form.php:53
 msgid ""
-"NOTE: If you use the BOINC Manager, don't use this form. Just run BOINC, "
-"select Add Project, and enter an email address and password."
+"Don't use this form. Just run BOINC, select Add Project, and enter an email "
+"address and password."
 msgstr ""
-"NOT: BOINC Manager'ı kullanıyorsanız, bu formu kullanmayın. Yalnızca BOINC'i "
-"çalıştırın, \"Proje ekle\"yi seçin ve bir e-posta adresi ile parola girin."
+"Bu formu kullanmayın. Yalnızca BOINC'i çalıştırın, Proje ekle'yi seçin ve "
+"bir e-posta adresi ile parola girin."
 
-#: ../user/create_account_form.php:69
+#: ../user/create_account_form.php:71
 msgid ""
 "This account will belong to the team %1 and will have the project "
 "preferences of its founder."
@@ -2202,40 +2556,39 @@ msgstr ""
 "Bu hesap %1 takımının üyesi olacak ve takım kurucusunun proje tercihlerine "
 "sahip olacak."
 
-#: ../user/create_account_form.php:81
+#: ../user/create_account_form.php:83
 msgid "Invitation Code"
 msgstr "Davet Kodu"
 
-#: ../user/create_account_form.php:81
+#: ../user/create_account_form.php:83
 msgid "A valid invitation code is required to create an account."
 msgstr "Hesap oluşturmak için geçerli bir davet kodu gerekiyor."
 
-#: ../user/create_account_form.php:91
+#: ../user/create_account_form.php:93
 msgid "Email Address"
 msgstr "E-posta Adresi"
 
-#: ../user/create_account_form.php:91
+#: ../user/create_account_form.php:93
 msgid "Must be a valid address of the form 'name@domain'."
 msgstr "'isim@site' biçiminde geçerli bir adres olmalı."
 
-#: ../user/create_account_form.php:100 ../user/edit_email_form.php:48
+#: ../user/create_account_form.php:102 ../user/edit_email_form.php:48
 msgid "Password"
 msgstr "Parola"
 
-#: ../user/create_account_form.php:101
+#: ../user/create_account_form.php:103
 msgid "Must be at least %1 characters"
 msgstr "En az %1 karakter olmalı"
 
-#: ../user/create_account_form.php:104
+#: ../user/create_account_form.php:106
 msgid "Confirm password"
 msgstr "Parolayı doğrula"
 
-#: ../user/create_account_form.php:122
-#, fuzzy
+#: ../user/create_account_form.php:123
 msgid "Please enter the words shown in the image"
-msgstr "Lütfen resimde görülen harfleri girin."
+msgstr "Lütfen resimde görülen kelimeleri girin"
 
-#: ../user/create_account_form.php:128
+#: ../user/create_account_form.php:129
 msgid "Create account"
 msgstr "Hesap oluştur"
 
@@ -2359,24 +2712,20 @@ msgstr ""
 "Verdiğimiz rahatsızlık nedeniyle özür dileriz."
 
 #: ../user/delete_account.php:57
-#, fuzzy
 msgid "Couldn't delete account"
-msgstr "Eski bilgisayar kullanımdan kaldırılamadı"
+msgstr "Hesap silinemedi"
 
 #: ../user/delete_account.php:59
-#, fuzzy
 msgid "Account deleted"
-msgstr "Hesap bilgisi"
+msgstr "Hesap silindi"
 
 #: ../user/delete_account.php:60
-#, fuzzy
 msgid "Your account has been deleted."
-msgstr "Öneriniz kaydedildi."
+msgstr "Hesabınız silindi."
 
 #: ../user/delete_account.php:64
-#, fuzzy
 msgid "Confirm delete account"
-msgstr "Hesap oluştur"
+msgstr "Hesap silinmesini onayla"
 
 #: ../user/delete_account.php:67
 msgid ""
@@ -2386,63 +2735,64 @@ msgid ""
 "No jobs will be issued to any computers attached\n"
 "to this account."
 msgstr ""
+"Hesabınızın silinmesiyle, profil ve mesaj panosu\n"
+"gönderileriniz de dahil tüm kişisel bilgileriniz\n"
+"sunucularımızdan kaldırılacak.\n"
+"Bu hesabın kurulu olduğu bilgisayarlara ise işler\n"
+"gönderilmeyecek."
 
 #: ../user/delete_account.php:73
 msgid ""
 "This cannot be undone.\n"
 "Once your account has been deleted, you cannot get it back."
 msgstr ""
+"Bu işlem geri alınamaz.\n"
+"Hesabınızı sildiğinizde, onu tekrar geri alamazsınız."
 
 #: ../user/delete_account.php:76
-#, fuzzy
 msgid "Are you sure you want to delete your account?"
-msgstr "%2 için ayrı %1 tercihlerinizi silmek istediğinize emin misiniz?"
+msgstr "Hesabınızı silmek istediğinize emin misiniz?"
 
 #: ../user/delete_account.php:79 ../user/delete_profile.php:52
 #: ../user/donations.php:322 ../user/donations.php:326 ../user/friend.php:238
-#: ../user/prefs_remove.php:55 ../user/user_search.php:127
-#: ../user/user_search.php:132
+#: ../user/prefs_remove.php:55 ../user/user_search.php:129
+#: ../user/user_search.php:134
 msgid "Yes"
 msgstr "Evet"
 
 #: ../user/delete_account.php:79
-#, fuzzy
 msgid "Delete this account"
-msgstr "Bu bilgisayarı sil"
+msgstr "Bu hesabı sil"
 
 #: ../user/delete_account.php:80 ../user/delete_profile.php:53
-#: ../user/friend.php:239 ../user/user_search.php:126
-#: ../user/user_search.php:131
+#: ../user/friend.php:239 ../user/user_search.php:128
+#: ../user/user_search.php:133
 msgid "No"
 msgstr "Hayır"
 
 #: ../user/delete_account.php:80
-#, fuzzy
 msgid "Do not delete this account"
-msgstr "Bu bilgisayarı sil"
+msgstr "Bu hesabı silme"
 
 #: ../user/delete_profile.php:30
-#, fuzzy
 msgid "couldn't delete profile - please try again later"
-msgstr "Takıma katılamadınız - lütfen daha sonra tekrar deneyin."
+msgstr "profil silinemedi - lütfen daha sonra tekrar deneyin"
 
 #: ../user/delete_profile.php:33
-#, fuzzy
 msgid "Delete Confirmation"
-msgstr "Bilgisayar bilgisi"
+msgstr "Silmeyi Onayla"
 
 #: ../user/delete_profile.php:35
-#, fuzzy
 msgid "Your profile has been deleted."
-msgstr "Mesajınız gönderildi."
+msgstr "Profiliniz silindi."
 
 #: ../user/delete_profile.php:40
 msgid "Profile delete confirmation"
-msgstr ""
+msgstr "Profil silme onayı"
 
 #: ../user/delete_profile.php:43
 msgid "Are you sure?"
-msgstr ""
+msgstr "Emin misiniz?"
 
 #: ../user/delete_profile.php:44
 msgid ""
@@ -2450,60 +2800,60 @@ msgid ""
 "you will have to start from scratch\n"
 "if you want another profile in the future."
 msgstr ""
+"Silinen profiller sonsuza kadar yok olur ve kurtarılamaz--\n"
+"Gelecekte yeni bir profil yaratmak için baştan başlamanız gerekir."
 
 #: ../user/delete_profile.php:48
 msgid ""
-"If you're sure, click 'Delete'\n"
+"If you're sure, click 'Yes'\n"
 "to remove your profile from our database."
 msgstr ""
+"Eminseniz, profilinizin sunucularımızdan silinmesi için\n"
+"lütfen 'Evet'e tıklayın."
 
 #: ../user/delete_profile.php:52
-#, fuzzy
 msgid "Delete my profile"
-msgstr "Bir profil oluştur"
+msgstr "Profilimi sil"
 
 #: ../user/delete_profile.php:53
-#, fuzzy
 msgid "Do not delete my profile"
-msgstr "Bu profilden %1hiç hoşlanmadım%2"
+msgstr "Profilimi silme"
 
 #: ../user/donated.php:25
 msgid "PayPal - Transaction Completed"
-msgstr ""
+msgstr "PayPal - Aktarım Tamamlandı"
 
 #: ../user/donated.php:28
 msgid "Thank you for donating!"
-msgstr ""
+msgstr "Bağışınız için teşekkürler!"
 
 #: ../user/donated.php:29
-#, fuzzy
 msgid "Your donation for has been completed."
-msgstr "Öneriniz kaydedildi."
+msgstr "Bağışınız tamamlandı."
 
 #: ../user/donated.php:30
 msgid ""
 "Your donation will be added to the progress bar after confirmation by PayPal."
 msgstr ""
+"Bağışınız PayPal tarafından onaylandıktan sonra ilerleme çubuğuna eklenecek."
 
 #: ../user/donated.php:32
 msgid "You have canceled your donation."
-msgstr ""
+msgstr "Bağışınızı iptal ettiniz."
 
 #: ../user/donations.php:24
-#, fuzzy
 msgid "This project is not accepting donations."
-msgstr "Bu istek halen onaylanmayı bekliyor."
+msgstr "Bu proje bağışları kabul etmiyor."
 
 #: ../user/donations.php:34
-#, fuzzy
 msgid "%1 donations"
-msgstr "%1 gün"
+msgstr "%1 bağış"
 
 #: ../user/donations.php:39
 msgid ""
 "This project is accepting donations via\n"
 "%1."
-msgstr ""
+msgstr "Bu proje %1 ile bağışları kabul ediyor."
 
 #: ../user/donations.php:42
 msgid ""
@@ -2519,38 +2869,49 @@ msgid ""
 "        (please note that the rates are only estimates\n"
 "         and the actual amount may differ)."
 msgstr ""
+"Bağış yapmak için, istediğiniz miktara göre aşağıdaki formu doldurun.\n"
+"        PayPal bir çok para birimini destekler \n"
+"        (Kanada Doları, Avro, İngiliz Sterlini, ABD Doları,\n"
+"         Yen, Avusturalya Doları, Yeni Zelanda Doları,\n"
+"        İsviçre Frangı, Hong Kong Doları, Singapur Doları, İsveç Kronu, \n"
+"         Danimarka Kronu, Polonya Zlotisi, Norveç Kronu,\n"
+"        Macar Forinti, Çek Korunası).\n"
+"        Farklı para birimlerinin değerlerini görmek için,\n"
+"        dönüştürücüyü kullanabilirsiniz (Ancak, bu değerlerin\n"
+"        yaklaşık olduğunu ve gerçek miktarın farklı olabileceğini\n"
+"        unutmayın)."
 
 #: ../user/donations.php:316
 msgid "Amount you would like to donate"
-msgstr ""
+msgstr "Bağışlamak istediğiniz miktar"
 
 #: ../user/donations.php:317
 msgid "Estimated value in"
-msgstr ""
+msgstr "Bununla yaklaşık miktar"
 
 #: ../user/donations.php:320 ../user/donations.php:324
-#, fuzzy
 msgid "Anonymous donation"
-msgstr "Anonim platform"
+msgstr "Anonim bağış"
 
 #: ../user/donations.php:320
 msgid ""
 "Select this if you dont want your name and account number displayed in\n"
 "donator lists.<br>If not checked, you will be recorded as user ID %1"
 msgstr ""
+"Select this if you dont want your name and account number displayed in\n"
+"donator lists.<br>If not checked, you will be recorded as user ID %1"
 
 #: ../user/donations.php:324
 msgid "To assign the donation with your user ID, please log in."
-msgstr ""
+msgstr "Kullanıcı NO'nuzla bağış yapmak için, lütfen sisteme giriş yapın."
 
 #: ../user/donations.php:328
-#, fuzzy
 msgid "Proceed"
-msgstr "Profil kaydedildi"
+msgstr "Devam et"
 
 #: ../user/donations.php:329
 msgid "Donations are accepted through"
-msgstr ""
+msgstr "Bağışlar bunun aracılığıyla gerçekleştirilir:"
 
 #: ../user/download_network.php:25
 msgid "Download BOINC add-on software"
@@ -2588,44 +2949,40 @@ msgid "This list is managed centrally at %1the BOINC website%2."
 msgstr "Bu liste %1BOINC internet sitesinden%2 merkezi olarak yönetilir."
 
 #: ../user/edit_email_action.php:31
-#, fuzzy
 msgid "Change email address of account"
-msgstr "Hesabınızın bağlı olduğu e-posta adresini değiştirin"
+msgstr "Hesabın bağlı olduğu e-posta adresini değiştir"
 
 #: ../user/edit_email_action.php:34 ../user/edit_email_action.php:36
-#, fuzzy
 msgid "New email address '%1' is invalid."
-msgstr "Yeni e-posta adresi"
+msgstr "Yeni e-posta adresi '%1' geçersiz."
 
 #: ../user/edit_email_action.php:38
 msgid "New email address is same as existing address. Nothing is changed."
-msgstr ""
+msgstr "Yeni e-posta adresi, mevcut adres ile aynı. Değişiklik yapılmadı."
 
 #: ../user/edit_email_action.php:42
 msgid "There's already an account with that email address"
-msgstr ""
+msgstr "Bu adres ile bir hesap zaten var."
 
 #: ../user/edit_email_action.php:54
-#, fuzzy
 msgid "Invalid password."
-msgstr "Parolayı doğrula"
+msgstr "Geçersiz parola."
 
 #: ../user/edit_email_action.php:62
-#, fuzzy
 msgid "The email address of your account is now %1."
-msgstr "Hesabınızın bağlı olduğu e-posta adresi doğrulandı."
+msgstr "Hesabınızın bağlı olduğu e-posta adresi artık %1."
 
 #: ../user/edit_email_action.php:64
-#, fuzzy
 msgid "Please %1validate this email address%2."
-msgstr "E-posta adresini doğrula"
+msgstr "Lütfen %1bu e-posta adresini doğrulayın%2."
 
 #: ../user/edit_email_action.php:67
-#, fuzzy
 msgid ""
 "We can't update your email address due to a database problem.  Please try "
 "again later."
-msgstr "Veritabanı seçilemedi - lütfen daha sonra tekrar deneyin"
+msgstr ""
+"Veritabanı hatası nedeniyle e-posta adresinizi güncelleyemedik.  Lütfen daha "
+"sonra tekrar deneyin."
 
 #: ../user/edit_email_form.php:28 ../user/edit_email_form.php:52
 msgid "Change email address"
@@ -2648,97 +3005,94 @@ msgid "No password?"
 msgstr "Parolanız yok mu?"
 
 #: ../user/edit_forum_preferences_action.php:35
-#, fuzzy
 msgid "Confirm reset"
-msgstr "Parolayı doğrula"
+msgstr "Sıfırlamayı onayla"
 
 #: ../user/edit_forum_preferences_action.php:36
 msgid ""
 "This action will erase any changes you have made in your community "
 "preferences. To cancel, click your browser's Back button."
 msgstr ""
+"Bu eylem, topluluk tercihlerinizde yaptığınız değişiklikleri silecek. İptal "
+"etmek için, tarayıcınızın Geri butonuna basın."
 
 #: ../user/edit_forum_preferences_action.php:40
-#, fuzzy
 msgid "Reset preferences"
-msgstr "Tercihleri kaldır"
+msgstr "Sıfırlama tercihleri"
 
 #: ../user/edit_forum_preferences_action.php:90
 msgid "Error: Not the right kind of file, only PNG and JPEG are supported."
-msgstr ""
+msgstr "Hata: Yanlış dosya tipi. Yalnızca PNG ve JPEG destekleniyor."
 
 #: ../user/edit_forum_preferences_action.php:116
 msgid "Your signature was too long, please keep it less than 250 characters."
-msgstr ""
+msgstr "İmzanız çok uzun. Lütfen 250 karakterden kısa tutun."
 
 #: ../user/edit_forum_preferences_action.php:139
 #: ../user/edit_forum_preferences_action.php:153
-#, fuzzy
 msgid "No such user: %1"
-msgstr "Böyle bir kullanıcı yok"
+msgstr "Böyle bir kullanıcı yok: %1"
 
 #: ../user/edit_forum_preferences_form.php:56
 msgid ""
 "How should we notify you of new private messages, friend requests, posts in "
 "subscribed threads, and other events?"
 msgstr ""
+"Sizi yeni özel mesajlar, arkadaşlık istekleri , abone olunan konu "
+"başlıklarına gönderiler ve diğer olaylar hakkında nasıl bilgilendirelim?"
 
 #: ../user/edit_forum_preferences_form.php:57
-#, fuzzy
 msgid "On my Account page (no email)"
-msgstr "Hesap anahtarını e-posta ile al"
+msgstr "Hesap sayfamda (e-posta yok)"
 
 #: ../user/edit_forum_preferences_form.php:58
-#, fuzzy
 msgid "Immediately, by email"
-msgstr "Hesap anahtarını e-posta ile al"
+msgstr "Derhal, e-posta ile"
 
 #: ../user/edit_forum_preferences_form.php:59
 msgid "In a single daily email"
-msgstr ""
+msgstr "Günde tek e-posta ile"
 
 #: ../user/edit_forum_preferences_form.php:75
-#, fuzzy
 msgid "Message-board identity"
-msgstr "Mesaj panosu"
+msgstr "Mesaj panosu kimliği"
 
 #: ../user/edit_forum_preferences_form.php:76
 msgid "Avatar"
-msgstr ""
+msgstr "Avatar"
 
 #: ../user/edit_forum_preferences_form.php:77
 msgid "An image representing you on the message boards."
-msgstr ""
+msgstr "Mesaj panolarında sizi temsil edecek bir resim."
 
 #: ../user/edit_forum_preferences_form.php:78
 msgid "Format: JPG or PNG. Size: at most 4 KB, 100x100 pixels"
-msgstr ""
+msgstr "Format: JPG ya da PNG. Boyut: 4 KB civarı, 100x100 piksel"
 
 #: ../user/edit_forum_preferences_form.php:80
-#, fuzzy
 msgid "Don't use an avatar"
-msgstr "HTML etiketleri kullanmayın."
+msgstr "Bir avatar kullanma"
 
 #: ../user/edit_forum_preferences_form.php:82
 msgid "Use a Globally Recognized Avatar provided by %1"
 msgstr ""
+"%1 tarafından sağlanan bir Globally Recognized Avatar (Gravatar) kullan"
 
 #: ../user/edit_forum_preferences_form.php:84
 msgid "Use this uploaded avatar:"
-msgstr ""
+msgstr "Yüklediğim bu avatarı kullan:"
 
 #: ../user/edit_forum_preferences_form.php:87
 msgid "Avatar preview"
-msgstr ""
+msgstr "Avatar önizlemesi"
 
 #: ../user/edit_forum_preferences_form.php:87
 msgid "This is how your avatar will look"
-msgstr ""
+msgstr "Bu, avatarınızın nasıl görüneceğini gösterir"
 
 #: ../user/edit_forum_preferences_form.php:96
-#, fuzzy
 msgid "Signature for message board posts"
-msgstr "%1 için bir mesaj panosu oluştur"
+msgstr "Mesaj panosu gönderileri için imza"
 
 #: ../user/edit_forum_preferences_form.php:99
 msgid ""
@@ -2746,133 +3100,127 @@ msgid ""
 "<br> providing dynamic 'signature images'\n"
 "<br> showing your latest credit info, project news, etc."
 msgstr ""
+"%1Çeşitli bedava servislere%2 gözatın.\n"
+"<br> Dinamik 'imza resimleri',\n"
+"<br> son kredi bilginizi, proje haberlerini vs gösterir."
 
 #: ../user/edit_forum_preferences_form.php:104
 msgid "characters remaining"
-msgstr ""
+msgstr "karakter kaldı"
 
 #: ../user/edit_forum_preferences_form.php:105
 msgid "Attach signature by default"
-msgstr ""
+msgstr "İmzayı varsayılan olarak ekle"
 
 #: ../user/edit_forum_preferences_form.php:108
 msgid "Signature preview"
-msgstr ""
+msgstr "İmza önizlemesi"
 
 #: ../user/edit_forum_preferences_form.php:109
 msgid "This is how your signature will look in the forums"
-msgstr ""
+msgstr "Bu, imzanızın forumlarda nasıl gösterileceğinin bir önizlemesidir"
 
 #: ../user/edit_forum_preferences_form.php:127
-#, fuzzy
 msgid "Message display"
-msgstr "Mesaj panoları"
+msgstr "Mesaj görüntüleme"
 
 #: ../user/edit_forum_preferences_form.php:129
-#, fuzzy
 msgid "What to display"
-msgstr "Görüntülenecek iş yok"
+msgstr "Görüntülenecek öğeler"
 
 #: ../user/edit_forum_preferences_form.php:130
 msgid "Hide avatar images"
-msgstr ""
+msgstr "Avatar resimlerini gizle"
 
 #: ../user/edit_forum_preferences_form.php:131
 msgid "Hide signatures"
-msgstr ""
+msgstr "İmzaları gizle"
 
 #: ../user/edit_forum_preferences_form.php:132
 msgid "Show images as links"
-msgstr ""
+msgstr "Resimleri bağlantı olarak görüntüle"
 
 #: ../user/edit_forum_preferences_form.php:133
 msgid "Open links in new window/tab"
-msgstr ""
+msgstr "Bağlantıları yeni sekmelerde/pencerelerde aç"
 
 #: ../user/edit_forum_preferences_form.php:134
 msgid "Highlight special users"
-msgstr ""
+msgstr "Özel kullanıcıları vurgula"
 
 #: ../user/edit_forum_preferences_form.php:138
 msgid "How to sort"
-msgstr ""
+msgstr "Nasıl sıralanacak"
 
 #: ../user/edit_forum_preferences_form.php:139
-#, fuzzy
 msgid "Threads:"
-msgstr "Konu Başlıkları"
+msgstr "Konu başlıkları:"
 
 #: ../user/edit_forum_preferences_form.php:139
-#, fuzzy
 msgid "Posts:"
-msgstr "Cevaplar"
+msgstr "Cevaplar:"
 
 #: ../user/edit_forum_preferences_form.php:140
 msgid "Jump to first new post in thread automatically"
-msgstr ""
+msgstr "Konu başlığındaki ilk yeni gönderiye otomatik olarak atla"
 
 #: ../user/edit_forum_preferences_form.php:141
 msgid "Do not reorder sticky posts"
-msgstr ""
+msgstr "Sabit gönderileri yeniden düzenleme"
 
 #: ../user/edit_forum_preferences_form.php:142
 msgid "If a thread contains more than this number of posts"
-msgstr ""
+msgstr "Eğer bir konu başlığı bundan fazla sayıda gönderi içeriyorsa"
 
 #: ../user/edit_forum_preferences_form.php:143
 msgid "only display the first one and this many of the last ones"
-msgstr ""
+msgstr "yalnızca ilkini ve en sondakileri görüntüle"
 
 #: ../user/edit_forum_preferences_form.php:149
-#, fuzzy
 msgid "Message filtering"
-msgstr "Mesaj panosu"
+msgstr "Mesaj filtreleme"
 
 #: ../user/edit_forum_preferences_form.php:165
-#, fuzzy
 msgid "Filtered users"
-msgstr "Süzgeçler"
+msgstr "Filtrelenen kullanıcılar"
 
 #: ../user/edit_forum_preferences_form.php:166
-#, fuzzy
 msgid "Ignore message board posts and private messages from these users."
-msgstr "Mesaj panoları ve özel mesajlar"
+msgstr ""
+"Bu kullanıcıların mesaj panosu ve özel mesaj gönderilerini görmezden gel."
 
 #: ../user/edit_forum_preferences_form.php:168
 msgid "User ID (For instance: 123456789)"
-msgstr ""
+msgstr "Kullanıcı NO (Örneğin: 123456789)"
 
 #: ../user/edit_forum_preferences_form.php:169 ../user/pm.php:251
 msgid "Add user to filter"
 msgstr "Kullanıcıyı filtreye ekle"
 
 #: ../user/edit_forum_preferences_form.php:174
-#, fuzzy
 msgid "Click here to update preferences"
-msgstr "Tercihleri güncelle"
+msgstr "Tercihleri güncellemek için buraya tıklayın"
 
 #: ../user/edit_forum_preferences_form.php:176
 #: ../user/edit_forum_preferences_form.php:178
 msgid "Reset"
-msgstr ""
+msgstr "Sıfırla"
 
 #: ../user/edit_forum_preferences_form.php:177
 msgid "Or click here to reset preferences to the defaults"
-msgstr ""
+msgstr "Ya da ayarları varsayılana sıfırlamak için buraya tıklayın"
 
 #: ../user/edit_passwd_action.php:50
-#, fuzzy
 msgid "Invalid account key"
-msgstr "Zayıf hesap anahtarı"
+msgstr "Geçersiz hesap anahtarı"
 
 #: ../user/edit_passwd_action.php:55
 msgid "No account with that email address was found"
-msgstr ""
+msgstr "Bu e-posta adresine ait bir hesap bulunamadı"
 
 #: ../user/edit_passwd_action.php:59
-#, fuzzy
 msgid "Invalid password"
-msgstr "Parolayı doğrula"
+msgstr "Geçersiz parola"
 
 #: ../user/edit_passwd_action.php:63 ../user/edit_passwd_form.php:28
 #: ../user/edit_passwd_form.php:58
@@ -2880,16 +3228,16 @@ msgid "Change password"
 msgstr "Parolayı değiştir"
 
 #: ../user/edit_passwd_action.php:67
-#, fuzzy
 msgid "Your password has been changed."
-msgstr "Mesajınız gönderildi."
+msgstr "Parolanız değişti."
 
 #: ../user/edit_passwd_action.php:69
-#, fuzzy
 msgid ""
 "We can't update your password due to a database problem. Please try again "
 "later."
-msgstr "Veritabanına erişilemedi - lütfen daha sonra tekrar deneyin"
+msgstr ""
+"Parolanızı veritaban problemi nedeniyle güncelleyemedik. Lütfen daha sonra "
+"tekrar deneyin."
 
 #: ../user/edit_passwd_form.php:42
 msgid "You can identify yourself using either"
@@ -2956,9 +3304,8 @@ msgid "Update info"
 msgstr "Bilgileri güncelle"
 
 #: ../user/explain_state.php:27
-#, fuzzy
 msgid "Server states"
-msgstr "Sunucu durumu"
+msgstr "Sunucu durumları"
 
 #: ../user/explain_state.php:30
 msgid ""
@@ -2966,59 +3313,68 @@ msgid ""
 "computer, and if so whether the computer has finished it. Possible values "
 "are:"
 msgstr ""
+"Bir işin <b>sunucu durumu</b>, bir bilgisayara gönderilip gönderilmediğini "
+"ve bilgisayarın onu tamamlayıp tamamlamadığını anlatır. Muhtemel değerler "
+"şunlardır:"
 
 #: ../user/explain_state.php:35
 msgid ""
 "The task is not ready to send (for example, because its input files are "
 "unavailable)"
 msgstr ""
+"İş gönderilmeye hazır değil (örneğin, giriş dosyaları henüz mevcut değil)"
 
 #: ../user/explain_state.php:38
 msgid "The task is ready to send, but hasn't been sent yet."
-msgstr ""
+msgstr "İş gönderilmeye hazır, fakat henüz gönderilmedi."
 
 #: ../user/explain_state.php:40
-#, fuzzy
 msgid "In Progress"
 msgstr "Sürmekte"
 
 #: ../user/explain_state.php:41
-#, fuzzy
 msgid "The task has been sent; waiting for completion."
-msgstr "Dosya silinmesi için bekleyen işler"
+msgstr "İş gönderildi, tamamlanması bekleniyor."
 
 #: ../user/explain_state.php:44
 msgid ""
 "The task has been sent to a computer and either it has timed out or the "
 "computer has reported its completion."
 msgstr ""
+"İş bir bilgisayara gönderildi ve son teslim zamanı geçti ya da bilgisayar "
+"tamamlandığını bildirdi."
 
 #: ../user/explain_state.php:49
-#, fuzzy
 msgid "Outcomes"
-msgstr "Sonuç"
+msgstr "Sonuçlar"
 
 #: ../user/explain_state.php:52
 msgid ""
 "A tasks's <b>outcome</b> is defined if its server state is <b>over</b>. "
 "Possible values are:"
 msgstr ""
+"Bir işin <b>sonucu</b>, sunucu durumu <b>tamamlandı</b> ise belirlenir. "
+"Muhtemel değerler şunlardır:"
 
 #: ../user/explain_state.php:57
 msgid ""
 "The task was sent to a computer, but the computer has not yet completed the "
 "work and reported the outcome."
 msgstr ""
+"İş bir bilgisayara gönderildi, fakat bilgisayar henüz tamamlamadı ve "
+"sonucunu raporlamadı."
 
 #: ../user/explain_state.php:60
 msgid "A computer completed and reported the task successfully."
-msgstr ""
+msgstr "Bir bilgisayar işi başarıyla tamamladı ve raporladı."
 
 #: ../user/explain_state.php:63
 msgid ""
 "The server wasn't able to send the task to a computer (perhaps because its "
 "resource requirements were too large)"
 msgstr ""
+"Sunucu işi bir bilgisayara göndermeyi başaramadı (muhtemelen sistem "
+"ihtiyaçları çok yüksek ya da dosya boyu çok büyük)"
 
 #: ../user/explain_state.php:65
 msgid "Client error"
@@ -3026,153 +3382,160 @@ msgstr "İstemci hatası"
 
 #: ../user/explain_state.php:66
 msgid "The task was sent to a computer and an error occurred."
-msgstr ""
+msgstr "İş bir bilgisayara gönderildi ve hata meydana geldi."
 
 #: ../user/explain_state.php:69
 msgid ""
 "The task was sent to a computer and no reply was received within the time "
 "limit."
 msgstr ""
+"İş bir bilgisayara gönderildi ve son teslim tarihi içinde bir yanıt "
+"alınamadı."
 
 #: ../user/explain_state.php:72
 msgid ""
 "The task wasn't sent to a computer because enough other tasks were completed "
 "for this workunit."
 msgstr ""
+"İş bir bilgisayara gönderilemedi, çünkü bu iş birimi için yeterli miktarda "
+"diğer işler tamamlandı."
 
 #: ../user/explain_state.php:75
 msgid ""
 "The task was reported but could not be validated, typically because the "
 "output files were lost on the server."
 msgstr ""
+"İş raporlandı, fakat doğrulanamadı. Çünkü, genellikle sonuç dosyaları "
+"sunucuda kayboldu."
 
 #: ../user/explain_state.php:80
-#, fuzzy
 msgid "Client states"
-msgstr "İstemci durumu"
+msgstr "İstemci durumları"
 
 #: ../user/explain_state.php:81
 msgid ""
 "A result's <b>client state</b> indicates the stage of processing at which an "
 "error occurred."
 msgstr ""
+"Bir sonucun <b>istemci durumu</b> hesaplama sırasında meydana gelen bir "
+"hatayı anlatır."
 
 #: ../user/explain_state.php:86
 msgid "The computer has not yet completed the task."
-msgstr ""
+msgstr "Bilgisayar henüz işi tamamlayamadı."
 
 #: ../user/explain_state.php:89
 msgid "The computer completed the task successfully."
-msgstr ""
+msgstr "Bilgisayar işi başarıyla tamamladı."
 
 #: ../user/explain_state.php:92
 msgid "The computer couldn't download the application or input files."
-msgstr ""
+msgstr "Bilgisayar uygulamayı ya da girdi dosyalarını indiremedi."
 
 #: ../user/explain_state.php:95
 msgid "An error occurred during computation."
-msgstr ""
+msgstr "Hesaplama sırasında bir hata meydana geldi."
 
 #: ../user/explain_state.php:98
 msgid "The computer couldn't upload the output files."
-msgstr ""
+msgstr "Bilgisayar sonuç dosyalarını gönderemedi."
 
 #: ../user/explain_state.php:103
-#, fuzzy
 msgid "Time reported and deadline"
-msgstr "Raporlanma ya da<br />son teslim tarihi"
+msgstr "Raporlanma ya da son teslim tarihi"
 
 #: ../user/explain_state.php:106
 msgid ""
 "A task's <b>Time reported or deadline</b> field depends on whether the task "
 "has been reported yet:"
 msgstr ""
+"Bir işin <b>raporlanma ya da son teslim tarihi</b> işin raporlanıp "
+"raporlanmadığına işaret eder:"
 
 #: ../user/explain_state.php:110
-#, fuzzy
 msgid "Already reported"
-msgstr "Zaten arkadaş"
+msgstr "Zaten raporlandı"
 
 #: ../user/explain_state.php:110
 msgid "The date/time it was reported"
-msgstr ""
+msgstr "Raporlandığı tarih/saat"
 
 #: ../user/explain_state.php:111
 msgid "Not reported yet, deadline in the future"
-msgstr ""
+msgstr "Henüz raporlanmadı, son teslim tarihine daha var"
 
 #: ../user/explain_state.php:112
 msgid "Deadline, shown in green."
-msgstr ""
+msgstr "Son teslim tarihi yeşil olarak gösterilmekte."
 
 #: ../user/explain_state.php:114
 msgid "Not reported yet, deadline in the past"
-msgstr ""
+msgstr "Henüz raporlanmadı, son teslim tarihi geçti"
 
 #: ../user/explain_state.php:115
 msgid "Deadline, shown in red."
-msgstr ""
+msgstr "Son teslim tarihi kırmızı olarak gösterilmekte"
 
 #: ../user/explain_state.php:120
-#, fuzzy
 msgid "Unknown field"
-msgstr "Bilinmiyor"
+msgstr "Bilinmeyen sebep"
 
 #: ../user/ffmail_action.php:47
-#, fuzzy
 msgid "Email preview"
-msgstr "E-posta adresi"
+msgstr "E-posta önizlemesi"
 
 #: ../user/ffmail_action.php:48
 msgid "Your email will appear as follows:"
-msgstr ""
+msgstr "E-posta adresiniz şu şekilde görünecek:"
 
 #: ../user/ffmail_action.php:57
-#, fuzzy
 msgid "Send email"
-msgstr "Mesajı yolla"
+msgstr "E-posta gönder"
 
 #: ../user/ffmail_action.php:59
 msgid "Use your browser's back button to return to message form"
-msgstr ""
+msgstr "Mesaj formuna dönmek için tarayıcınızın Geri butonunu kullanın"
 
 #: ../user/ffmail_action.php:63
-#, fuzzy
 msgid "Sending emails"
-msgstr "Beklenen kredi"
+msgstr "E-postalar gönderiliyor"
 
 #: ../user/ffmail_action.php:84
 msgid "email sent successfully to %1"
-msgstr ""
+msgstr "%1 kişisine e-posta gönderimi başarıyla tamamlandı"
 
 #: ../user/ffmail_action.php:86
 msgid "failed to send email to %1: %2"
-msgstr ""
+msgstr "%1 kişisine e-posta gönderimi tamamlanamadı: %2"
 
 #: ../user/ffmail_action.php:92
 msgid "Thanks for telling your friends about %1"
-msgstr ""
+msgstr "Arkadaşlarınıza %1 projesinden bahsettiğiniz için teşekkürler"
 
 #: ../user/ffmail_action.php:94
 msgid ""
 "You forgot to enter your friends' names and/or email addresses; Please "
 "%1return to the form%2 and enter them."
 msgstr ""
+"Arkadaşlarınızın e-posta adreslerini ve/veya isimlerini girmeyi unuttunuz. "
+"Lütfen %1forma geri dönün%2 ve yazın."
 
 #: ../user/ffmail_form.php:31
 msgid ""
 "This project hasn\\'t created an email message - please notify its "
 "administrators"
 msgstr ""
+"Bu proje henüz bir e-posta mesajına sahip değil. Lütfen yöneticileri uyarın"
 
 #: ../user/ffmail_form.php:34
-#, fuzzy
 msgid "Tell your friends about %1"
-msgstr "%1 hakkındaki fikirleriniz"
+msgstr "Arkadaşlarınıza %1 projesinden bahsedin"
 
 #: ../user/ffmail_form.php:38
 msgid "Help us by telling your friends, family and coworkers about %1"
 msgstr ""
+"Lütfen, arkadaşlarınıza, ailenize ve çalışma arkadaşlarınıza %1 projesini "
+"duyurmamıza yardımcı olun"
 
 #: ../user/ffmail_form.php:40
 msgid ""
@@ -3180,36 +3543,33 @@ msgid ""
 "might be interested in %1. We'll send them an email in your name, and you "
 "can add your own message if you like."
 msgstr ""
+"Lütfen bu formu %1 projesiyle ilgilenebilecek kişilerin isim ve e-posta "
+"adresleriyle doldurun. Bir tanıtım e-postasını sizin isminizle göndereceğiz, "
+"isterseniz siz de özel bir mesaj ekleyebilirsiniz."
 
 #: ../user/ffmail_form.php:43
-#, fuzzy
 msgid "Your name:"
-msgstr "İsimleri göster"
+msgstr "İsminiz:"
 
 #: ../user/ffmail_form.php:43
-#, fuzzy
 msgid "Your email address:"
-msgstr "e-posta adresi"
+msgstr "E-posta adresiniz:"
 
 #: ../user/ffmail_form.php:49
-#, fuzzy
 msgid "Friend's name:"
-msgstr "Arkadaşlar"
+msgstr "Arkadaşınızın ismi:"
 
 #: ../user/ffmail_form.php:49
-#, fuzzy
 msgid "Friend's email address:"
-msgstr "Yeni e-posta adresi"
+msgstr "Arkadaşınızın e-posta adresi:"
 
 #: ../user/ffmail_form.php:57
-#, fuzzy
 msgid "Additional message (optional)"
-msgstr "İstiyorsanız buraya bir mesaj ekleyin:"
+msgstr "Ek mesaj (isteğe bağlı)"
 
 #: ../user/ffmail_form.php:60
-#, fuzzy
 msgid "Send"
-msgstr "Gönderen"
+msgstr "Yolla"
 
 #: ../user/forum_banishment_vote.php:35
 #: ../user/forum_banishment_vote_action.php:33
@@ -3221,14 +3581,12 @@ msgid "Banishment Vote"
 msgstr ""
 
 #: ../user/forum_banishment_vote.php:50
-#, fuzzy
 msgid "No user with this ID found."
-msgstr "%1 NO'suyla bilgisayar bulunamadı"
+msgstr "Bu NO'ya sahip kullanıcı bulunamadı."
 
 #: ../user/forum_banishment_vote.php:54 ../user/forum_moderate_post.php:76
-#, fuzzy
 msgid "User is already banished"
-msgstr "Kullanıcı uzaklaştırıldı"
+msgstr ""
 
 #: ../user/forum_banishment_vote.php:59 ../user/forum_moderate_post.php:79
 msgid ""
@@ -3262,22 +3620,19 @@ msgstr ""
 #: ../user/forum_banishment_vote.php:66
 #: ../user/forum_banishment_vote_action.php:61
 #: ../user/forum_moderate_post.php:59
-#, fuzzy
 msgid "User Request"
-msgstr "İstek yok"
+msgstr "Kullanıcı talebi"
 
 #: ../user/forum_banishment_vote.php:67
 #: ../user/forum_banishment_vote_action.php:63
 #: ../user/forum_moderate_post.php:60 ../user/forum_moderate_thread.php:55
-#, fuzzy
 msgid "Other"
-msgstr "Farketmez"
+msgstr "Diğer"
 
 #: ../user/forum_banishment_vote.php:69 ../user/forum_moderate_post.php:53
 #: ../user/forum_moderate_thread.php:85
-#, fuzzy
 msgid "Reason"
-msgstr "Sürüm"
+msgstr "Sebep"
 
 #: ../user/forum_banishment_vote.php:69 ../user/forum_moderate_thread.php:85
 msgid "Mailed if nonempty"
@@ -3289,29 +3644,28 @@ msgstr ""
 
 #: ../user/forum_banishment_vote_action.php:39
 #: ../user/forum_moderate_post_action.php:63
-#, fuzzy
 msgid "You must specify an action..."
-msgstr "Hesabınız için bir isim belirlemelisiniz."
+msgstr "Bir eylem seçmelisiniz..."
 
 #: ../user/forum_edit.php:41
 msgid ""
 "You can no longer edit this post.<br/>Posts can only be edited at most %1 "
 "minutes after they have been created."
 msgstr ""
+"Bu gönderiyi şu anda düzenleyemezsiniz.<br/>Gönderiler oluşturulduktan %1 "
+"dakika sonra düzenlenebilir."
 
 #: ../user/forum_edit.php:47
-#, fuzzy
 msgid "You are not authorized to edit this post."
-msgstr "%1 ile artık arkadaşsınız."
+msgstr "Bu gönderiyi düzenlemek için yetkili değilsiniz."
 
-#: ../user/forum_edit.php:86 ../user/forum_search.php:71
+#: ../user/forum_edit.php:86 ../user/forum_search.php:72
 msgid "Forum"
-msgstr ""
+msgstr "Forum"
 
 #: ../user/forum_edit.php:110
-#, fuzzy
 msgid "Edit your message"
-msgstr "Profilinizi düzenleyin"
+msgstr "Mesajınızı düzenleyin"
 
 #: ../user/forum_edit.php:115 ../user/forum_edit.php:120
 #: ../user/forum_post.php:109 ../user/forum_post.php:111
@@ -3321,126 +3675,111 @@ msgstr "Başlık"
 
 #: ../user/forum_edit.php:144 ../user/forum_post.php:129
 msgid "Add my signature to this post"
-msgstr "İmzamı bu iletiye ekle"
+msgstr "İmzamı bu gönderiye ekle"
 
 #: ../user/forum_forum.php:41
-#, fuzzy
 msgid "Not visible to you"
-msgstr "Bu forum sizin tarafınızdan görülebilir değil."
+msgstr "Size görünür değil"
 
-#: ../user/forum_forum.php:82
-#, fuzzy
+#: ../user/forum_forum.php:80
 msgid "Team message board for %1"
-msgstr "%1 için bir mesaj panosu oluştur"
+msgstr "%1 için takım mesaj panosu"
 
-#: ../user/forum_forum.php:98
-#, fuzzy
+#: ../user/forum_forum.php:96
 msgid "New thread"
-msgstr "Konu Başlığı"
+msgstr "Yeni konu başlığı"
 
-#: ../user/forum_forum.php:98
-#, fuzzy
+#: ../user/forum_forum.php:96
 msgid "Add a new thread to this forum"
-msgstr "Bu konu başlığına yeni bir mesaj ekle"
+msgstr "Bu foruma yeni bir konu başlığı ekle"
 
-#: ../user/forum_forum.php:118
-#, fuzzy
+#: ../user/forum_forum.php:116
 msgid "This message board is available as an %1RSS feed%2"
-msgstr "Haberler bir %sRSS beslemesi%s olarak da mevcuttur"
+msgstr "Bu mesaj panosu bir %sRSS beslemesi%s olarak da mevcuttur"
 
-#: ../user/forum_forum.php:174
-#, fuzzy
+#: ../user/forum_forum.php:172
 msgid "This thread is hidden"
-msgstr "Bu konu başlığı moderatörler tarafından gizlendi"
+msgstr "Bu konu başlığı gizli"
 
-#: ../user/forum_forum.php:178
+#: ../user/forum_forum.php:176
 msgid "This thread is sticky and locked, and you haven't read it yet"
-msgstr ""
+msgstr "Bu konu başlığı sabit ve kilitli, onu henüz okumadınız"
+
+#: ../user/forum_forum.php:176
+msgid "sticky/locked/unread"
+msgstr "sabit/kilitli/okunmamış"
 
 #: ../user/forum_forum.php:178
-msgid "sticky/locked/unread"
-msgstr ""
-
-#: ../user/forum_forum.php:180
 msgid "This thread is sticky and you haven't read it yet"
-msgstr ""
+msgstr "Bu konu başlığı sabit ve onu henüz okumadınız"
 
-#: ../user/forum_forum.php:180
-#, fuzzy
+#: ../user/forum_forum.php:178
 msgid "sticky/unread"
-msgstr "okunmamış"
+msgstr "sabit/okunmamış"
 
-#: ../user/forum_forum.php:184
+#: ../user/forum_forum.php:182
 msgid "You haven't read this thread yet, and it's locked"
-msgstr ""
+msgstr "Bu konu başlığını henüz okumadınız ve kilitli"
+
+#: ../user/forum_forum.php:182
+msgid "unread/locked"
+msgstr "okunmamış/kilitli"
 
 #: ../user/forum_forum.php:184
-#, fuzzy
-msgid "unread/locked"
-msgstr "okunmamış"
-
-#: ../user/forum_forum.php:186
 msgid "You haven't read this thread yet"
-msgstr ""
+msgstr "Bu konu başlığını henüz okumadınız"
 
-#: ../user/forum_forum.php:192
-#, fuzzy
+#: ../user/forum_forum.php:190
 msgid "This thread is sticky and locked"
-msgstr "Bu konu başlığını üst konu başlığı yapar"
+msgstr "Bu konu başlığı sabit ve kilitli"
+
+#: ../user/forum_forum.php:190
+msgid "sticky/locked"
+msgstr "sabit/kilitli"
 
 #: ../user/forum_forum.php:192
-msgid "sticky/locked"
-msgstr ""
-
-#: ../user/forum_forum.php:194
-#, fuzzy
 msgid "This thread is sticky"
-msgstr "Bu konu başlığını üst konu başlığı yapar"
+msgstr "Bu konu başlığı sabit"
 
-#: ../user/forum_forum.php:194
-#, fuzzy
+#: ../user/forum_forum.php:192
 msgid "sticky"
-msgstr "Üst konu yap"
+msgstr "sabit"
 
-#: ../user/forum_forum.php:198
-#, fuzzy
+#: ../user/forum_forum.php:196
 msgid "This thread is locked"
-msgstr "Bu konu başlığını üst konu başlığı yapar"
+msgstr "Bu konu başlığı kilitli"
+
+#: ../user/forum_forum.php:196
+msgid "locked"
+msgstr "kilitli"
 
 #: ../user/forum_forum.php:198
-#, fuzzy
-msgid "locked"
-msgstr "Kilidi kaldır"
-
-#: ../user/forum_forum.php:200
-#, fuzzy
 msgid "You read this thread"
-msgstr "Bu konu başlığını gizler"
+msgstr "Bu konu başlığını okudunuz"
 
-#: ../user/forum_forum.php:200
-#, fuzzy
+#: ../user/forum_forum.php:198
 msgid "read"
-msgstr "Konu Başlığı"
+msgstr "oku"
 
 #: ../user/forum_help_desk.php:27
-#, fuzzy
 msgid "Questions and answers"
-msgstr "Soru ve Yanıtlar"
+msgstr "Soru ve yanıtlar"
 
 #: ../user/forum_help_desk.php:30
 msgid ""
 "Talk live via Skype with a volunteer, in any of several languages. Go to "
 "%1BOINC Online Help%2."
 msgstr ""
+"Bir gönüllüyle Skype aracılığıyla konuşun. Bir çok dilde mevcuttur. %1BOINC "
+"Online Yardım%2a gidin."
 
 #: ../user/forum_help_desk.php:44 ../user/forum_index.php:92
 msgid "Topic"
 msgstr "Konu"
 
 #: ../user/forum_help_desk.php:45
-#, fuzzy
 msgid "Questions"
-msgstr "Sürüm"
+msgstr "Sorular"
 
 #: ../user/forum_index.php:53 ../user/team_forum.php:68
 msgid "Discussion among members of %1"
@@ -3459,218 +3798,202 @@ msgstr ""
 "Yanıtlar%2 bölümünü kullanın."
 
 #: ../user/forum_index.php:123
-#, fuzzy
 msgid "Subscribed threads"
-msgstr "Abone ol"
+msgstr "Abone olunan konu başlıkları"
 
 #: ../user/forum_moderate_post.php:43
-#, fuzzy
 msgid "Moderate post"
-msgstr "Son mesaj"
+msgstr "Gönderiyi denetle"
 
 #: ../user/forum_moderate_post.php:52
-#, fuzzy
 msgid "Hide post"
-msgstr "Gizle"
+msgstr "Gönderiyi gizle"
 
 #: ../user/forum_moderate_post.php:57 ../user/forum_moderate_thread.php:54
 msgid "Commercial spam"
-msgstr ""
+msgstr "Ticari reklam"
 
 #: ../user/forum_moderate_post.php:58
 msgid "Doublepost"
-msgstr ""
+msgstr "Çifte gönderi"
 
 #: ../user/forum_moderate_post.php:63
-#, fuzzy
 msgid "Move post"
-msgstr "Sunucu yok"
+msgstr "Gönderiyi taşı"
 
 #: ../user/forum_moderate_post.php:65
-#, fuzzy
 msgid "Destination thread ID:"
-msgstr "Cevap yaz"
+msgstr "Hedef konu numarası"
 
 #: ../user/forum_moderate_post.php:78
-#, fuzzy
 msgid "Banish user"
-msgstr "eşleşen kullanıcı yok"
+msgstr "Kullanıcıyı engelle"
 
 #: ../user/forum_moderate_post.php:80
-#, fuzzy
 msgid "Ban duration"
-msgstr "doğrulama"
+msgstr "Engelleme süresi"
 
 #: ../user/forum_moderate_post.php:81
-#, fuzzy
 msgid "4 hours"
-msgstr "saat"
+msgstr "4 saat"
 
 #: ../user/forum_moderate_post.php:82 ../user/forum_search.php:45
-#, fuzzy
 msgid "1 day"
-msgstr "%1 gün"
+msgstr "1 gün"
 
 #: ../user/forum_moderate_post.php:83
 msgid "1 week"
-msgstr ""
+msgstr "1 hafta"
 
 #: ../user/forum_moderate_post.php:84
 msgid "2 weeks"
-msgstr ""
+msgstr "2 hafta"
 
 #: ../user/forum_moderate_post.php:85
-#, fuzzy
 msgid "1 month"
-msgstr "%1 dakika"
+msgstr "1 ay"
 
 #: ../user/forum_moderate_post.php:86
 msgid "Forever"
-msgstr ""
+msgstr "Süresiz"
 
 #: ../user/forum_moderate_post.php:96
 msgid "Optional explanation %1 This is included in email to user.%2"
 msgstr ""
+"İsteğe bağlı açıklama %1 Bu kullanıcıya gönderilecek e-postaya eklenecek.%2"
 
 #: ../user/forum_moderate_post.php:101 ../user/forum_moderate_thread.php:91
 #: ../user/forum_post.php:130 ../user/forum_report_post.php:84
 #: ../user/forum_rss.php:55 ../user/friend.php:81 ../user/get_passwd.php:41
 #: ../user/get_passwd.php:75
 msgid "OK"
-msgstr ""
+msgstr "Tamam"
 
 #: ../user/forum_moderate_post_action.php:57
-#, fuzzy
 msgid "You are not authorized to moderate this post."
-msgstr "%1 ile artık arkadaşsınız."
+msgstr "Bu gönderiyi denetlemek için yetkili değilsiniz"
 
 #: ../user/forum_moderate_post_action.php:85
 msgid "Can't move to different category type"
-msgstr ""
+msgstr "Farklı kategori tipine taşınamıyor"
 
 #: ../user/forum_moderate_post_action.php:89
 msgid "Can't move to different category"
-msgstr ""
+msgstr "Farklı kategoriye taşınamıyor"
 
 #: ../user/forum_moderate_post_action.php:110
 msgid "Not authorized to banish users"
-msgstr ""
+msgstr "Kullanıcıları engellemek için yetkili değil"
 
 #: ../user/forum_moderate_post_action.php:126
-#, fuzzy
 msgid "Banishment"
-msgstr "Gönderilmemiş"
+msgstr "Engelleme"
 
 #: ../user/forum_moderate_post_action.php:128
-#, fuzzy
 msgid "User %1 has been banished."
-msgstr "Kullanıcı uzaklaştırıldı"
+msgstr "%1 kullanıcısı engellendi."
 
 #: ../user/forum_moderate_post_action.php:131
 msgid "Action failed: possible database problem"
-msgstr ""
+msgstr "Eylem başarısız: Muhtemelen database problemi"
 
 #: ../user/forum_moderate_thread.php:33
 msgid "not authorized"
-msgstr ""
+msgstr "yetkili değil"
 
 #: ../user/forum_moderate_thread.php:36
 msgid "Moderate thread '%1'"
-msgstr ""
+msgstr "'%1' konu başlığını denetle"
 
 #: ../user/forum_moderate_thread.php:48
 msgid ""
 "Select the reason category, or write a longer description of why you're "
 "hiding or locking the thread; then press OK."
 msgstr ""
+"Bir sebep kategorisi seçin ya da konu başlığını neden kilitlediğinize ya da "
+"gizlediğinize ilişkin bir açıklama yazın; ardından Tamam'ı tıklayın."
 
 #: ../user/forum_moderate_thread.php:72
-#, fuzzy
 msgid "Current forum"
-msgstr "Mevcut parola"
+msgstr "Mevcut forum"
 
 #: ../user/forum_moderate_thread.php:73
-#, fuzzy
 msgid "Destination forum"
-msgstr "Takımın tanıtımı"
+msgstr "Hedef forum"
 
 #: ../user/forum_moderate_thread.php:77
-#, fuzzy
 msgid "New title:"
-msgstr "Başlığı düzenle"
+msgstr "Yeni başlık:"
 
 #: ../user/forum_post.php:40
 msgid ""
 "Only project admins may create a thread here. However, you may reply to "
 "existing threads."
 msgstr ""
+"Burada yalnızca proje yöneticileri konu başlığı yaratabilir. Bununla "
+"birlikte, mevcut konu başlıklarına yanıt yazabilirsiniz."
 
 #: ../user/forum_post.php:60
-#, fuzzy
 msgid ""
 "Your message was flagged as spam by the Akismet anti-spam system. Please "
 "modify your text and try again."
 msgstr ""
-"İlk yanıtınız Akismet anti-spam sistemi tarafından bir saldırı olarak "
-"algılandı.  Lütfen yazdığınızı değiştirip tekrar deneyin."
+"Mesajınız Akismet anti-spam sistemi tarafından bir saldırı olarak "
+"algılandı.  Lütfen yazdığınızı değiştirip, tekrar deneyin."
 
 #: ../user/forum_post.php:70
-#, fuzzy
 msgid "Create new thread"
 msgstr "Yeni konu başlığı oluştur"
 
 #: ../user/forum_post.php:100
 msgid "Create a new thread"
-msgstr "Yeni konu başlığı oluştur"
+msgstr "Yeni bir konu başlığı oluştur"
 
 #: ../user/forum_post.php:105
 msgid "Remember to add a title"
-msgstr ""
+msgstr "Bir başlık eklemeyi unutmayın"
 
 #: ../user/forum_post.php:127
 msgid "Show this item as a Notice in the BOINC Manager"
-msgstr ""
+msgstr "Bunu Bildirim olarak BOINC Manager'da görüntüle"
 
 #: ../user/forum_post.php:127
 msgid "Do so only for items likely to be of interest to all volunteers."
 msgstr ""
+"Sadece, tüm gönüllüleri ilgilendirmesi muhtemel öğeler için bunu yapın."
 
 #: ../user/forum_rate.php:26
 msgid "Rating offline"
 msgstr ""
 
 #: ../user/forum_rate.php:27
-#, fuzzy
 msgid "This function is turned off by the project"
-msgstr "Bu özellik geçici olarak kapatıldı"
+msgstr "Bu özellik proje tarafından kapatıldı"
 
 #: ../user/forum_rate.php:58
-#, fuzzy
 msgid "You need more average or total credit to rate a post."
-msgstr "İleti gönderebilmek için sahip olunması gereken en az ortalama kredi"
+msgstr ""
+"Oylayabilmek için daha fazla ortalama ya da toplam krediye sahip olmalısınız."
 
 #: ../user/forum_rate.php:62
-#, fuzzy
 msgid "You have already rated this post."
-msgstr "Zaten %1 takımının üyesisiniz."
+msgstr ""
 
 #: ../user/forum_rate.php:62 ../user/forum_rate.php:78
 #: ../user/forum_rate.php:83 ../user/forum_report_post.php:68
 #: ../user/forum_report_post.php:93 ../user/forum_subscribe.php:54
 #: ../user/forum_subscribe.php:69 ../user/forum_thread_status.php:51
-#, fuzzy
 msgid "Return to thread"
-msgstr "Takım sayfasına dön"
+msgstr "Konu başlığına dön"
 
 #: ../user/forum_rate.php:72
 #, fuzzy
 msgid "Input Recorded"
-msgstr "Oy Kaydedildi"
+msgstr "Girdi Kaydedildi"
 
 #: ../user/forum_rate.php:73
-#, fuzzy
 msgid "Your input has been recorded. Thanks for your help."
-msgstr "Öneriniz kaydedildi."
+msgstr ""
 
 #: ../user/forum_rate.php:75
 #, fuzzy
@@ -3678,67 +4001,67 @@ msgid "Vote Registered"
 msgstr "Oy Kaydedildi"
 
 #: ../user/forum_rate.php:76
-#, fuzzy
 msgid "Your rating has been recorded. Thanks for your input."
-msgstr "Öneriniz kaydedildi."
+msgstr ""
 
 #: ../user/forum_rate.php:80
 msgid "Vote Submission Problem"
 msgstr ""
 
 #: ../user/forum_reply.php:76
-#, fuzzy
 msgid ""
 "Your post has been flagged as spam by the Akismet anti-spam system. Please "
 "modify your text and try again."
 msgstr ""
-"İlk yanıtınız Akismet anti-spam sistemi tarafından bir saldırı olarak "
-"algılandı.  Lütfen yazdığınızı değiştirip tekrar deneyin."
+"Gönderiniz Akismet anti-spam sistemi tarafından bir saldırı olarak "
+"algılandı.  Lütfen yazdığınızı değiştirip, tekrar deneyin."
 
-#: ../user/forum_reply.php:87 ../user/forum_thread.php:156
-#: ../user/forum_thread.php:276
+#: ../user/forum_reply.php:87 ../user/forum_thread.php:154
+#: ../user/forum_thread.php:274
 msgid "Post to thread"
 msgstr "Cevap yaz"
 
 #: ../user/forum_reply.php:127
-#, fuzzy
 msgid "Message:"
-msgstr "Mesaj"
+msgstr "Mesaj:"
 
 #: ../user/forum_reply.php:130
 msgid "reply to %1Message ID%2:"
-msgstr ""
+msgstr "%1Mesaj NO%2'ya yanıt:"
 
 #: ../user/forum_reply.php:154
-#, fuzzy
 msgid "Post reply"
-msgstr "Yanıt yok"
+msgstr "Yanıt gönder"
 
 #: ../user/forum_reply.php:157
-#, fuzzy
 msgid "Add my signature to this reply"
-msgstr "İmzamı bu iletiye ekle"
+msgstr "İmzamı bu yanıta ekle"
 
 #: ../user/forum_report_post.php:45
-#, fuzzy
 msgid "You need more average or total credit to report a post."
-msgstr "İleti gönderebilmek için sahip olunması gereken en az ortalama kredi"
+msgstr ""
+"Gönderi raporlayabilmeniz için daha fazla ortalama ya da toplam krediye "
+"sahip olmalısınız."
 
 #: ../user/forum_report_post.php:64
-#, fuzzy
 msgid "Report Registered"
-msgstr "Son teslim tarihi"
+msgstr "Raporlama kaydedildi"
 
 #: ../user/forum_report_post.php:65
-#, fuzzy
 msgid "Your report has been recorded. Thanks you for your input."
-msgstr "Öneriniz kaydedildi."
+msgstr "Raporunuz kaydedildi. Çabanız için teşekkürler."
 
 #: ../user/forum_report_post.php:66
 msgid ""
 "A moderator will now look at your report and decide what will happen - this "
 "may take a little while, so please be patient"
 msgstr ""
+"Bir yönetici raporunuza bakacak ve ne yapılacağına karar verecek - bu belli "
+"bir süre alabilir, lütfen sabırlı olun"
+
+#: ../user/forum_report_post.php:70
+msgid "Report a forum post"
+msgstr "Bir forum gönderisini raporla"
 
 #: ../user/forum_report_post.php:72
 msgid ""
@@ -3746,11 +4069,13 @@ msgid ""
 "enough users rate a post negatively it will eventually be hidden.<br />You "
 "can find the rating system at the bottom of the post."
 msgstr ""
+"Bu gönderiyi raporlamadan önce, +/- oylama sistemini kullanmayı tercih edin. "
+"Eğer yeterli sayıda kullanıcı olumsuz oy kullanırsa, en sonunda gizli hale "
+"gelecek.<br />Oylama sistemini gönderinin altında bulabilirsiniz."
 
 #: ../user/forum_report_post.php:79
-#, fuzzy
 msgid "Report post"
-msgstr "Son mesaj"
+msgstr "Gönderiyi raporla"
 
 #: ../user/forum_report_post.php:80
 msgid ""
@@ -3758,34 +4083,35 @@ msgid ""
 "that a person that\n"
 "has not yet read the thread will quickly be able to identify the issue.%2"
 msgstr ""
+"Gönderiyi neden saldırgan buldunuz: %1Yeterli bilgi eklemeyi unutmayın. "
+"Böylece konu başlığını\n"
+"henüz okumamış bir kişinin sorunu kısa sürede tespit etmesi mümkün olacak.%2"
 
 #: ../user/forum_report_post.php:89
-#, fuzzy
 msgid "Report not registered"
-msgstr "Son teslim tarihi"
+msgstr "Rapor kaydedilmedi"
 
 #: ../user/forum_report_post.php:90
 msgid "Your report could not be recorded. Please wait a while and try again."
-msgstr ""
+msgstr "Raporunuz kaydedilmedi. Bir süre bekleyip tekrar deneyin."
 
 #: ../user/forum_report_post.php:91
 msgid ""
 "If this is not a temporary error, please report it to the project developers."
 msgstr ""
+"Bu geçici bir sorun değilse, lütfen proje yöneticilerine durumu bildirin."
 
 #: ../user/forum_rss.php:41
 msgid "%1 RSS feed"
-msgstr ""
+msgstr "%1 RSS beslemesi"
 
 #: ../user/forum_rss.php:42
-#, fuzzy
 msgid "This message board is available as an RSS feed."
-msgstr "Haberler bir %sRSS beslemesi%s olarak da mevcuttur"
+msgstr "Bu mesaj panosu bir RSS beslemesi olarak da mevcuttur."
 
 #: ../user/forum_rss.php:43
-#, fuzzy
 msgid "Options:"
-msgstr "İsteğe bağlı"
+msgstr "Seçenekler:"
 
 #: ../user/forum_rss.php:47
 msgid "Include only posts by user ID %1 (default: all users)."
@@ -3808,14 +4134,12 @@ msgid "Forum search"
 msgstr "Forum ara"
 
 #: ../user/forum_search.php:31
-#, fuzzy
 msgid "Search query"
-msgstr "Arama tipi"
+msgstr ""
 
 #: ../user/forum_search.php:32
-#, fuzzy
 msgid "Search for keywords:"
-msgstr "Forumlarda ara"
+msgstr ""
 
 #: ../user/forum_search.php:33
 msgid "Posts that contain all the specified words will be displayed"
@@ -3826,9 +4150,8 @@ msgid "For example: \"screensaver freeze\""
 msgstr ""
 
 #: ../user/forum_search.php:36
-#, fuzzy
 msgid "Search for author ID:"
-msgstr "Forumlarda ara"
+msgstr ""
 
 #: ../user/forum_search.php:37
 msgid "Only posts by this author will be displayed"
@@ -3839,38 +4162,34 @@ msgid "For example: \"43214\""
 msgstr ""
 
 #: ../user/forum_search.php:41
-#, fuzzy
 msgid "Search options"
-msgstr "Forumlarda ara"
+msgstr "seçenekler"
 
 #: ../user/forum_search.php:42
-#, fuzzy
 msgid "Search limits"
-msgstr "Arama Sonuçları"
+msgstr ""
 
 #: ../user/forum_search.php:43
 msgid "Search at most this many days back in time"
 msgstr ""
 
 #: ../user/forum_search.php:50 ../user/forum_search.php:51
-#, fuzzy
 msgid "%1 months"
-msgstr "%1 dakika"
+msgstr "%1 ay"
 
 #: ../user/forum_search.php:52
 msgid "1 year"
 msgstr ""
 
-#: ../user/forum_search.php:72
+#: ../user/forum_search.php:73
 msgid "Only display posts from this forum"
 msgstr ""
 
-#: ../user/forum_search.php:83
-#, fuzzy
+#: ../user/forum_search.php:84
 msgid "Sort by"
-msgstr "Sırala"
+msgstr ""
 
-#: ../user/forum_search.php:87
+#: ../user/forum_search.php:88
 msgid "Start the search"
 msgstr ""
 
@@ -3878,34 +4197,31 @@ msgstr ""
 msgid "Forum search results"
 msgstr "Forum arama sonuçları"
 
-#: ../user/forum_search_action.php:169
-#, fuzzy
+#: ../user/forum_search_action.php:174
 msgid "Thread titles matching your query:"
-msgstr "Aramanızla eşleşen profil yok."
+msgstr "Aramanızla eşleşen konu başlıkları:"
 
-#: ../user/forum_search_action.php:189
-#, fuzzy
+#: ../user/forum_search_action.php:194
 msgid "Messages matching your query:"
-msgstr "Aramanızla eşleşen profil yok."
+msgstr "Aramanızla eşleşen mesajlar:"
 
-#: ../user/forum_search_action.php:212
+#: ../user/forum_search_action.php:217
 msgid ""
 "Sorry, couldn't find anything matching your search query. You can try to "
 "broaden your search by using less words (or less specific words)."
 msgstr ""
 
-#: ../user/forum_search_action.php:214
+#: ../user/forum_search_action.php:219
 msgid "You can also %1try the same search on Google.%2"
 msgstr ""
 
-#: ../user/forum_search_action.php:219
+#: ../user/forum_search_action.php:224
 msgid "Perform another search"
-msgstr ""
+msgstr "arama sonuçları"
 
 #: ../user/forum_subscribe.php:46
-#, fuzzy
 msgid "Subscription successful"
-msgstr "Güncelleme başarılı"
+msgstr "Abonelik başarılı"
 
 #: ../user/forum_subscribe.php:49
 msgid ""
@@ -3914,22 +4230,17 @@ msgid ""
 msgstr ""
 
 #: ../user/forum_subscribe.php:51
-#, fuzzy
 msgid "Subscription failed"
-msgstr "Takımın tanıtımı"
+msgstr "Abonelik başarısız"
 
 #: ../user/forum_subscribe.php:52
-#, fuzzy
 msgid ""
 "We are currently unable to subscribe you to %1. Please try again later.."
-msgstr ""
-"Şu anda yeni hesap oluşturma seçeneği mevcut değil. Lütfen daha sonra tekrar "
-"deneyin."
+msgstr "Sizi %1 konusuna abone yapamadık. Lütfen daha sonra tekrar deneyin."
 
 #: ../user/forum_subscribe.php:61
-#, fuzzy
 msgid "Unsubscription successful"
-msgstr "Güncelleme başarılı"
+msgstr ""
 
 #: ../user/forum_subscribe.php:64
 msgid ""
@@ -3938,165 +4249,146 @@ msgid ""
 msgstr ""
 
 #: ../user/forum_subscribe.php:66
-#, fuzzy
 msgid "Unsubscription failed"
-msgstr "Aboneliği bitir"
+msgstr ""
 
 #: ../user/forum_subscribe.php:67
-#, fuzzy
 msgid ""
 "We are currently unable to unsubscribe you from %1. Please try again later.."
 msgstr ""
-"Şu anda yeni hesap oluşturma seçeneği mevcut değil. Lütfen daha sonra tekrar "
-"deneyin."
+"%1 konusundan aboneliğinizi kaldıramadık. Lütfen daha sonra tekrar deneyin."
 
 #: ../user/forum_subscribe.php:74
-#, fuzzy
 msgid "Unknown subscription action"
-msgstr "Bilinmeyen eylem"
+msgstr "Bilinmeyen abonelik eylemi"
 
 #: ../user/forum_thread.php:61
 msgid "This forum is not visible to you."
 msgstr "Bu forum sizin tarafınızdan görülebilir değil."
 
 #: ../user/forum_thread.php:69
-#, fuzzy
 msgid "This thread has been hidden by moderators."
-msgstr "Bu konu başlığı moderatörler tarafından gizlendi"
+msgstr "Bu konu başlığı moderatörler tarafından gizlendi."
 
-#: ../user/forum_thread.php:127
+#: ../user/forum_thread.php:125
 msgid "My question was answered"
 msgstr "Sorum yanıtlandı"
 
-#: ../user/forum_thread.php:128
+#: ../user/forum_thread.php:126
 #, fuzzy
 msgid "Click here if your question has been adequately answered"
 msgstr ""
 "Eğer sorunuz yeterli şekilde yanıtlandıysa, kapatmak için lütfen buraya "
 "tıklayın."
 
-#: ../user/forum_thread.php:136
+#: ../user/forum_thread.php:134
 msgid "I've also got this question"
 msgstr "Ben de aynısını soruyorum"
 
-#: ../user/forum_thread.php:157 ../user/forum_thread.php:277
+#: ../user/forum_thread.php:155 ../user/forum_thread.php:275
 msgid "Add a new message to this thread"
 msgstr "Bu konu başlığına yeni bir mesaj ekle"
 
-#: ../user/forum_thread.php:169
+#: ../user/forum_thread.php:167
 msgid "Unsubscribe"
 msgstr "Aboneliği bitir"
 
-#: ../user/forum_thread.php:170
+#: ../user/forum_thread.php:168
 msgid "You are subscribed to this thread.  Click here to unsubscribe."
 msgstr "Bu konu başlığına abonesiniz.  Aboneliği bitirmek için tıklayın."
 
-#: ../user/forum_thread.php:176
+#: ../user/forum_thread.php:174
 msgid "Subscribe"
 msgstr "Abone ol"
 
-#: ../user/forum_thread.php:177
+#: ../user/forum_thread.php:175
 msgid "Click to get email when there are new posts in this thread"
 msgstr ""
 "Bu konu başlığına yeni mesajlar yazıldığında e-posta almak için tıklayın"
 
-#: ../user/forum_thread.php:187
-msgid "Unhide"
-msgstr "Gizliliği kaldır"
-
-#: ../user/forum_thread.php:188
+#: ../user/forum_thread.php:186
 msgid "Unhide this thread"
 msgstr "Bu konu başlığının gizliliğini kaldırır"
 
-#: ../user/forum_thread.php:193
-msgid "Hide"
-msgstr "Gizle"
-
-#: ../user/forum_thread.php:194
+#: ../user/forum_thread.php:192
 msgid "Hide this thread"
 msgstr "Bu konu başlığını gizler"
 
-#: ../user/forum_thread.php:200
+#: ../user/forum_thread.php:198
 msgid "Make unsticky"
 msgstr "Üst konudan kaldır"
 
-#: ../user/forum_thread.php:201
+#: ../user/forum_thread.php:199
 msgid "Make this thread not sticky"
 msgstr "Bu konu başlığının üst konu durumunu kaldır"
 
-#: ../user/forum_thread.php:206
+#: ../user/forum_thread.php:204
 msgid "Make sticky"
 msgstr "Üst konu yap"
 
-#: ../user/forum_thread.php:207
+#: ../user/forum_thread.php:205
 msgid "Make this thread sticky"
 msgstr "Bu konu başlığını üst konu başlığı yapar"
 
-#: ../user/forum_thread.php:213
+#: ../user/forum_thread.php:211
 msgid "Unlock"
 msgstr "Kilidi kaldır"
 
-#: ../user/forum_thread.php:214
+#: ../user/forum_thread.php:212
 msgid "Unlock this thread"
 msgstr "Bu konu başlığının kilidini kaldırır"
 
-#: ../user/forum_thread.php:219
+#: ../user/forum_thread.php:217
 msgid "Lock"
 msgstr "Kilitle"
 
-#: ../user/forum_thread.php:220
+#: ../user/forum_thread.php:218
 msgid "Lock this thread"
 msgstr "Bu konu başlığını kilitler"
 
-#: ../user/forum_thread.php:226
-msgid "Move"
-msgstr "Taşı"
-
-#: ../user/forum_thread.php:227
+#: ../user/forum_thread.php:225
 msgid "Move this thread to a different forum"
 msgstr "Bu konu başlığını başka bir foruma taşır"
 
-#: ../user/forum_thread.php:232
+#: ../user/forum_thread.php:230
 msgid "Edit title"
 msgstr "Başlığı düzenle"
 
-#: ../user/forum_thread.php:233
+#: ../user/forum_thread.php:231
 msgid "Edit thread title"
 msgstr "Konu başlığını düzenler"
 
-#: ../user/forum_thread.php:243
-#, fuzzy
-msgid "Export"
-msgstr "Sırala"
+#: ../user/forum_thread.php:241
+msgid "Export as Notice"
+msgstr ""
 
-#: ../user/forum_thread.php:244
+#: ../user/forum_thread.php:242
 msgid "Export this news item as a Notice"
 msgstr ""
 
-#: ../user/forum_thread.php:249
+#: ../user/forum_thread.php:247
 msgid "Don't export"
 msgstr ""
 
-#: ../user/forum_thread.php:250
+#: ../user/forum_thread.php:248
 msgid "Don't export this news item as a Notice"
 msgstr ""
 
-#: ../user/forum_thread.php:258
+#: ../user/forum_thread.php:256 ../user/forum_thread.php:258
 msgid "Sort"
 msgstr "Sırala"
 
 #: ../user/forum_thread_status.php:49
 msgid "Thread status updated"
-msgstr ""
+msgstr "Konu başlığı durum bilgisi güncellendi"
 
 #: ../user/forum_thread_status.php:50
 msgid "The status has been updated."
-msgstr ""
+msgstr "Durum bilgisi güncellendi."
 
 #: ../user/forum_user_posts.php:73
-#, fuzzy
 msgid "Posts by %1"
-msgstr "Cevaplar"
+msgstr ""
 
 #: ../user/friend.php:33
 msgid "Already friends"
@@ -4123,7 +4415,6 @@ msgid "Add friend"
 msgstr "Arkadaş ekle"
 
 #: ../user/friend.php:74
-#, fuzzy
 msgid ""
 "You have asked to add %1 as a friend. We will notify %1 and will ask him/her "
 "to confirm that you are friends."
@@ -4144,9 +4435,8 @@ msgid "We have notified %1 of your request."
 msgstr "%1 kullanıcısını isteğiniz konusunda uyardık."
 
 #: ../user/friend.php:126
-#, fuzzy
 msgid "Please log in as %1"
-msgstr "Lütfen oturum açın"
+msgstr ""
 
 #: ../user/friend.php:127
 msgid "You must log in as %1 to view this friend request"
@@ -4157,9 +4447,8 @@ msgid "Friend request"
 msgstr "Arkadaşlık isteği"
 
 #: ../user/friend.php:141
-#, fuzzy
 msgid "%1 has requested friendship with you."
-msgstr "%1 ile %2 üzerinde arkadaşlık isteği aldınız."
+msgstr "%1 sizinle arkadaş olmak istedi."
 
 #: ../user/friend.php:143
 msgid "%1 says: %2"
@@ -4230,9 +4519,8 @@ msgid "Your friendship with %1 has been cancelled."
 msgstr "%1 ile arkadaşlığınız bitti."
 
 #: ../user/get_passwd.php:25
-#, fuzzy
 msgid "Forgot your account info?"
-msgstr "diğer hesap bilgisi"
+msgstr ""
 
 #: ../user/get_passwd.php:28
 msgid ""
@@ -4281,16 +4569,27 @@ msgid "Paste the string into the field below, and click OK."
 msgstr ""
 
 #: ../user/get_passwd.php:65
-#, fuzzy
 msgid ""
 "You will now be logged in to your account; update the email and password of "
 "your account."
 msgstr ""
-"%1 hesabınızın bağlı olduğu e-posta adresini doğrulamak için bu linke "
-"tıklayın:"
 
 #: ../user/get_passwd.php:71
 msgid "Log in with authenticator"
+msgstr ""
+
+#: ../user/gpu_list.php:126 ../user/gpu_list.php:152
+msgid "No GPU tasks reported"
+msgstr ""
+
+#: ../user/gpu_list.php:182 ../user/stats.php:33
+msgid "Top GPU models"
+msgstr ""
+
+#: ../user/gpu_list.php:183
+msgid ""
+"The following lists show the most productive GPU models on different "
+"platforms.  Relative speeds are shown in parentheses."
 msgstr ""
 
 #: ../user/home.php:42
@@ -4312,62 +4611,55 @@ msgstr "Hesabınız"
 
 #: ../user/host_app_versions.php:26
 msgid "nvidia GPU"
-msgstr ""
+msgstr "nvidia GPU"
 
 #: ../user/host_app_versions.php:36
-#, fuzzy
 msgid "Anonymous platform, missing app"
-msgstr "Anonim platform"
+msgstr "Anonim platform, uygulama mevcut değil"
 
 #: ../user/host_app_versions.php:39
-#, fuzzy
 msgid "anonymous platform"
-msgstr "Anonim platform"
+msgstr "anonim platform"
 
 #: ../user/host_app_versions.php:43
 msgid "Missing app version"
-msgstr ""
+msgstr "Uygulama sürümü meccut değil"
 
 #: ../user/host_app_versions.php:45
-#, fuzzy
 msgid "Missing app"
-msgstr "geçersiz arama tipi"
+msgstr "Uygulama mevcut değil"
 
 #: ../user/host_app_versions.php:47
 msgid "Missing platform"
-msgstr ""
+msgstr "Platform mevcut değil"
 
 #: ../user/host_app_versions.php:56
 msgid "Number of tasks completed"
-msgstr ""
+msgstr "Tamamlanan iş sayısı"
 
 #: ../user/host_app_versions.php:57
-#, fuzzy
 msgid "Max tasks per day"
-msgstr "Görüntülenecek iş yok"
+msgstr ""
 
 #: ../user/host_app_versions.php:58
-#, fuzzy
 msgid "Number of tasks today"
-msgstr "Görüntülenecek iş yok"
+msgstr ""
 
 #: ../user/host_app_versions.php:59
 msgid "Consecutive valid tasks"
 msgstr ""
 
 #: ../user/host_app_versions.php:63
-#, fuzzy
 msgid "Average processing rate"
-msgstr "Ortalama gönderme hızı"
+msgstr "Ortalama hesaplama hızı"
 
 #: ../user/host_app_versions.php:72
 msgid "Application details for host %1"
 msgstr "%1 istemcisi için uygulama detayları"
 
 #: ../user/host_delete.php:31
-#, fuzzy
 msgid "We have no record of that computer."
-msgstr "Bu bilgisayarın yinelenen kayıtlarını birleştir"
+msgstr "Bi bilgisayar hakkında kayda sahip değiliz."
 
 #: ../user/host_delete.php:38
 msgid ""
@@ -4377,29 +4669,24 @@ msgid ""
 msgstr ""
 
 #: ../user/host_delete.php:40
-#, fuzzy
 msgid "Delete record of computer"
-msgstr "Bu bilgisayarı sil"
+msgstr "Bu bilgisayarın kaydını sil"
 
 #: ../user/host_delete.php:41
-#, fuzzy
 msgid "Record deleted."
-msgstr "Son teslim tarihi"
+msgstr "Kayıt silindi."
 
 #: ../user/host_delete.php:42 ../user/host_edit_action.php:65
-#, fuzzy
 msgid "Return to list of your computers"
-msgstr "%1 projesini yalnızca yetkili bilgisayarlarda çalıştırın"
+msgstr ""
 
 #: ../user/host_edit_action.php:39
-#, fuzzy
 msgid "Merge computer records"
-msgstr "Bilgisayarları isme göre birleştir"
+msgstr "Bilgisayar kayıtlarını birleştir"
 
 #: ../user/host_edit_form.php:35
-#, fuzzy
 msgid "Merge computers"
-msgstr "Bilgisayarları isme göre birleştir"
+msgstr "Bilgisayarları birleştir"
 
 #: ../user/host_edit_form.php:38
 msgid ""
@@ -4412,9 +4699,8 @@ msgid "No hosts are eligible for merging with this one."
 msgstr ""
 
 #: ../user/host_edit_form.php:58 ../user/host_edit_form.php:114
-#, fuzzy
 msgid "Show details"
-msgstr "İsimleri göster"
+msgstr "Detaylarını görüntüle"
 
 #: ../user/host_edit_form.php:66
 msgid ""
@@ -4430,32 +4716,29 @@ msgid "created"
 msgstr "oluşturulma"
 
 #: ../user/host_edit_form.php:70
-#, fuzzy
 msgid "computer ID"
-msgstr "Bilgisayar NO"
+msgstr "bilgisayar NO"
 
 #: ../user/host_edit_form.php:77
-#, fuzzy
 msgid "no hostname"
-msgstr "Sunucu yok"
+msgstr "sunucu ismi yok"
 
 #: ../user/host_edit_form.php:109
-#, fuzzy
 msgid "Merge hosts"
-msgstr "Birleştir"
+msgstr "Sunucuları birleştir"
 
 #: ../user/host_update_credit.php:28
 msgid "Updating computer credit"
-msgstr ""
+msgstr "Blgisayar kredisini güncelle"
 
 #: ../user/host_venue_action.php:41
+#, fuzzy
 msgid "Host venue updated"
-msgstr ""
+msgstr "Bilgisayar toplamı güncellendi"
 
 #: ../user/host_venue_action.php:43
-#, fuzzy
 msgid "none"
-msgstr "Tamamlandı"
+msgstr "yok"
 
 #: ../user/host_venue_action.php:46
 msgid "The venue of this host has been set to %1."
@@ -4468,35 +4751,30 @@ msgid ""
 msgstr ""
 
 #: ../user/host_venue_action.php:50
-#, fuzzy
 msgid "Return to host page"
-msgstr "Takım sayfasına dön"
+msgstr "Sunucu sayfasına dön"
 
 #: ../user/hosts_user.php:53
 msgid "Computers belonging to %1"
 msgstr "%1 kullanıcısına ait bilgisayarlar"
 
 #: ../user/hosts_user.php:55
-#, fuzzy
 msgid "Computers hidden"
-msgstr "Bilgisayar bilgisi"
+msgstr "Gizlenen bilgisayarlar"
 
 #: ../user/hosts_user.php:56
-#, fuzzy
 msgid ""
 "This user has chosen not to show information about his or her computers."
 msgstr ""
 "Bu kullanıcı, bilgisayarları hakkında bilgi gösterilmemesini tercih etti."
 
 #: ../user/hosts_user.php:64
-#, fuzzy
 msgid "Your computers"
-msgstr "En iyi bilgisayarlar"
+msgstr "Bilgisayarlarınız"
 
 #: ../user/html.php:23
-#, fuzzy
 msgid "Allowed HTML tags"
-msgstr "HTML etiketleri kullanmayın."
+msgstr "İzin verilen HTML etiketleri"
 
 #: ../user/html.php:25
 msgid "The following HTML tags are allowed in team descriptions:"
@@ -4523,9 +4801,8 @@ msgid "break"
 msgstr ""
 
 #: ../user/html.php:32
-#, fuzzy
 msgid "preformatted"
-msgstr "Oluşturulma"
+msgstr ""
 
 #: ../user/html.php:33
 msgid ""
@@ -4537,7 +4814,7 @@ msgstr ""
 msgid "You can also use ampersand notation for special characters."
 msgstr ""
 
-#: ../user/info.php:24 ../user/sample_index.php:73
+#: ../user/info.php:24 ../user/sample_index.php:74
 msgid "Read our rules and policies"
 msgstr "Kurallarımızı ve politikamızı okuyun"
 
@@ -4683,7 +4960,7 @@ msgstr ""
 msgid ""
 "%1 was developed by %2. BOINC was developed at the University of California."
 msgstr ""
-"%1, %2 tarafından geliştirildi. BOINC, University of California'da "
+"%1, %2 tarafından geliştirildi. BOINC, Kaliforniya Üniversitesi'nde "
 "geliştirildi."
 
 #: ../user/info.php:53
@@ -4776,30 +5053,135 @@ msgstr ""
 "Çeviriler gönüllüler tarafından yapılır.  Eğer anadiliniz burada mevcut "
 "değilse, %1bir çeviri gerçekleştirebilirsiniz%2."
 
-#: ../user/login_form.php:50
+#: ../user/login_form.php:52
 msgid "Email address:"
 msgstr "E-posta adresi:"
 
-#: ../user/login_form.php:50
+#: ../user/login_form.php:52
 msgid "forgot email address?"
 msgstr "e-posta adresinizi mi unuttunuz?"
 
-#: ../user/login_form.php:52
+#: ../user/login_form.php:54
 msgid "Password:"
 msgstr "Parola:"
 
-#: ../user/login_form.php:52
+#: ../user/login_form.php:54
 msgid "forgot password?"
 msgstr "parolanızı mı unuttunuz?"
 
-#: ../user/login_form.php:55
-#, fuzzy
+#: ../user/login_form.php:57
 msgid "Stay logged in"
-msgstr "Giriş yapılmadı."
+msgstr "Daima bağlı kal"
 
-#: ../user/login_form.php:61
+#: ../user/login_form.php:63
 msgid "or %1create an account%2."
 msgstr "ya da %1bir hesap oluştur%2."
+
+#: ../user/merge_by_name.php:33
+msgid "Processing %1"
+msgstr "Sürüyor %1"
+
+#: ../user/merge_by_name.php:45
+#, fuzzy
+msgid "Merged %1 into %2"
+msgstr "Sunucu %1, %2 ile birleştiriliyor"
+
+#: ../user/merge_by_name.php:74
+msgid "Return to the list of your computers"
+msgstr ""
+
+#: ../user/merge_by_name.php:78
+msgid ""
+"This operation merges computers based on their domain name.\n"
+"        <p>\n"
+"        For each domain name, it will merge all older computers\n"
+"        having that name with the newest computer having that name.\n"
+"        Incompatible computers will not be merged.\n"
+"        <p>"
+msgstr ""
+
+#: ../user/merge_by_name.php:84
+msgid "Go ahead and do this"
+msgstr ""
+
+#: ../user/merge_by_name.php:85
+msgid "Return to the list of computers"
+msgstr "Bilgisayarlar sayfasına dön"
+
+#: ../user/moderation.php:26
+msgid ""
+"\n"
+"To maximize discussion and flow of information,\n"
+"our message boards are moderated.\n"
+"Message board postings are subject to the following posting rules:\n"
+msgstr ""
+
+#: ../user/moderation.php:30
+msgid ""
+"\n"
+"<p>\n"
+"Moderators may delete posts that violate any of these rules.\n"
+"The authors of deleted posts will be notified via email.\n"
+"Gross offenders may have their ability to post messages temporarily revoked\n"
+"(though to prevent abuse only project administrators have the ability to do "
+"so).\n"
+"Additional kinds of bad behavior (\"bugging\" posts to trap the\n"
+"IP addresses of other participants, excessive thread creation to spam\n"
+"the forums, etc.), while not listed in the formal rules, may still\n"
+"lead to similar penalties.\n"
+"<p>\n"
+"If you think a post violates any of the posting rules,\n"
+"click the red X on the post and fill out the form;\n"
+"moderators will be notified of your complaint.\n"
+"Please use this button only for clear violations - not\n"
+"personal disputes.\n"
+"<p>\n"
+"We try to be as fair as we can when moderating,\n"
+"but in a large community of users, with many different viewpoints,\n"
+"there will always be some people that will not be happy\n"
+"with our moderation decisions.\n"
+"While we regret that this happens,\n"
+"please realize that we cannot suit all of the people all of the time\n"
+"and have to make decisions based on our resources and\n"
+"what is best for the forum overall.\n"
+"Please don't discuss our moderation policy on the forums. We aren't\n"
+"a social engineering project nor are we in the business of creating\n"
+"a perfectly fair system. So such discussions tend to be counterproductive\n"
+"and potentially incendiary. If you have a legitimate claim,\n"
+"send email to the address below.\n"
+"<p>\n"
+"This moderation policy is set by the %1 project.\n"
+"If you have comments about the policy, email %2.\n"
+"\n"
+msgstr ""
+
+#: ../user/pending.php:66
+msgid "Result ID"
+msgstr "Sonuç NO"
+
+#: ../user/pending.php:66
+msgid "Workunit ID"
+msgstr "İş birimi NO"
+
+#: ../user/pending.php:66
+msgid "Host ID"
+msgstr "Sunucu NO"
+
+#: ../user/pending.php:66
+msgid "Claimed credit"
+msgstr "İstenen kredi"
+
+#: ../user/pending.php:79
+msgid "Pending credit: %1"
+msgstr "Beklenen kredi: %1"
+
+#: ../user/pm.php:32
+msgid "Block messages from this user"
+msgstr ""
+
+#: ../user/pm.php:32
+msgid "Block user"
+msgstr ""
 
 #: ../user/pm.php:73
 msgid "Your message has been sent."
@@ -4813,9 +5195,21 @@ msgstr "Özel mesajınız bulunmuyor."
 msgid "Sender and date"
 msgstr "Gönderen ve tarih"
 
-#: ../user/pm.php:106 ../user/pm.php:146
-msgid "Reply"
-msgstr "Yanıtla"
+#: ../user/pm.php:106
+msgid "Reply to this message"
+msgstr "konu başlığına yeni bir mesaj ekle"
+
+#: ../user/pm.php:107
+msgid "Delete this message"
+msgstr "Bu mesajı sil"
+
+#: ../user/pm.php:112
+msgid "Select all"
+msgstr "Tümünü seç"
+
+#: ../user/pm.php:114
+msgid "Unselect all"
+msgstr "Tümünün seçimini kaldır"
 
 #: ../user/pm.php:117
 msgid "Delete selected messages"
@@ -4832,6 +5226,16 @@ msgstr "Tarih"
 #: ../user/pm.php:185
 msgid "You need to fill all fields to send a private message"
 msgstr "Özel mesaj göndermek için tüm alanları doldurmalısınız"
+
+#: ../user/pm.php:188
+msgid ""
+"Your message was flagged as spam\n"
+"                by the Akismet anti-spam system.\n"
+"                Please modify your text and try again."
+msgstr ""
+"İlk yanıtınız Akismet anti-spam sistemi\n"
+"                tarafından bir saldırı olarak algılandı.\n"
+"                Lütfen yazdığınızı değiştirip tekrar deneyin."
 
 #: ../user/pm.php:205
 msgid "Could not find user with id %1"
@@ -4883,6 +5287,10 @@ msgstr ""
 msgid "No, cancel"
 msgstr "Hayır, iptal"
 
+#: ../user/pm.php:260 ../user/team_admins.php:97
+msgid "no such user"
+msgstr "eşleşen kullanıcı yok"
+
 #: ../user/pm.php:263
 msgid "User %1 blocked"
 msgstr "%1 kullancısı engellendi"
@@ -4895,23 +5303,26 @@ msgstr "%1 kullanıcısının size özel mesaj göndermesi engellendi."
 msgid "To unblock, visit %1message board preferences%2"
 msgstr "Engellemeyi kaldırmak için, %1forum tercihlerini%2 ziyaret edin"
 
+#: ../user/pm.php:302
+msgid "Unknown action"
+msgstr "Bilinmeyen eylem"
+
 #: ../user/prefs.php:36
-#, fuzzy
 msgid ""
 "Your preferences have been updated, and\n"
 "          will take effect when your computer communicates with %1\n"
 "          or you issue the %2Update%3 command from the BOINC Manager."
 msgstr ""
 "Tercihleriniz güncellendi. Güncel tercihler,\n"
-"\t      bilgisayarınız %1 ile ilk bağlantı kurduğunda ya da\n"
-"\t      BOINC Manager'da %2Güncelle%3 komutunu kullandığınızda kullanılmaya "
-"başlanacak."
+"          bilgisayarınız %1 ile ilk bağlantı kurduğunda ya da\n"
+"          BOINC Manager'da %2Güncelle%3 komutunu kullandığınızda "
+"kullanılmaya başlanacak."
 
-#: ../user/prefs_edit.php:66 ../user/prefs_edit.php:94
+#: ../user/prefs_edit.php:65 ../user/prefs_edit.php:93
 msgid "%1 for %2"
 msgstr "%1 için %2"
 
-#: ../user/prefs_edit.php:111
+#: ../user/prefs_edit.php:110
 msgid "Back to preferences"
 msgstr "Tercihlere dön"
 
@@ -4931,7 +5342,7 @@ msgstr "Tercihleri kaldır"
 msgid "Cancel"
 msgstr "İptal"
 
-#: ../user/profile_menu.php:35 ../user/sample_index.php:109
+#: ../user/profile_menu.php:35 ../user/sample_index.php:116
 msgid "Profiles"
 msgstr "Profiller"
 
@@ -5025,26 +5436,23 @@ msgstr "Profile dön."
 
 #: ../user/profile_search_action.php:36
 msgid "Profiles containing '%1'"
-msgstr ""
+msgstr "'%1' içeren profiller"
 
 #: ../user/profile_search_action.php:40
-#, fuzzy
 msgid "User name"
-msgstr "İş adı"
+msgstr "Kullanıcı adı"
 
 #: ../user/profile_search_action.php:41
-#, fuzzy
 msgid "Joined project"
-msgstr "%1 takımına katılım"
+msgstr "Katıldığı projeler"
 
 #: ../user/profile_search_action.php:44
-#, fuzzy
 msgid "Recent credit"
-msgstr "güncel krediye sahip"
+msgstr "Güncel ortalama kredi"
 
 #: ../user/profile_search_action.php:54
 msgid "No profiles found containing '%1'"
-msgstr ""
+msgstr "'%1' içeren profil bulunamadı"
 
 #: ../user/result.php:30
 msgid "No such task"
@@ -5074,7 +5482,7 @@ msgstr "Eksik kullanıcı NO ya da sunucu NO"
 msgid "No tasks to display"
 msgstr "Görüntülenecek iş yok"
 
-#: ../user/sample_index.php:173
+#: ../user/sample_index.php:180
 msgid "User of the day"
 msgstr "Günün kullanıcısı"
 
@@ -5227,9 +5635,8 @@ msgid "users in last 24h"
 msgstr "son 24 saatteki yeni üyeler"
 
 #: ../user/show_host_detail.php:40
-#, fuzzy
 msgid "Computer %1"
-msgstr "Bilgisayar"
+msgstr "Bilgisayar %1"
 
 #: ../user/stats.php:21
 msgid "Statistics and leaderboards"
@@ -5251,7 +5658,7 @@ msgstr "En iyi bilgisayarlar"
 msgid "Top teams"
 msgstr "En iyi takımlar"
 
-#: ../user/stats.php:36
+#: ../user/stats.php:37
 msgid ""
 "More detailed statistics for %1 and other BOINC-based projects are available "
 "at several web sites:"
@@ -5259,14 +5666,14 @@ msgstr ""
 "%1 ve diğer BOINC-tabanlı projeler için daha detaylı istatistikler, çeşitli "
 "internet sitelerinde mevcuttur:"
 
-#: ../user/stats.php:39
+#: ../user/stats.php:40
 msgid ""
 "You can also get your current statistics in the form of a \"signature image"
 "\":"
 msgstr ""
 "Güncel istatistiklerinizi, bir \"imza resmi\" biçiminde de görebilirsiniz:"
 
-#: ../user/stats.php:42
+#: ../user/stats.php:43
 msgid ""
 "Additionally you can get your individual statistics summed across all BOINC "
 "projects from several sites; see your %1home page%2."
@@ -5275,9 +5682,8 @@ msgstr ""
 "çeşitli sitelerden alabilirsiniz; %1ana sayfanıza%2 bakın."
 
 #: ../user/team.php:25
-#, fuzzy
 msgid "Teams"
-msgstr "Takım"
+msgstr "Takımlar"
 
 #: ../user/team.php:27
 #, fuzzy
@@ -5421,10 +5827,6 @@ msgstr "Takım üyesinin E-posta adresi:"
 #: ../user/team_admins.php:90
 msgid "failed to remove admin"
 msgstr "yöneticiyi kaldırma başarısız oldu"
-
-#: ../user/team_admins.php:97
-msgid "no such user"
-msgstr "eşleşen kullanıcı yok"
 
 #: ../user/team_admins.php:98
 msgid "User is not member of team"
@@ -5612,7 +6014,7 @@ msgstr "%1 için kullanmak üzere bir mesaj panosu oluşturabilirsiniz."
 
 #: ../user/team_forum.php:31
 msgid "Only team members will be able to post."
-msgstr "Yalnızca takım üyeleri ileti gönderebilecek."
+msgstr "Yalnızca takım üyeleri gönderi gönderebilecek."
 
 #: ../user/team_forum.php:32
 msgid "At your option, only members will be able to read."
@@ -5696,9 +6098,8 @@ msgid "Update failed"
 msgstr "Güncelleme başarısız"
 
 #: ../user/team_forum.php:154
-#, fuzzy
 msgid "Team has no forum"
-msgstr "takım bir foruma sahip değil"
+msgstr "Takımın forumu yok"
 
 #: ../user/team_founder_transfer_action.php:36
 msgid "You must be a member of a team to access this page."
@@ -6159,65 +6560,65 @@ msgstr "\"Günün kullanıcısı\" seçilmedi."
 msgid "User of the Day for %1: %2"
 msgstr "%1 için Günün Kullanıcısı: %2"
 
-#: ../user/user_search.php:104 ../user/user_search.php:160
+#: ../user/user_search.php:103 ../user/user_search.php:152
+msgid "User search results"
+msgstr "Kullanıcı arama sonuçları"
+
+#: ../user/user_search.php:105 ../user/user_search.php:163
 msgid "Joined"
 msgstr "Giriş"
 
-#: ../user/user_search.php:115
+#: ../user/user_search.php:117
 msgid "Search type"
 msgstr "Arama tipi"
 
-#: ../user/user_search.php:116
+#: ../user/user_search.php:118
 msgid "User name starts with"
 msgstr "Bununla başlayan kullancı adları:"
 
-#: ../user/user_search.php:117
+#: ../user/user_search.php:119
 msgid "Decreasing sign-up time"
 msgstr "Son giriş tarihi, azalarak"
 
-#: ../user/user_search.php:118
+#: ../user/user_search.php:120
 msgid "Decreasing average credit"
 msgstr "Ortalama kredi, azalarak"
 
-#: ../user/user_search.php:119
+#: ../user/user_search.php:121
 msgid "Decreasing total credit"
 msgstr "Toplam kredi, azalarak"
 
-#: ../user/user_search.php:120
+#: ../user/user_search.php:122
 msgid "Filters"
 msgstr "Süzgeçler"
 
-#: ../user/user_search.php:121
+#: ../user/user_search.php:123
 msgid "Any"
 msgstr "Herhangi"
 
-#: ../user/user_search.php:124
+#: ../user/user_search.php:126
 msgid "With profile?"
 msgstr "Profilli olanlar?"
 
-#: ../user/user_search.php:125 ../user/user_search.php:130
+#: ../user/user_search.php:127 ../user/user_search.php:132
 msgid "Either"
 msgstr "Farketmez"
 
-#: ../user/user_search.php:129
+#: ../user/user_search.php:131
 msgid "On a team?"
 msgstr "Bir takımda yer alanlar?"
 
-#: ../user/user_search.php:148
+#: ../user/user_search.php:150
 msgid "search string must be at least 3 characters"
 msgstr "Arama değeri en az 3 karakter olmalı"
 
-#: ../user/user_search.php:158
+#: ../user/user_search.php:161
 msgid "User names starting with"
 msgstr "Bununla başlayan kullanıcı adları:"
 
-#: ../user/user_search.php:168
+#: ../user/user_search.php:171
 msgid "No users match your search criteria."
 msgstr "Aradığınız kriterlere uygun kullanıcı bulunamadı."
-
-#: ../user/user_search.php:226
-msgid "User search results"
-msgstr "Kullanıcı arama sonuçları"
 
 #: ../user/userw.php:45
 msgid "User not found!"
@@ -6447,9 +6848,19 @@ msgstr ""
 "Eğer seçili uygulamalar için iş mevcut değilse, diğer uygulamalardan işler "
 "kabul edilsin mi?"
 
-#: ../project.sample/project_specific_prefs.inc:80
+#: ../project.sample/project_specific_prefs.inc:81
 msgid "(all applications)"
 msgstr "(tüm uygulamalar)"
+
+#~ msgid "Account key"
+#~ msgstr "Hesap anahtarı"
+
+#~ msgid "Provides full access to your account"
+#~ msgstr "Hesabınıza tam erişimi sağlar"
+
+#, fuzzy
+#~ msgid "Export"
+#~ msgstr "Sırala"
 
 #~ msgid "- private message"
 #~ msgstr "- özel mesaj"
@@ -6526,12 +6937,6 @@ msgstr "(tüm uygulamalar)"
 #~ msgid "Task ID"
 #~ msgstr "İş NO"
 
-#~ msgid "Work unit ID"
-#~ msgstr "İş birimi NO"
-
-#~ msgid "Claimed credit"
-#~ msgstr "İstenen kredi"
-
 #~ msgid "Granted credit"
 #~ msgstr "Alınan kredi"
 
@@ -6597,3 +7002,7 @@ msgstr "(tüm uygulamalar)"
 
 #~ msgid "CHARSET"
 #~ msgstr "UTF-8"
+
+#, fuzzy
+#~ msgid "preferences"
+#~ msgstr "&Tercihler..."

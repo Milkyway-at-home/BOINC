@@ -1,6 +1,6 @@
 // This file is part of BOINC.
 // http://boinc.berkeley.edu
-// Copyright (C) 2008 University of California
+// Copyright (C) 2012 University of California
 //
 // BOINC is free software; you can redistribute it and/or modify it
 // under the terms of the GNU Lesser General Public License
@@ -70,11 +70,9 @@ int CLIENT_APP_VERSION::parse(XML_PARSER& xp) {
             if (!app) return ERR_NOT_FOUND;
 
             double pf = host_usage.avg_ncpus * g_reply->host.p_fpops;
-            if (host_usage.ncudas && g_request->coprocs.nvidia.count) {
-                pf += host_usage.ncudas*g_request->coprocs.nvidia.peak_flops;
-            }
-            if (host_usage.natis && g_request->coprocs.ati.count) {
-                pf += host_usage.natis*g_request->coprocs.ati.peak_flops;
+            if (host_usage.proc_type != PROC_TYPE_CPU) {
+                COPROC* cp = g_request->coprocs.type_to_coproc(host_usage.proc_type);
+                pf += host_usage.gpu_usage*cp->peak_flops;
             }
             host_usage.peak_flops = pf;
             return 0;
@@ -94,14 +92,15 @@ int CLIENT_APP_VERSION::parse(XML_PARSER& xp) {
         if (xp.match_tag("coproc")) {
             COPROC_REQ coproc_req;
             int retval = coproc_req.parse(xp);
-            if (!retval && !strcmp(coproc_req.type, "CUDA")) {
-                host_usage.ncudas = coproc_req.count;
-            }
-            if (!retval && !strcmp(coproc_req.type, "NVIDIA")) {
-                host_usage.ncudas = coproc_req.count;
-            }
-            if (!retval && !strcmp(coproc_req.type, "ATI")) {
-                host_usage.natis = coproc_req.count;
+            if (!retval) {
+                host_usage.gpu_usage = coproc_req.count;
+                if (!strcmp(coproc_req.type, "CUDA") || !strcmp(coproc_req.type, "NVIDIA")) {
+                    host_usage.proc_type = PROC_TYPE_NVIDIA_GPU;
+                } else if (!strcmp(coproc_req.type, "ATI")) {
+                    host_usage.proc_type = PROC_TYPE_AMD_GPU;
+                } else if (!strcmp(coproc_req.type, "INTEL")) {
+                    host_usage.proc_type = PROC_TYPE_INTEL_GPU;
+                }
             }
             continue;
         }
@@ -117,6 +116,9 @@ int FILE_INFO::parse(XML_PARSER& xp) {
             return 0;
         }
         if (xp.parse_str("name", name, 256)) continue;
+        if (xp.parse_double("nbytes", nbytes)) continue;
+        if (xp.parse_int("status", status)) continue;
+        if (xp.parse_bool("sticky", sticky)) continue;
     }
     return ERR_XML_PARSE;
 }
@@ -205,6 +207,9 @@ const char* SCHEDULER_REQUEST::parse(XML_PARSER& xp) {
     client_cap_plan_class = false;
     sandbox = -1;
     allow_multiple_clients = -1;
+    results_truncated = false;
+    uptime = 0;
+    previous_uptime = 0;
 
     if (xp.get_tag()) {
         return "xp.get_tag() failed";
@@ -225,6 +230,8 @@ const char* SCHEDULER_REQUEST::parse(XML_PARSER& xp) {
         if (xp.parse_str("cross_project_id", cross_project_id, sizeof(cross_project_id))) continue;
         if (xp.parse_int("hostid", hostid)) continue;
         if (xp.parse_int("rpc_seqno", rpc_seqno)) continue;
+        if (xp.parse_double("uptime", uptime)) continue;
+        if (xp.parse_double("previous_uptime", previous_uptime)) continue;
         if (xp.parse_str("platform_name", platform.name, sizeof(platform.name))) continue;
         if (xp.match_tag("alt_platform")) {
             CLIENT_PLATFORM cp;
@@ -328,11 +335,10 @@ const char* SCHEDULER_REQUEST::parse(XML_PARSER& xp) {
                 file_xfer_results.push_back(result);
                 continue;
             }
-#if 0   // enable if you need to limit CGI memory size
-            if (results.size() >= 1024) {
+            if (config.max_results_accepted && (int)(results.size()) >= config.max_results_accepted) {
+                results_truncated = true;
                 continue;
             }
-#endif
             // check if client is sending the same result twice.
             // Shouldn't happen, but if it does bad things will happen
             //
@@ -608,9 +614,6 @@ SCHEDULER_REPLY::SCHEDULER_REPLY() {
     strcpy(email_hash, "");
 }
 
-SCHEDULER_REPLY::~SCHEDULER_REPLY() {
-}
-
 int SCHEDULER_REPLY::write(FILE* fout, SCHEDULER_REQUEST& sreq) {
     unsigned int i;
     char buf[BLOB_SIZE];
@@ -626,6 +629,9 @@ int SCHEDULER_REPLY::write(FILE* fout, SCHEDULER_REQUEST& sreq) {
         "<scheduler_version>%d</scheduler_version>\n",
         BOINC_MAJOR_VERSION*100+BOINC_MINOR_VERSION
     );
+    if (sreq.core_client_version >= 70028) {
+        fprintf(fout, "<dont_use_dcf/>\n");
+    }
     if (strlen(config.master_url)) {
         fprintf(fout,
             "<master_url>%s</master_url>\n",
@@ -889,15 +895,29 @@ int SCHEDULER_REPLY::write(FILE* fout, SCHEDULER_REQUEST& sreq) {
             file_deletes[i].name
         );
     }
+    for (i=0; i<file_transfer_requests.size(); i++) {
+        fprintf(fout, "%s", file_transfer_requests[i].c_str());
+    }
 
-    fprintf(fout,
-        "<no_cpu_apps>%d</no_cpu_apps>\n"
-        "<no_cuda_apps>%d</no_cuda_apps>\n"
-        "<no_ati_apps>%d</no_ati_apps>\n",
-        ssp->have_cpu_apps?0:1,
-        ssp->have_cuda_apps?0:1,
-        ssp->have_ati_apps?0:1
-    );
+    if (g_request->core_client_version < 73000) {
+        fprintf(fout,
+            "<no_cpu_apps>%d</no_cpu_apps>\n"
+            "<no_cuda_apps>%d</no_cuda_apps>\n"
+            "<no_ati_apps>%d</no_ati_apps>\n",
+            ssp->have_apps_for_proc_type[PROC_TYPE_CPU]?0:1,
+            ssp->have_apps_for_proc_type[PROC_TYPE_NVIDIA_GPU]?0:1,
+            ssp->have_apps_for_proc_type[PROC_TYPE_AMD_GPU]?0:1
+        );
+    } else {
+        for (i=0; i<NPROC_TYPES; i++) {
+            if (!ssp->have_apps_for_proc_type[i]) {
+                fprintf(fout,
+                    "<no_rsc_apps>%s</no_rsc_apps>\n",
+                    proc_type_name_xml(i)
+                );
+            }
+        }
+    }
     gui_urls.get_gui_urls(user, host, team, buf);
     fputs(buf, fout);
     if (project_files.text) {
@@ -978,8 +998,10 @@ int APP::write(FILE* fout) {
         "<app>\n"
         "    <name>%s</name>\n"
         "    <user_friendly_name>%s</user_friendly_name>\n"
+        "    <non_cpu_intensive>%d</non_cpu_intensive>\n"
         "</app>\n",
-        name, user_friendly_name
+        name, user_friendly_name,
+        non_cpu_intensive?1:0
     );
     return 0;
 }
@@ -1014,22 +1036,27 @@ int APP_VERSION::write(FILE* fout) {
             bavp->host_usage.cmdline
         );
     }
-    if (bavp->host_usage.ncudas) {
+    int pt = bavp->host_usage.proc_type;
+    if (pt != PROC_TYPE_CPU) {
+        const char* nm;
+        if (pt == PROC_TYPE_NVIDIA_GPU) {
+            // KLUDGE: older clients use "CUDA", newer ones use "NVIDIA"
+            //
+            if (g_request->core_client_version < 70000) {
+                nm = "CUDA";
+            } else {
+                nm = proc_type_name_xml(pt);
+            }
+        } else {
+            nm = proc_type_name_xml(pt);
+        }
         fprintf(fout,
             "    <coproc>\n"
-            "        <type>CUDA</type>\n"
+            "        <type>%s</type>\n"
             "        <count>%f</count>\n"
             "    </coproc>\n",
-            bavp->host_usage.ncudas
-        );
-    }
-    if (bavp->host_usage.natis) {
-        fprintf(fout,
-            "    <coproc>\n"
-            "        <type>ATI</type>\n"
-            "        <count>%f</count>\n"
-            "    </coproc>\n",
-            bavp->host_usage.natis
+            nm,
+            bavp->host_usage.gpu_usage
         );
     }
     if (bavp->host_usage.gpu_ram) {
@@ -1199,6 +1226,10 @@ int HOST::parse_time_stats(XML_PARSER& xp) {
         if (xp.parse_double("on_frac", on_frac)) continue;
         if (xp.parse_double("connected_frac", connected_frac)) continue;
         if (xp.parse_double("active_frac", active_frac)) continue;
+        if (xp.parse_double("gpu_active_frac", gpu_active_frac)) continue;
+        if (xp.parse_double("cpu_and_network_available_frac", cpu_and_network_available_frac)) continue;
+        if (xp.parse_double("client_start_time", client_start_time)) continue;
+        if (xp.parse_double("previous_uptime", previous_uptime)) continue;
 #if 0
         if (xp.match_tag("outages")) continue;
         if (xp.match_tag("outage")) continue;
@@ -1240,6 +1271,7 @@ int HOST::parse_disk_usage(XML_PARSER& xp) {
         if (xp.match_tag("/disk_usage")) return 0;
         if (xp.parse_double("d_boinc_used_total", d_boinc_used_total)) continue;
         if (xp.parse_double("d_boinc_used_project", d_boinc_used_project)) continue;
+        if (xp.parse_double("d_project_share", d_boinc_max)) continue;
         log_messages.printf(MSG_NORMAL,
             "HOST::parse_disk_usage(): unrecognized: %s\n",
             xp.parsed_tag
@@ -1389,6 +1421,7 @@ DB_HOST_APP_VERSION* quota_exceeded_version() {
 
 double capped_host_fpops() {
     double x = g_request->host.p_fpops;
+    if (!ssp) return x;
     if (x <= 0) {
         return ssp->perf_info.host_fpops_50_percentile;
     }

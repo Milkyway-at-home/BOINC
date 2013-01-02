@@ -14,20 +14,18 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with BOINC.  If not, see <http://www.gnu.org/licenses/>.
+
+#include "hr_info.h"
+
 #ifndef _USING_FCGI_
 #include <cstdio>
 #else
 #include "boinc_fcgi.h"
 #endif
-#if HAVE_MALLOC_H
-#include <malloc.h>
-#endif
 #include <cmath>
 
 #include "error_numbers.h"
 #include "sched_msgs.h"
-
-#include "hr_info.h"
 
 int HR_INFO::write_file() {
     int i, j;
@@ -175,7 +173,7 @@ void HR_INFO::allocate(int total_slots) {
 }
 
 // Decide if job of the given HR type and class should be added to array,
-// and if to update counts
+// and if so update counts
 //
 bool HR_INFO::accept(int hrt, int hrc) {
     if (cur_slots[hrt][hrc] >= max_slots[hrt][hrc]) {

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-## $Id$
+## $Id: test_abort.py 2114 2003-08-15 20:27:21Z quarl $
 
 # Makes sure that the client aborts when the output file size limit is
 # exceeded, and that the server knows it.

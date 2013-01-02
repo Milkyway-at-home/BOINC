@@ -34,20 +34,26 @@ function friendly_name($p) {
     case 'windows_amd64': $q = 'Windows/Opteron'; break;
     case 'x86_64-pc-solaris': $q = 'Solaris/x64'; break;
     case 'windows_intelx86_64': $q = 'Windows/x64'; break;
+    case 'arm-android-linux-gnu': $q = 'Android/ARM'; break;
+    case 'arm-unknown-linux-gnu': $q = 'Linux/ARM'; break;
+    case 'x86_64-pc-freebsd': $q = 'FreeBSD/x86'; break;
     }
     if (strlen($pc)) {
         if (strstr($pc, 'cuda')) $q .= " (NVIDIA GPU)";
-        else if (strstr($pc, 'ati')) $q .= " (ATI GPU)";
+        else if (strstr($pc, 'ati')) $q .= " (AMD/ATI GPU)";
         else if (strstr($pc, 'mt')) $q .= " (multicore)";
     }
     return $q;
 }
 
 function canonical_plan_class($pc) {
-    if (strstr($pc, "mt")) return "mt";
-    if (strstr($pc, "cuda")) return "cuda";
-    if (strstr($pc, "ati")) return "ati";
-    return $pc;
+    //if (strstr($pc, "mt")) return "mt";
+	if (strstr($pc, "atiOpenCL")) return "opencl_ati";
+	if (strstr($pc, "nvidiaOpenCL")) return "opencl_nvidia";
+	if (strstr($pc, "intelOpenCL")) return "opencl_intel";
+	if (strstr($pc, "cuda")) return "cuda";
+	if (strstr($pc, "ati")) return "ati";
+    return null;
 }
 
 // get platforms from get_project_config.php (preferred method)
@@ -102,12 +108,14 @@ function get_platforms(&$url) {
         }
     } else {
         foreach ($p->platform as $r) {
+            $plat = (string)$r->platform_name;
             if (array_key_exists('plan_class', $r)) {
                 $pc = canonical_plan_class((string)$r->plan_class);
-                $list[] = (string)$r->platform_name."[".$pc."]";
-            } else {
-                $list[] = (string)$r->platform_name;
+                if ($pc) {
+                    $plat .= "[".$pc."]";
+                }
             }
+            $list[] = $plat;
         }
     }
     return array_unique($list);
@@ -130,7 +138,6 @@ function get_platforms2($url) {
             if (array_key_exists('plan_class', $v)) {
                 $pc = (string)$v->plan_class;
                 $pc = canonical_plan_class($pc);
-                echo "pc: $pc\n";
             }
             if (strlen($pc)) {
                 $p = $p.'['.$pc.']';
@@ -198,11 +205,13 @@ function get_platforms_string($url) {
 //$u = "http://www.worldcommunitygrid.org/";
 //$u = "http://setiathome.berkeley.edu/";
 //$u = "http://aqua.dwavesys.com/";
+//$u = "http://lhcathome2.cern.ch/test4theory";
 //$x = get_platforms($u);
 //print_r($x);
 //echo get_platforms_string("http://setiathome.berkeley.edu/");
-//echo get_platforms_string("http://dist.ist.tugraz.at/cape5/");
-//print_r(get_platforms2("http://www.primegrid.com/"));
+//$x = "http://sat.isa.ru/pdsat/";
+//print_r( get_platforms($x));
+
 
 function wfPlatforms() {
     global $wgParser;

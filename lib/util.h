@@ -18,12 +18,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include <cstdlib>
-#include <ctime>
-#include <cmath>
-#include <cctype>
-#include <cstring>
-#include <algorithm>
+#include <stdlib.h>
 #include <string>
 #include <vector>
 
@@ -65,6 +60,13 @@ extern double linux_cpu_time(int pid);
 extern void update_average(double, double, double, double, double&, double&);
 
 extern int boinc_calling_thread_cpu_time(double&);
+
+inline bool in_vector(int n, std::vector<int>& v) {
+    for (unsigned int i=0; i<v.size(); i++) {
+        if (n == v[i]) return true;
+    }
+    return false;
+}
 
 // fake a crash
 //

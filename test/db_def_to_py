@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-## $Id$
+## $Id: db_def_to_py 1528 2003-06-18 03:04:06Z quarl $
 
 ## parse the db #defines to php.
 

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-## $Id$
+## $Id: testbase 2817 2003-12-20 09:14:38Z quarl $
 
 # Automate a clean check out, make all, check, distcheck.  On error, complain
 # to stdout and return 1.  Suitable for a cron job.

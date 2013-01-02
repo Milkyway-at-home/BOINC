@@ -34,13 +34,14 @@ boinc_client_SOURCES = \
     acct_mgr.cpp \
     acct_setup.cpp \
     app.cpp \
+    app_config.cpp \
     app_control.cpp \
     app_start.cpp \
+	async_file.cpp \
     check_state.cpp \
     client_msgs.cpp \
     client_state.cpp \
     client_types.cpp \
-	coproc_detect.cpp \
     cpu_sched.cpp \
     cs_account.cpp \
     cs_apps.cpp \
@@ -59,6 +60,11 @@ boinc_client_SOURCES = \
     dhrystone2.cpp \
     file_names.cpp \
     file_xfer.cpp \
+	gpu_amd.cpp \
+	gpu_detect.cpp \
+	gpu_intel.cpp \
+	gpu_nvidia.cpp \
+	gpu_opencl.cpp \
     gui_http.cpp \
     gui_rpc_server.cpp \
     gui_rpc_server_ops.cpp \
@@ -69,6 +75,8 @@ boinc_client_SOURCES = \
     main.cpp \
     net_stats.cpp \
     pers_file_xfer.cpp \
+	project.cpp \
+	result.cpp \
     rr_sim.cpp \
     sandbox.cpp \
     scheduler_op.cpp \

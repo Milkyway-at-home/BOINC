@@ -1,6 +1,6 @@
 #!/usr/local/bin/php -q
 <?php {
-    // $Id$
+    // $Id: test_upload_backoff.php 1526 2003-06-18 02:59:57Z quarl $
 
     $use_proxy_cgi = 1;
 

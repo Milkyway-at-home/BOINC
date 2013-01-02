@@ -4,7 +4,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: BOINC translation team <boinc_loc@ssl.berkeley.edu>\n"
 "POT-Creation-Date: 2011-04-04 22:09 PDT\n"
-"PO-Revision-Date: 2011-10-13 21:31+0200\n"
+"PO-Revision-Date: 2012-10-17 18:51+0200\n"
 "Last-Translator: Christian <djangofett@gmx.net>\n"
 "Language-Team: BOINC Development Team <boinc_loc@ssl.berkeley.edu>\n"
 "Language: de\n"
@@ -12,7 +12,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Pootle 2.1.1\n"
+"X-Generator: Pootle 2.1.6\n"
 "X-Poedit-SourceCharset: utf-8\n"
 
 #: projects.inc:14
@@ -177,7 +177,7 @@ msgstr "Malariacontrol.net"
 
 #: projects.inc:80
 msgid "The Swiss Tropical Institute"
-msgstr "Schweizerisches Tropen- und Public Health-Institut"
+msgstr "Schweizer Tropeninstitut"
 
 #: projects.inc:81
 msgid "Epidemiology"
@@ -297,6 +297,15 @@ msgid ""
 "cycle. This will allow us to explore how climate may change in the next "
 "century under a wide range of different scenarios."
 msgstr ""
+"Berechne die Näherungen die für die modernen Klima Modelle gemacht werden "
+"müssen. Vom tausendfachen Durchrechnen erhoffen wir uns herauszufinden, wie "
+"das Modell aus minimale Änderungen dieser Näherungen reagiert - so minimal, "
+"dass die Näherungen nicht unrealistisch werden. Das wird uns ermöglichen "
+"unser Verständnis über die Sensibilität unsere Modelle auf kleine "
+"Veränderungen und auch Dinge wie Veränderungen im CO2- und Schwefel-"
+"Kreislauf zu vergrößern. Dies wird uns erlauben zu ergründen, wie sich das "
+"Klima vielleicht im nächsten Jahrhundert unter einer weiten Bandbreite von "
+"verschiedenen Szenarien verändern wird."
 
 #: projects.inc:148
 msgid "Astronomy/Physics/Chemistry"
@@ -326,6 +335,16 @@ msgid ""
 "single event of interest can be expected to occur.  Our research group is "
 "interested in calculating the long time dynamics of systems."
 msgstr ""
+"Ein bekanntes Problem der theoretischen Chemie, der Physik dichter Materie "
+"und der Materialwissenschaft ist die Berechnung der Zeitentwicklung eines "
+"Systems auf atomarer Ebene, bei dem beispielsweise chemische Reaktionen "
+"und/oder Diffusionen auftreten. Im Allgemeinen sind die interessanten "
+"Ereignisse äußerst selten (um mehrere Größenordnungen langsamer als die "
+"Schwingungsbewegungen der Atome). Dafür bräuchten tatsächliche Simulationen, "
+"die jede Bewegung der Atome aufzeichnen, tausende Jahre Rechenzeit auf dem "
+"schnellsten existierenden Computer bevor ein solches Ereignis zu erwarten "
+"ist. Unsere Forschungsgruppe ist interessiert an der Berechnung der "
+"Langzeit-Dynamik von atomaren Systemen."
 
 #: projects.inc:158
 msgid "Orbit@home"
@@ -349,7 +368,7 @@ msgstr "Cosmology@Home"
 
 #: projects.inc:168
 msgid "University of Illinois at Urbana-Chamapign"
-msgstr ""
+msgstr "Universität von Illinois in Urbana (bei Champaign)"
 
 #: projects.inc:170
 msgid ""
@@ -397,6 +416,13 @@ msgid ""
 "argon, or to test the validity of the ideal gas law by actually doing the "
 "simulations through the grid."
 msgstr ""
+"Berechnungen der Oberflächenforschung mit der klassichen Dynamik. Leiden "
+"Classical erlaubt es Freiwilligen, Studenten und anderen Wissenschaftlern "
+"ihre eigenen Berechnungen in das Rechennetz einzuspeisen. Jeder Anwender hat "
+"seine eigene Schlange von Arbeiten für das Projekt. Auf diese Weise haben "
+"Studenten das Rechennetz genutzt um flüssiges Argon zu simulieren oder das "
+"Gesetz des idealen Gases durch Simulationen mit Hilfe des Rechennetzes zu "
+"beweisen."
 
 #: projects.inc:190
 msgid "uFluids@home"
@@ -404,7 +430,7 @@ msgstr "uFluids@home"
 
 #: projects.inc:192
 msgid "Purdue University"
-msgstr "Purdue Universität"
+msgstr "Universität Purdue"
 
 #: projects.inc:193
 msgid "Physics/Aeronautics"
@@ -417,6 +443,10 @@ msgid ""
 "management devices and address two-phase flow in microchannel and MEMS "
 "devices."
 msgstr ""
+"Das &micro;Fluids-Projekt simuliert das Verhalten von Zwei-Phasen-Fluiden "
+"unter Mikrogravitation und Mikrofluid-Probleme. Unser Ziel ist eine "
+"Verbesserung von Geräten zur Steuerung von Satellitenantrieben und die Zwei-"
+"Phasen-Strömung in Mikrokanälen und MEMS-Geräten anzugehen."
 
 #: projects.inc:198
 msgid "Einstein@home"
@@ -424,7 +454,7 @@ msgstr "Einstein@home"
 
 #: projects.inc:200
 msgid "Univ. of Wisconsin - Milwaukee, Max Planck Institute"
-msgstr "Univ. von Wisconsin in Milwaukee,  Max Planck Institut"
+msgstr "Universität von Wisconsin in Milwaukee,  Max-Planck-Institut"
 
 #: projects.inc:201
 msgid "Astrophysics"
@@ -438,6 +468,11 @@ msgid ""
 "supported by the American Physical Society (APS) and by a number of "
 "international organizations."
 msgstr ""
+"Suche nach rotierenden Neutronensternen (auch Pulsare genannt) unter "
+"Verwendung von Daten der LIGO und GEO Gravitationswellen-Detektoren sowie "
+"dem Arecibo Radioteleskop. Einstein@Home ist ein \"World Year of Physics "
+"2005\" Projekt, welches von der American Physical Society (APS) und von "
+"verschiedenen internationalen Organisationen unterstützt wird."
 
 #: projects.inc:206
 msgid "LHC@home"
@@ -485,10 +520,16 @@ msgid ""
 "signals from space. Such signals are not known to occur naturally, so a "
 "detection would provide evidence of extraterrestrial technology."
 msgstr ""
+"SETI (Search for Extraterrestrial Intelligence) ist ein Bereich der "
+"Wissenschaft mit dem Ziel Leben ausserhalb der Erde zu finden. Eine Methode, "
+"bekannt als Radio-SETI, benutzt Radio Teleskope, um Signale von geringer "
+"Bandbreite aus dem Weltall aufzuspüren. Es sind keine natürlichen Quellen "
+"für solche Strahlung bekannt, daher wäre sie der Beweis für außerirdische "
+"Technologie."
 
 #: projects.inc:222
 msgid "Quantum Monte Carlo at Home"
-msgstr ""
+msgstr "Quantum Monte Carlo at Home"
 
 #: projects.inc:224
 msgid "University of Muenster (Germany)"
@@ -520,14 +561,18 @@ msgid ""
 "applications in medicine (such as local tumor chemotherapy) and "
 "biotechnology."
 msgstr ""
+"Die Forschung für Molekular-Magneten und Magnetismus auf Nano-Ebene. Diese "
+"Magnetischen Moleküle könnten benutzt werden um winzige Magnet-Schalter zu "
+"entwickeln, die Anwendung in der Medizin( z.B. in der lokalen Therapierung "
+"von Tumoren durch Chemotherapie) und Biotechnologie."
 
 #: projects.inc:241
 msgid "Multiple applications"
-msgstr ""
+msgstr "Mehrere Anwendungen"
 
 #: projects.inc:244
 msgid "CAS@home"
-msgstr ""
+msgstr "CAS@home"
 
 #: projects.inc:246
 msgid "Chinese Academy of Sciences"
@@ -535,7 +580,7 @@ msgstr "Chinesische Akademie der Wissenschaften"
 
 #: projects.inc:247
 msgid "Physics, biochemistry, and others"
-msgstr ""
+msgstr "Physik, Biochemie und weitere"
 
 #: projects.inc:248
 msgid ""
@@ -543,33 +588,37 @@ msgid ""
 "adopt the technologies of volunteer computing and volunteer thinking for "
 "their research."
 msgstr ""
+"Das Ziel von CAS@home ist die Förderung und Unterstützung der "
+"Wissenschaftler in China sich die Technologie der freiwilligen Mithilfe und "
+"Datenverarbeitung für Ihre Forschung anzueignen."
 
 #: projects.inc:252
 msgid "Yoyo@home"
-msgstr ""
+msgstr "Yoyo@home"
 
 #: projects.inc:255
 msgid "Mathematics, physics, evolution"
-msgstr ""
+msgstr "Mathematik, Physik, Evolution"
 
 #: projects.inc:256
 msgid ""
 "Yoyo@home is an adapter between BOINC and several existing volunteer "
 "computing projects: ECM, Muon, Evolution@home, and distributed.net"
 msgstr ""
+"Yoyo@home ist ein Adapter zwischen BOINC und einigen existierenden "
+"verteiltes Rechnen Projekten: ECM, Muon, Evolution@home und distributed.net."
 
 #: projects.inc:259
 msgid "EDGeS@Home"
-msgstr ""
+msgstr "EDGeS@Home"
 
 #: projects.inc:261 projects.inc:360
 msgid "MTA-SZTAKI Laboratory of Parallel and Distributed Systems (Hungary)"
-msgstr ""
+msgstr "MTA-SZTAKI - Labor für Parallele und Verteilte Systeme (Ungarn)"
 
 #: projects.inc:262
-#, fuzzy
 msgid "European research projects"
-msgstr "Forschungsprojekte"
+msgstr "Europäische Forschungsprojekte"
 
 #: projects.inc:263
 msgid ""
@@ -578,35 +627,41 @@ msgid ""
 "processed by the volunteers of this project. The scientific projects covered "
 "by the project include math, physics, biology, etc."
 msgstr ""
+"Das EDGeS@home Beta Projekt integriert freiwillige Berechnungen in das "
+"Service-Grid-Netzwerk Europas, indem es Service-Grids ermöglicht wird "
+"Arbeitseinheiten von Freiwilligen ausführen zu lassen. Die "
+"wissenschaftlichen Projekte, die von dem Projekt abgedeckt werden beinhalten "
+"Mathematik, Physik, Biologie, u.a.."
 
 #: projects.inc:267
 msgid "Ibercivis"
-msgstr ""
+msgstr "Ibercivis"
 
 #: projects.inc:269
 msgid "Spanish universities and research centers"
-msgstr ""
+msgstr "Spanische Universitäten und Forschungszentren"
 
 #: projects.inc:270
-#, fuzzy
 msgid "Various Spanish research projects"
-msgstr "Forschungsprojekte"
+msgstr "Verschiedene spanische Forschungsprojekte"
 
 #: projects.inc:271
 msgid "Research in physics, material science, and biomedicine"
-msgstr ""
+msgstr "Forschung im Bereich der Physik, Materialforschung und Biomedizin"
 
 #: projects.inc:275
 msgid "World Community Grid"
-msgstr ""
+msgstr "World Community Grid"
 
 #: projects.inc:277
 msgid "IBM Corporate Community Relations"
-msgstr ""
+msgstr "IBM Corporate Community Relations"
 
 #: projects.inc:278
 msgid "Humanitarian research on disease, natural disasters and hunger."
 msgstr ""
+"Humanitäre Forschung im Bereich von Krankheiten, Naturkatastrophen und "
+"Hungersnöten."
 
 #: projects.inc:279
 msgid ""
@@ -614,48 +669,58 @@ msgid ""
 "problems by creating the world's largest volunteer computing grid.  Research "
 "includes HIV/AIDS, cancer, muscular dystrophy, dengue fever, and many more."
 msgstr ""
+"Für weitere wichtige Non-Profit-Forschung an den die Menschheit am meisten "
+"bedrückenden Problemen, indem man das weltweit größte Netz freiwillige "
+"Rechner erstellt. Die Forschung beinhaltet HIV/AIDS, Krebs, "
+"Muskeldystrophie, Dengue Fieber und viele weitere Krankheiten und andere "
+"Probleme."
 
 #: projects.inc:285
 msgid "Mathematics, computing, and games"
-msgstr ""
+msgstr "Mathematik, Berechnungen und Spiele"
 
 #: projects.inc:288
 msgid "Enigma@Home"
-msgstr ""
+msgstr "Enigma@Home"
 
 #: projects.inc:291 projects.inc:345
 msgid "Cryptography"
-msgstr ""
+msgstr "Kryptographie"
 
 #: projects.inc:292
 msgid ""
 "Attempt to decode 3 original Enigma messages. The signals were intercepted "
 "in the North Atlantic in 1942 and are believed to be unbroken."
 msgstr ""
+"Der Versuch drei original Enigma Nachrichten zu entschlüsseln. Die Signale "
+"wurden 1942 im Nordatlantik abgefangen und es wird angenommen, dass sie noch "
+"nicht geknackt wurden."
 
 #: projects.inc:295
 msgid "Collatz Conjecture"
-msgstr ""
+msgstr "Collatz Conjecture"
 
 #: projects.inc:298 projects.inc:337 projects.inc:353 projects.inc:361
 msgid "Mathematics"
-msgstr ""
+msgstr "Mathematik"
 
 #: projects.inc:299
 msgid "Study the Collatz Conjecture, an unsolved conjecture in mathematics"
 msgstr ""
+"Untersuchung des Collatz Problems, ein ungelöstes Mathematisches Problem"
 
+# 75%
 #: projects.inc:302
 msgid "NFS@home"
-msgstr ""
+msgstr "NFS@home"
 
 #: projects.inc:304
 msgid "California State University Fullerton"
-msgstr ""
+msgstr "Universität von California in Fullerton"
 
 #: projects.inc:305
 msgid "Factorization of large integers"
-msgstr ""
+msgstr "Faktorisierung großer natürlicher Zahlen"
 
 #: projects.inc:306
 msgid ""
@@ -666,21 +731,28 @@ msgid ""
 "NFS@Home is a continuation of that experience, only with integers that are "
 "hundreds of digits long."
 msgstr ""
+"NFS@Home ist ein Forschungsprojekt welches die mit dem Internet verbundenen "
+"Computer dazu benutzt eine schrittweise Primfaktorzerlegung einer großen "
+"ganzen Zahl durchzuführen. Als junger Schüler hast du deine ersten Erfahrung "
+"damit gemacht ganze Zahlen in Primzahlfaktoren zu zerlegen, wie 15= 3+5 "
+"oder 35= 5*7. NFS@Home setzt diese Erfahrung fort, lediglich mit ganzen "
+"Zahlen welche hunderte von Stellen lang sind."
 
 #: projects.inc:310
 msgid "VTU@home"
-msgstr ""
+msgstr "VTU@home"
 
 #: projects.inc:312
 msgid ""
 "Vilnius Gediminas Technical University and Kaunas University of Technology "
 "(Lithuania)"
 msgstr ""
+"Technische Gediminas-Universität Vilnius und der Technischen Universität "
+"Kaunas in Litauen"
 
 #: projects.inc:313
-#, fuzzy
 msgid "Software testing"
-msgstr "Programmaktualisierungen"
+msgstr "Software tests"
 
 #: projects.inc:314
 msgid ""
@@ -689,18 +761,23 @@ msgid ""
 "well as others Lithuanian academic institutions.  Current applications "
 "involve the study of Monte-Carlo based software testing."
 msgstr ""
+"Das Ziel dieses Projekts ist die Bereitstellung einer leistungstarken "
+"Verteiltes-Rechnen-Plattform für Wissenschaftler der Technischen Gediminas-"
+"Universität in Vilnius und für andere akademische Institute Litauens. "
+"Derzeitige Anwendungen beinhalten die Erforschung von Monte-Carlo-basierten "
+"Softwaretests. "
 
 #: projects.inc:318
 msgid "AQUA@home"
-msgstr ""
+msgstr "AQUA@home"
 
 #: projects.inc:320
 msgid "D-Wave Systems, Inc."
-msgstr ""
+msgstr "D-Wave Systems, Inc."
 
 #: projects.inc:321
 msgid "Quantum computing"
-msgstr ""
+msgstr "Quantenberechnung"
 
 #: projects.inc:322
 msgid ""
@@ -711,15 +788,22 @@ msgid ""
 "computers to help design and analyze quantum computing algorithms, using "
 "Quantum Monte Carlo techniques."
 msgstr ""
+"D-Waves AQUA (Adiabatische QUanten Algorithmen) ist ein Forschungsprojekt "
+"dessen Ziel die Vorhersage der Leistung von supraleitenden adiabatischen "
+"Quantenrechnern bei eine Vielzahl großer Probleme angefangen mit "
+"Materialforschung bis maschinellem Lernen ist. AQUA@home verwendet mit dem "
+"Internet verbundene Rechner, um sich bei der Entwicklung und Analysierung "
+"von Quantenberechnungsalgorithmen helfen zu lassen. Dabei werden Quanten-"
+"Monte-Carlo-Techniken angewandt."
 
 #: projects.inc:334
 #, fuzzy
 msgid "ABC@home"
-msgstr "zu Hause"
+msgstr "ABC@home"
 
 #: projects.inc:336
 msgid "Mathematical Institute of Leiden University / Kennislink"
-msgstr ""
+msgstr "Mathematisches Institut der Universität Leiden / Kennislink"
 
 #: projects.inc:338
 msgid ""
@@ -731,15 +815,23 @@ msgid ""
 "problems in mathematics. If it is proven to be true, a lot of other open "
 "problems can be answered directly from it."
 msgstr ""
+"Suche nach \"ABC-Tripeln\": Positive Zahlen a,b,c; zum Beispiel a+b=c, a &lt; "
+"b &lt; c, a,b,c haben keinen gemeinsamen Divisor und c sei größer als als "
+"rad(abc), wobei rad(n) das Produkt verschiedener Primzahlfaktoren von n ist. "
+"Die ABC-VErmutung sagt aus, dass es nur eine begrenzte Anzahl von a,b,c "
+"gibt, die log(c)/log(rad(abc))>h für alle reellen h>1 erfüllen. Die ABC-"
+"Vermutung ist zur Zeit eines der größten bekannten Probleme der Mathematik. "
+"Sollte sie bewiesen werden, können viele andere Probleme dadurch gelöst "
+"werden."
 
 #: projects.inc:342
 msgid "PrimeGrid"
-msgstr ""
+msgstr "PrimeGrid"
 
 #: projects.inc:344
 #, fuzzy
 msgid "Private"
-msgstr "privat"
+msgstr "Privat"
 
 #: projects.inc:346
 msgid ""
@@ -753,39 +845,43 @@ msgstr ""
 
 #: projects.inc:350
 msgid "primaboinca"
-msgstr ""
+msgstr "primaboinca"
 
 #: projects.inc:352
 msgid "Hochschule RheinMain University of Applied Sciences"
-msgstr ""
+msgstr "Hochschule RheinMain Universität der Angewandten Wissenschaften"
 
 #: projects.inc:354
 msgid ""
 "Search for counterexamples to two conjectures related to the identification "
 "of prime numbers"
 msgstr ""
+"Suche nach Gegenbeispielen für zwei Vermutungen die sich auf die "
+"Identifizierung von Primzahlen beziehen"
 
 #: projects.inc:358
 msgid "SZTAKI Desktop Grid"
-msgstr ""
+msgstr "SZTAKI Desktop Grid"
 
 #: projects.inc:362
 msgid ""
 "Find all the generalized binary number systems (in which bases are matrices "
 "and digits are vectors) up to dimension 11."
 msgstr ""
+"Finde alle verallgemeinerten binären Zahlensysteme (in denen Basen Matrizen "
+"und Zeichen Vektoren sind) bis zur Dimension 11."
 
 #: projects.inc:382
 msgid "Chess960@home"
-msgstr ""
+msgstr "Chess960@home"
 
 #: projects.inc:384
 msgid "Chess-960.org"
-msgstr ""
+msgstr "Chess-960.org"
 
 #: projects.inc:385
 msgid "Game-playing"
-msgstr ""
+msgstr "Spiele"
 
 #: projects.inc:386
 msgid ""
@@ -794,6 +890,10 @@ msgid ""
 "before the start of every game, the initial configuration of the chess "
 "pieces is determined randomly."
 msgstr ""
+"Das Projekt untersucht Schach 960, eine Variante des klassischen Schachs. Im "
+"klassischen Schach ändert sich die Startposition niemals. Bei Schach 960, "
+"kurz vor dem Start jedes Spiels, werden die Startaufstellungen zufällig "
+"ausgewählt."
 
 #: versions.inc:6
 msgid "The current release is known to work with these Linux versions:"

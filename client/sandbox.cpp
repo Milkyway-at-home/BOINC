@@ -57,8 +57,9 @@ void kill_via_switcher(int pid) {
     if (!g_use_sandbox) return;
 
     // if project application is running as user boinc_project and 
-    // core client is running as user boinc_master, we cannot send
-    // a signal directly, so use switcher.
+    // client is running as user boinc_master,
+    // we cannot send a signal directly, so use switcher.
+    //
     sprintf(cmd, "/bin/kill kill -s KILL %d", pid);
     switcher_exec(SWITCHER_FILE_NAME, cmd);
 }
@@ -93,7 +94,7 @@ int set_to_project_group(const char* path) {
 //
 int switcher_exec(const char *util_filename, const char* cmdline) {
     char* argv[100];
-    char util_path[1024];
+    char util_path[MAXPATHLEN];
 
     sprintf(util_path, "%s/%s", SWITCHER_DIR, util_filename);
     argv[0] = const_cast<char*>(util_filename);
@@ -184,7 +185,7 @@ int delete_project_owned_file(const char* path, bool retry) {
 // If an error occurs, delete as much as possible.
 //
 int client_clean_out_dir(const char* dirpath, const char* reason) {
-    char filename[256], path[256];
+    char filename[MAXPATHLEN], path[MAXPATHLEN];
     int retval, final_retval = 0;
     DIRREF dirp;
 

@@ -70,23 +70,19 @@
 #include "str_util.h"
 #include "util.h"
 
-#include "client_msgs.h"
-#include "log_flags.h"
 #include "app.h"
-
+#include "app_config.h"
+#include "client_msgs.h"
 #include "client_state.h"
+#include "log_flags.h"
+#include "project.h"
+#include "result.h"
+
 
 using std::vector;
 using std::list;
 
-#ifdef __APPLE__
-using std::isnan;
-#endif
-
 static double rec_sum;
-
-#define DEADLINE_CUSHION    0
-    // try to finish jobs this much in advance of their deadline
 
 // used in schedule_cpus() to keep track of resources used
 // by jobs tentatively scheduled so far
@@ -105,6 +101,9 @@ struct PROC_RESOURCES {
         pr_coprocs.clone(coprocs, false);
         pr_coprocs.clear_usage();
         ram_left = gstate.available_ram();
+        if (have_max_concurrent) {
+            max_concurrent_init();
+        }
     }
 
     // should we stop scanning jobs?
@@ -122,9 +121,11 @@ struct PROC_RESOURCES {
     }
 
     // should we consider scheduling this job?
+    // (i.e add it to the runnable list; not actually run it)
     //
     bool can_schedule(RESULT* rp, ACTIVE_TASK* atp) {
         double wss;
+        if (max_concurrent_exceeded(rp)) return false;
         if (atp) {
             if (gstate.retry_shmem_time > gstate.now) {
                 if (atp->app_client_shm.shm == NULL) {
@@ -159,7 +160,7 @@ struct PROC_RESOURCES {
         }
     }
 
-    // we've decided to run this - update bookkeeping
+    // we've decided to add this to the runnable list; update bookkeeping
     //
     void schedule(RESULT* rp, ACTIVE_TASK* atp, const char* description) {
         if (log_flags.cpu_sched_debug) {
@@ -186,6 +187,7 @@ struct PROC_RESOURCES {
         ram_left -= wss;
 
         adjust_rec_sched(rp);
+        max_concurrent_inc(rp);
     }
 
     bool sufficient_coprocs(RESULT& r) {
@@ -439,16 +441,12 @@ RESULT* first_coproc_result(int rsc_type) {
         if (!rs && bs) {
             continue;
         }
-        if (rp->received_time < best->received_time) {
+
+        // else used "arrived first" order
+        //
+        if (rp->index < best->index) {
             best = rp;
             best_prio = prio;
-        } else if (rp->received_time == best->received_time) {
-            // make it deterministic by looking at name
-            //
-            if (strcmp(rp->name, best->name) > 0) {
-                best = rp;
-                best_prio = prio;
-            }
         }
     }
     return best;
@@ -471,22 +469,16 @@ static RESULT* earliest_deadline_result(int rsc_type) {
         if (rp->non_cpu_intensive()) continue;
         PROJECT* p = rp->project;
 
-        bool only_deadline_misses = true;
-
-        // treat projects with DCF>90 as if they had deadline misses
+        // Skip this job if the project's deadline-miss count is zero.
+        // If the project's DCF is > 90 (and we're not ignoring it)
+        // treat all jobs as deadline misses
         //
-        if (p->duration_correction_factor < 90.0) {
-            int d = p->rsc_pwf[rsc_type].deadlines_missed_copy;
-            if (!d) {
+        if (p->dont_use_dcf || p->duration_correction_factor < 90.0) {
+            if (p->rsc_pwf[rsc_type].deadlines_missed_copy <= 0) {
                 continue;
             }
-        } else {
-            only_deadline_misses = false;
         }
 
-        if (only_deadline_misses && !rp->rr_sim_misses_deadline) {
-            continue;
-        }
         bool new_best = false;
         if (best_result) {
             if (rp->report_deadline < best_result->report_deadline) {
@@ -509,7 +501,7 @@ static RESULT* earliest_deadline_result(int rsc_type) {
         //
         ACTIVE_TASK* atp = gstate.lookup_active_task_by_result(rp);
         if (best_atp && !atp) continue;
-        if (rp->estimated_time_remaining() < best_result->estimated_time_remaining()
+        if (rp->estimated_runtime_remaining() < best_result->estimated_runtime_remaining()
             || (!best_atp && atp)
         ) {
             best_result = rp;
@@ -575,7 +567,7 @@ static void update_rec() {
         if (log_flags.priority_debug) {
             double dt = gstate.now - gstate.debt_interval_start;
             msg_printf(p, MSG_INFO,
-                "[debt] recent est credit: %.2fG in %.2f sec, %f + %f ->%f",
+                "[prio] recent est credit: %.2fG in %.2f sec, %f + %f ->%f",
                 x, dt, old, p->pwf.rec-old, p->pwf.rec
             );
         }
@@ -942,7 +934,7 @@ static inline bool in_run_list(vector<RESULT*>& run_list, ACTIVE_TASK* atp) {
 // if find a MT job J, and X < ncpus, move J before all non-MT jobs
 // But don't promote a MT job ahead of a job in EDF
 //
-// This is needed because there may always be a 1-CPU jobs
+// This is needed because there may always be a 1-CPU job
 // in the middle of its time-slice, and MT jobs could starve.
 //
 static void promote_multi_thread_jobs(vector<RESULT*>& runnable_jobs) {
@@ -1355,6 +1347,9 @@ static inline void assign_coprocs(vector<RESULT*>& jobs) {
     if (coprocs.have_ati()) {
         copy_available_ram(coprocs.ati, GPU_TYPE_ATI);
     }
+    if (coprocs.have_intel()) {
+        copy_available_ram(coprocs.intel_gpu, GPU_TYPE_INTEL);
+    }
 #endif
 
     // fill in pending usage
@@ -1474,10 +1469,12 @@ bool CLIENT_STATE::enforce_run_list(vector<RESULT*>& run_list) {
     unsigned int i;
     vector<ACTIVE_TASK*> preemptable_tasks;
     int retval;
-    double ncpus_used=0, ncpus_used_non_gpu=0;
+    double ncpus_used=0;
     ACTIVE_TASK* atp;
 
     bool action = false;
+
+    if (have_max_concurrent) max_concurrent_init();
 
 #ifndef SIM
     // check whether GPUs are usable
@@ -1570,19 +1567,42 @@ bool CLIENT_STATE::enforce_run_list(vector<RESULT*>& run_list) {
     // and prune those that can't be assigned
     //
     assign_coprocs(run_list);
+    bool scheduled_mt = false;
 
     // prune jobs that don't fit in RAM or that exceed CPU usage limits.
     // Mark the rest as SCHEDULED
     //
-    bool running_multithread = false;
     for (i=0; i<run_list.size(); i++) {
         RESULT* rp = run_list[i];
+
+        if (max_concurrent_exceeded(rp)) {
+            if (log_flags.cpu_sched_debug) {
+                msg_printf(rp->project, MSG_INFO,
+                    "[cpu_sched_debug] skipping %s; max concurrent limit %d reached",
+                    rp->name, rp->app->max_concurrent
+                );
+            }
+            continue;
+        }
+
         atp = lookup_active_task_by_result(rp);
 
-        if (!rp->uses_coprocs()) {
-            // see if we're already using too many CPUs to run this job
-            //
-            if (ncpus_used >= ncpus) {
+        // if we're already using all the CPUs,
+        // don't allow additional CPU jobs;
+        // allow GPU jobs if the resulting CPU load is at most ncpus+1
+        //
+        if (ncpus_used >= ncpus) {
+            if (rp->uses_coprocs()) {
+                if (ncpus_used + rp->avp->avg_ncpus > ncpus+1) {
+                    if (log_flags.cpu_sched_debug) {
+                        msg_printf(rp->project, MSG_INFO,
+                            "[cpu_sched_debug] skipping GPU job %s; CPU committed",
+                            rp->name
+                        );
+                    }
+                    continue;
+                }
+            } else {
                 if (log_flags.cpu_sched_debug) {
                     msg_printf(rp->project, MSG_INFO,
                         "[cpu_sched_debug] all CPUs used (%.2f >= %d), skipping %s",
@@ -1592,47 +1612,22 @@ bool CLIENT_STATE::enforce_run_list(vector<RESULT*>& run_list) {
                 }
                 continue;
             }
+        }
 
-            // Don't run a multithread app if usage would be #CPUS+1 or more.
-            // Multithread apps don't run well on an overcommitted system.
-            // Allow usage of #CPUS + fraction,
-            // so that a GPU app and a multithread app can run together.
-            //
-            if (rp->avp->avg_ncpus > 1) {
-                if (ncpus_used_non_gpu && (ncpus_used_non_gpu + rp->avp->avg_ncpus >= ncpus+1)) {
-                    // the "ncpus_used &&" is to allow running a job that uses
-                    // more than ncpus (this can happen in pathological cases)
-
-                    if (log_flags.cpu_sched_debug) {
-                        msg_printf(rp->project, MSG_INFO,
-                            "[cpu_sched_debug] not enough CPUs for multithread job, skipping %s",
-                            rp->name
-                        );
-                    }
-                    continue;
-                }
-                running_multithread = true;
-            } else {
-                // here for a single-thread app.
-                // Don't run if we're running a multithread app,
-                // and running this app would overcommit CPUs.
-                //
-                if (running_multithread) {
-                    if (ncpus_used + 1 > ncpus) {
-                        if (log_flags.cpu_sched_debug) {
-                            msg_printf(rp->project, MSG_INFO,
-                                "[cpu_sched_debug] avoiding overcommit with multithread job, skipping %s",
-                                rp->name
-                            );
-                        }
-                        continue;
-                    }
-                } else {
-                    if (ncpus_used >= ncpus) {
-                        continue;
-                    }
-                }
+        // Don't overcommit CPUs if a MT job is scheduled.
+        // Skip this check for GPU jobs.
+        //
+        if (!rp->uses_coprocs()
+            && (scheduled_mt || (rp->avp->avg_ncpus > 1))
+            && (ncpus_used + rp->avp->avg_ncpus > ncpus)
+        ) {
+            if (log_flags.cpu_sched_debug) {
+                msg_printf(rp->project, MSG_INFO,
+                    "[cpu_sched_debug] avoid MT overcommit: skipping %s",
+                    rp->name
+                );
             }
+            continue;
         }
 
         double wss = 0;
@@ -1646,9 +1641,9 @@ bool CLIENT_STATE::enforce_run_list(vector<RESULT*>& run_list) {
             if (atp) {
                 atp->too_large = true;
             }
-            if (log_flags.mem_usage_debug) {
+            if (log_flags.cpu_sched_debug || log_flags.mem_usage_debug) {
                 msg_printf(rp->project, MSG_INFO,
-                    "[mem_usage] enforce: result %s can't run, too big %.2fMB > %.2fMB",
+                    "[cpu_sched_debug] enforce: result %s can't run, too big %.2fMB > %.2fMB",
                     rp->name,  wss/MEGA, ram_left/MEGA
                 );
             }
@@ -1667,13 +1662,13 @@ bool CLIENT_STATE::enforce_run_list(vector<RESULT*>& run_list) {
             atp = get_task(rp);
         }
 
-        // don't count CPU usage by GPU jobs
-        if (!rp->uses_coprocs()) {
-            ncpus_used_non_gpu += rp->avp->avg_ncpus;
+        if (rp->avp->avg_ncpus > 1) {
+            scheduled_mt = true;
         }
         ncpus_used += rp->avp->avg_ncpus;
         atp->next_scheduler_state = CPU_SCHED_SCHEDULED;
         ram_left -= wss;
+        max_concurrent_inc(rp);
     }
 
     if (log_flags.cpu_sched_debug && ncpus_used < ncpus) {
@@ -1942,40 +1937,6 @@ ACTIVE_TASK* CLIENT_STATE::get_task(RESULT* rp) {
     return atp;
 }
 
-// Results must be complete early enough to report before the report deadline.
-// Not all hosts are connected all of the time.
-//
-double RESULT::computation_deadline() {
-    return report_deadline - (
-        gstate.work_buf_min()
-            // Seconds that the host will not be connected to the Internet
-        + DEADLINE_CUSHION
-    );
-}
-
-static const char* result_state_name(int val) {
-    switch (val) {
-    case RESULT_NEW: return "NEW";
-    case RESULT_FILES_DOWNLOADING: return "FILES_DOWNLOADING";
-    case RESULT_FILES_DOWNLOADED: return "FILES_DOWNLOADED";
-    case RESULT_COMPUTE_ERROR: return "COMPUTE_ERROR";
-    case RESULT_FILES_UPLOADING: return "FILES_UPLOADING";
-    case RESULT_FILES_UPLOADED: return "FILES_UPLOADED";
-    case RESULT_ABORTED: return "ABORTED";
-    }
-    return "Unknown";
-}
-
-void RESULT::set_state(int val, const char* where) {
-    _state = val;
-    if (log_flags.task_debug) {
-        msg_printf(project, MSG_INFO,
-            "[task] result state=%s for %s from %s",
-            result_state_name(val), name, where
-        );
-    }
-}
-
 // called at startup (after get_host_info())
 // and when general prefs have been parsed.
 // NOTE: GSTATE.NCPUS MUST BE 1 OR MORE; WE DIVIDE BY IT IN A COUPLE OF PLACES
@@ -2015,9 +1976,10 @@ void CLIENT_STATE::set_ncpus() {
 // completion time for this project's results
 //
 void PROJECT::update_duration_correction_factor(ACTIVE_TASK* atp) {
+    if (dont_use_dcf) return;
     RESULT* rp = atp->result;
-    double raw_ratio = atp->elapsed_time/rp->estimated_duration_uncorrected();
-    double adj_ratio = atp->elapsed_time/rp->estimated_duration();
+    double raw_ratio = atp->elapsed_time/rp->estimated_runtime_uncorrected();
+    double adj_ratio = atp->elapsed_time/rp->estimated_runtime();
     double old_dcf = duration_correction_factor;
 
     // it's OK to overestimate completion time,
@@ -2049,4 +2011,3 @@ void PROJECT::update_duration_correction_factor(ACTIVE_TASK* atp) {
         );
     }
 }
-

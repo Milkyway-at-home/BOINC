@@ -25,9 +25,9 @@
 #include <unistd.h>
 #endif
 
-using std::perror;
-
 #include "msg_queue.h"
+
+using std::perror;
 
 int create_message_queue(key_t key) {
     int mq_id;

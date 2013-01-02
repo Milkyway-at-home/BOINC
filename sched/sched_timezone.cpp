@@ -19,6 +19,7 @@
 // download servers based on its time zone
 
 #include "config.h"
+#include <sys/param.h>
 #include <string>
 #include <cstdio>
 #include <cstring>
@@ -123,14 +124,18 @@ URLTYPE* read_download_list() {
     }
 
     // read in lines from file
+    //
     while (1) {
         // allocate memory in blocks
         if ((count % BLOCKSIZE)==0) {
             cached=(URLTYPE *)realloc(cached, (count+BLOCKSIZE)*sizeof(URLTYPE));
-            if (!cached) return NULL;
+            if (!cached) {
+                fclose(fp);
+                return NULL;
+            }
         }
-        // read timezone offset and URL from file, and store in cache
-        // list
+        // read timezone offset and URL from file, and store in cache list
+        //
         if (2==fscanf(fp, "%d %s", &(cached[count].zone), cached[count].name)) {
             count++;
         } else {
@@ -216,7 +221,7 @@ int add_download_servers(char *old_xml, char *new_xml, int tz) {
         // q is at beginning of next "<url>" tag
 
         char *s;
-        char path[1024];
+        char path[MAXPATHLEN];
         int  len = q-p;
 
         // copy everything from p to q to new_xml

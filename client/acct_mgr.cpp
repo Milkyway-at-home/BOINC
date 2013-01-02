@@ -24,17 +24,19 @@
 #include <cstring>
 #endif
 
-#include "parse.h"
+#include "crypt.h"
 #include "error_numbers.h"
-#include "client_msgs.h"
+#include "parse.h"
 #include "str_util.h"
 #include "str_replace.h"
 #include "url.h"
+
+#include "client_msgs.h"
+#include "client_state.h"
 #include "file_names.h"
 #include "filesys.h"
-#include "client_state.h"
 #include "gui_http.h"
-#include "crypt.h"
+#include "project.h"
 
 #include "acct_mgr.h"
 
@@ -259,6 +261,8 @@ int AM_ACCOUNT::parse(XML_PARSER& xp) {
             handle_no_rsc("CPU", btemp);
             continue;
         }
+
+        // deprecated
         if (xp.parse_bool("no_cuda", btemp)) {
             handle_no_rsc(GPU_TYPE_NVIDIA, btemp);
             continue;
@@ -267,6 +271,7 @@ int AM_ACCOUNT::parse(XML_PARSER& xp) {
             handle_no_rsc(GPU_TYPE_NVIDIA, btemp);
             continue;
         }
+
         if (xp.parse_str("no_rsc", buf, sizeof(buf))) {
             handle_no_rsc(buf, true);
         }
@@ -494,7 +499,9 @@ void ACCT_MGR_OP::handle_reply(int http_op_retval) {
         //
         for (i=0; i<accounts.size(); i++) {
             AM_ACCOUNT& acct = accounts[i];
-            retval = verify_string2(acct.url.c_str(), acct.url_signature, ami.signing_key, verified);
+            retval = check_string_signature2(
+                acct.url.c_str(), acct.url_signature, ami.signing_key, verified
+            );
             if (retval || !verified) {
                 msg_printf(NULL, MSG_INTERNAL_ERROR,
                     "Bad signature for URL %s", acct.url.c_str()
@@ -587,6 +594,14 @@ void ACCT_MGR_OP::handle_reply(int http_op_retval) {
                     }
                 }
             } else {
+                if (acct.authenticator.empty()) {
+                    msg_printf(NULL, MSG_INFO,
+                        "Account manager reply missing authenticator for %s",
+                        acct.url.c_str()
+                    );
+                    continue;
+                }
+
                 // here we don't already have the project.
                 // Attach to it, unless the acct mgr is telling us to detach
                 //

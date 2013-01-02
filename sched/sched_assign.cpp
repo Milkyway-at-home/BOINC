@@ -26,6 +26,7 @@
 #include <cstdio>
 #endif
 
+#include <sys/param.h>
 #include <unistd.h>
 
 #include "boinc_db.h"
@@ -46,7 +47,7 @@
 static int send_assigned_job(ASSIGNMENT& asg) {
     int retval;
     DB_WORKUNIT wu;
-    char suffix[256], path[256];
+    char suffix[256], path[MAXPATHLEN];
     const char *rtfpath;
     static bool first=true;
     static int seqno=0;
@@ -172,10 +173,10 @@ bool send_assigned_jobs() {
     // for now, only look for user assignments
     //
     char buf[256];
-    sprintf(buf, "target_type=%d and target_id=%d and multi=0",
+    sprintf(buf, "where target_type=%d and target_id=%d and multi=0",
         ASSIGN_USER, g_reply->user.id
     );
-    while (asg.enumerate(buf)) {
+    while (!asg.enumerate(buf)) {
         if (!work_needed(false)) continue; 
 
         // if the WU doesn't exist, delete the assignment record.
@@ -196,7 +197,7 @@ bool send_assigned_jobs() {
         //
         sprintf(buf, "where workunitid=%d and hostid=%d",
             asg.workunitid,
-            g_request->host.id
+            g_reply->host.id
         );
         retval = result.lookup(buf);
         if (retval != ERR_DB_NOT_FOUND) continue;

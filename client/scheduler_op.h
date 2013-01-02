@@ -116,12 +116,14 @@ struct SCHEDULER_REPLY {
     std::vector<RESULT> result_acks;
     std::vector<RESULT> result_abort;
     std::vector<RESULT> result_abort_if_not_started;
+    std::vector<FILE_REF> project_files;
     char* code_sign_key;
     char* code_sign_key_signature;
     bool message_ack;
     bool project_is_down;
     bool send_file_list;      
     bool send_full_workload;      
+    bool dont_use_dcf;      
     int send_time_stats_log;
     int send_job_log;
     int scheduler_version;

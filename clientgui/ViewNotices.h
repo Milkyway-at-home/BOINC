@@ -44,15 +44,23 @@ public:
     virtual const char**    GetViewIcon();
     virtual const int       GetViewRefreshRate();
     virtual const int       GetViewCurrentViewPage();
+    void                    ReloadNotices();
 
 protected:
+    wxStaticText*           m_ReloadNoticesText;
+    wxButton*               m_ReloadNoticesButton;
 	CNoticeListCtrl*        m_pHtmlListPane;
+    wxStaticText*           m_FetchingNoticesText;
+    wxStaticText*           m_NoNoticesText;
+    bool                    m_bMissingItems;
 
     virtual bool            OnSaveState( wxConfigBase* pConfig );
     virtual bool            OnRestoreState( wxConfigBase* pConfig );
 
     virtual void            OnListRender( wxTimerEvent& event );
     void                    OnLinkClicked( NoticeListCtrlEvent& event );
+    void                    OnRetryButton( wxCommandEvent& event );
+
 
     DECLARE_EVENT_TABLE()
 };

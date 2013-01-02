@@ -21,11 +21,14 @@
 // This program must be run in the project's root directory
 //
 #include "config.h"
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <string>
+#include <sys/param.h>
+#include <unistd.h>
 
 #include "backend_lib.h"
 #include "boinc_db.h"
@@ -57,12 +60,12 @@ void usage() {
         "   [ --max_total_results x ]\n"
         "   [ --max_success_results x ]\n"
         "   [ --additional_xml x ]\n"
-        "   [ --assign_all ]\n"
-        "   [ --assign_host ID ]\n"
-        "   [ --assign_user_one ID ]\n"
-        "   [ --assign_user_all ID ]\n"
-        "   [ --assign_team_one ID ]\n"
-        "   [ --assign_team_all ID ]\n"
+        "   [ --broadcast ]\n"
+        "   [ --broadcast_user ID ]\n"
+        "   [ --broadcast_team ID ]\n"
+        "   [ --target_host ID ]\n"
+        "   [ --target_user ID ]\n"
+        "   [ --target_team ID ]\n"
         "   [ --wu_id N ]   ID of existing workunit record (used by boinc_submit)\n"
     );
     exit(1);
@@ -82,7 +85,7 @@ int main(int argc, const char** argv) {
     DB_WORKUNIT wu;
     int retval;
     char wu_template[BLOB_SIZE];
-    char wu_template_file[256], result_template_file[256], result_template_path[1024];
+    char wu_template_file[256], result_template_file[256], result_template_path[MAXPATHLEN];
     const char* command_line=NULL;
     const char** infiles = NULL;
     int i, ninfiles;
@@ -171,31 +174,31 @@ int main(int argc, const char** argv) {
             strcpy(additional_xml, argv[++i]);
         } else if (arg(argv, i, "wu_id")) {
             wu.id = atoi(argv[++i]);
-        } else if (arg(argv, i, "assign_all")) {
+        } else if (arg(argv, i, "broadcast")) {
             assign_multi = true;
             assign_flag = true;
             assign_type = ASSIGN_NONE;
-        } else if (arg(argv, i, "assign_host")) {
+        } else if (arg(argv, i, "broadcast_user")) {
+            assign_flag = true;
+            assign_type = ASSIGN_USER;
+            assign_multi = true;
+            assign_id = atoi(argv[++i]);
+        } else if (arg(argv, i, "broadcast_team")) {
+            assign_flag = true;
+            assign_type = ASSIGN_TEAM;
+            assign_multi = true;
+            assign_id = atoi(argv[++i]);
+        } else if (arg(argv, i, "target_host")) {
             assign_flag = true;
             assign_type = ASSIGN_HOST;
             assign_id = atoi(argv[++i]);
-        } else if (arg(argv, i, "assign_user_one")) {
+        } else if (arg(argv, i, "target_user")) {
             assign_flag = true;
             assign_type = ASSIGN_USER;
             assign_id = atoi(argv[++i]);
-        } else if (arg(argv, i, "assign_user_all")) {
-            assign_flag = true;
-            assign_type = ASSIGN_USER;
-            assign_multi = true;
-            assign_id = atoi(argv[++i]);
-        } else if (arg(argv, i, "assign_team_one")) {
+        } else if (arg(argv, i, "target_team")) {
             assign_flag = true;
             assign_type = ASSIGN_TEAM;
-            assign_id = atoi(argv[++i]);
-        } else if (arg(argv, i, "assign_team_all")) {
-            assign_flag = true;
-            assign_type = ASSIGN_TEAM;
-            assign_multi = true;
             assign_id = atoi(argv[++i]);
         } else if (arg(argv, i, "help")) {
             usage();
@@ -227,7 +230,7 @@ int main(int argc, const char** argv) {
 
     retval = config.parse_file(config_dir);
     if (retval) {
-        fprintf(stderr, "Can't parse config file: %d\n", retval);
+        fprintf(stderr, "Can't parse config file: %s\n", boincerror(retval));
         exit(1);
     } else {
         strcpy(db_name, config.db_name);
@@ -239,7 +242,9 @@ int main(int argc, const char** argv) {
 
     retval = boinc_db.open(db_name, db_host, db_user, db_passwd);
     if (retval) {
-        fprintf(stderr, "create_work: error opening database: %d\n", retval );
+        fprintf(stderr,
+            "create_work: error opening database: %s\n", boincerror(retval)
+        );
         exit(1);
     }
     sprintf(buf, "where name='%s'", app.name);
@@ -273,7 +278,7 @@ int main(int argc, const char** argv) {
         additional_xml
     );
     if (retval) {
-        fprintf(stderr, "create_work: %d\n", retval);
+        fprintf(stderr, "create_work: %s\n", boincerror(retval));
         exit(1);
     } else {
         if (show_wu_name) {
@@ -290,7 +295,17 @@ int main(int argc, const char** argv) {
         assignment.workunitid = wu.id;
         retval = assignment.insert();
         if (retval) {
-            fprintf(stderr, "assignment.insert() failed: %d\n", retval);
+            fprintf(stderr,
+                "assignment.insert() failed: %s\n", boincerror(retval)
+            );
+            exit(1);
+        }
+        sprintf(buf, "transitioner_flags=%d",
+            assign_multi?TRANSITION_NONE:TRANSITION_NO_NEW_RESULTS
+        );
+        retval = wu.update_field(buf);
+        if (retval) {
+            fprintf(stderr, "wu.update() failed: %s\n", boincerror(retval));
             exit(1);
         }
     }

@@ -52,6 +52,8 @@ create table app (
     min_avg_pfc             double          not null default 1,
     host_scale_check        tinyint         not null default 0,
     homogeneous_app_version tinyint         not null default 0,
+    non_cpu_intensive       tinyint         not null default 0,
+    locality_scheduling     integer         not null default 0,
     primary key (id)
 ) engine=InnoDB;
 
@@ -301,7 +303,9 @@ create table batch (
     credit_canonical        double          not null,
     credit_total            double          not null,
     name                    varchar(255)    not null,
-    app_id                  integer         not null
+    app_id                  integer         not null,
+    project_state           integer         not null,
+    description             varchar(255)    not null
 ) engine = InnoDB;
 
 -- permissions for job submission
@@ -329,6 +333,17 @@ create table user_submit_app (
         --   create/deprecated app versions of this app
         --   grant/revoke permissions (except admin) this app
         --   abort their jobs
+) engine = InnoDB;
+
+-- Record files present on server.
+-- Files are named jf_(md5)
+--
+create table job_file (
+    id                      integer         not null auto_increment,
+    md5                     char(64)        not null,
+    create_time             double          not null,
+    delete_time             double          not null,
+    primary key (id)
 ) engine = InnoDB;
 
 -- the following are used to implement trickle messages
@@ -363,7 +378,7 @@ create table assignment (
     target_type             integer         not null,
         -- 0=none, 1=host, 2=user, 3=team
     multi                   tinyint         not null,
-        -- 0=single host, 1=all hosts in set
+        -- 0=normal replication, 1=all hosts in set
     workunitid              integer         not null,
     resultid                integer         not null,
         -- if not multi, the result

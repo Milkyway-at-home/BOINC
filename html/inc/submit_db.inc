@@ -87,6 +87,31 @@ class BoincUserSubmitApp {
         $db = BoincDb::get();
         $db->delete_aux('user_submit_app', "user_id=$user_id");
     }
+    function update($clause) {
+        $db = BoincDb::get();
+        $db->update_aux('user_submit_app', "$clause where user_id=$this->user_id and app_id=$this->app_id");
+    }
+}
+
+class BoincJobFile {
+    static function insert($clause) {
+        $db = BoincDb::get();
+        $ret = $db->insert('job_file', $clause);
+        if (!$ret) return false;
+        return true;
+    }
+    static function lookup_md5($md5) {
+        $db = BoincDb::get();
+        return $db->lookup('job_file', 'BoincJobFile', "md5='$md5'");
+    }
+    function delete() {
+        $db = BoincDb::get();
+        $db->delete(this, 'job_file');
+    }
+    function update($clause) {
+        $db = BoincDb::get();
+        return $db->update($this, 'job_file', $clause);
+    }
 }
 
 ?>

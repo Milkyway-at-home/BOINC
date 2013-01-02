@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# $Id$
+# $Id: configxml.py 2867 2004-01-13 06:51:19Z quarl $
 
 # configxml.py - module to read and parse config.xml, run_state.xml
 

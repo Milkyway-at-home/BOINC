@@ -18,12 +18,8 @@
 #ifndef STR_UTIL_H
 #define STR_UTIL_H
 
-#include <cstdlib>
-#include <ctime>
-#include <cctype>
-#include <cstring>
 #include <string>
-#include <vector>
+#include <string.h>
 
 extern void strcpy_overlap(char*, const char*);
 extern int ndays_to_string(double x, int smallest_timescale, char *buf);
@@ -36,6 +32,7 @@ extern void strip_whitespace(std::string&);
 #define safe_strcat(x, y) if (strlen(x)+strlen(y)<sizeof(x)) strcat(x, y)
 extern char* time_to_string(double);
 extern char* precision_time_to_string(double);
+extern void secs_to_hmsf(double, char*);
 extern std::string timediff_format(double);
 
 inline bool ends_with(std::string const& s, std::string const& suffix) {
@@ -44,8 +41,18 @@ inline bool ends_with(std::string const& s, std::string const& suffix) {
         s.substr(s.size()-suffix.size()) == suffix;
 }
 
+inline bool ends_with(const char* s, const char* suffix) {
+    int m = (int)strlen(s), n = (int)strlen(suffix);
+    if (n > m) return false;
+    return (strcmp(suffix, s+m-n) == 0);
+}
+
 inline bool starts_with(std::string const& s, std::string const& prefix) {
     return s.substr(0, prefix.size()) == prefix;
+}
+
+inline bool starts_with(const char* s, const char* prefix) {
+    return (strncmp(s, prefix, strlen(prefix)) == 0);
 }
 
 inline void downcase_string(std::string& w) {

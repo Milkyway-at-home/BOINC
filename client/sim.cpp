@@ -57,14 +57,20 @@
 //  [--rec_half_life X]
 //      half-life of recent est credit
 
+#include <math.h>
+
 #include "error_numbers.h"
 #include "str_util.h"
 #include "util.h"
 #include "log_flags.h"
 #include "filesys.h"
+#include "../sched/edf_sim.h"
+
 #include "client_msgs.h"
 #include "client_state.h"
-#include "../sched/edf_sim.h"
+#include "project.h"
+#include "result.h"
+
 #include "sim.h"
 
 #define SCHED_RETRY_DELAY_MIN    60                // 1 minute
@@ -137,6 +143,18 @@ double app_peak_flops(APP_VERSION* avp, double cpu_scale) {
     }
     x *= gstate.host_info.p_fpops;
     return x;
+}
+
+double gpu_peak_flops() {
+    double x = 0;
+    for (int i=1; i<coprocs.n_rsc; i++) {
+        x += coprocs.coprocs[i].count * rsc_work_fetch[i].relative_speed * gstate.host_info.p_fpops;
+    }
+    return x;
+}
+
+double cpu_peak_flops() {
+    return gstate.ncpus * gstate.host_info.p_fpops;
 }
 
 void print_project_results(FILE* f) {
@@ -275,7 +293,7 @@ void CLIENT_STATE::handle_completed_results(PROJECT* p) {
 void CLIENT_STATE::get_workload(vector<IP_RESULT>& ip_results) {
     for (unsigned int i=0; i<results.size(); i++) {
         RESULT* rp = results[i];
-        double x = rp->estimated_time_remaining();
+        double x = rp->estimated_runtime_remaining();
         if (x == 0) continue;
         IP_RESULT ipr(rp->name, rp->report_deadline-now, x);
         ip_results.push_back(ipr);
@@ -484,16 +502,16 @@ bool CLIENT_STATE::scheduler_rpc_poll() {
 #if 0
         p = next_project_sched_rpc_pending();
         if (p) {
-            work_fetch.compute_work_request(p);
+            work_fetch.piggyback_work_request(p);
             action = simulate_rpc(p);
             break;
         }
 #endif
     
-        p = find_project_with_overdue_results();
+        p = find_project_with_overdue_results(false);
         if (p) {
             //printf("doing RPC to %s to report results\n", p->project_name);
-            work_fetch.compute_work_request(p);
+            work_fetch.piggyback_work_request(p);
             action = simulate_rpc(p);
             break;
         }
@@ -510,7 +528,7 @@ bool CLIENT_STATE::scheduler_rpc_poll() {
         must_check_work_fetch = false;
         last_work_fetch_time = now;
 
-        p = work_fetch.choose_project();
+        p = work_fetch.choose_project(true);
 
         if (p) {
             action = simulate_rpc(p);
@@ -963,7 +981,7 @@ void html_end() {
 void set_initial_rec() {
     unsigned int i;
     double sum=0;
-    double x = total_peak_flops();
+    double x = cpu_peak_flops() + gpu_peak_flops();
     for (i=0; i<gstate.projects.size(); i++) {
         sum += gstate.projects[i]->resource_share;
     }
@@ -1348,6 +1366,8 @@ void do_client_simulation() {
         exit(1);
     }
 
+    // if tasks have pending transfers, mark as completed
+    //
     for (unsigned int i=0; i<gstate.results.size(); i++) {
         RESULT* rp = gstate.results[i];
         if (rp->state() < RESULT_FILES_DOWNLOADED) {

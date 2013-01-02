@@ -18,6 +18,8 @@
 
 // interfaces for accessing sempahores
 
+#ifndef ANDROID
+
 #include "config.h"
 #include <cstdio>
 #include <cstdlib>
@@ -25,12 +27,13 @@
 
 using std::memset;
 
-#include "error_numbers.h"
-#include "synch.h"
-
 #ifdef _USING_FCGI_
 #include "boinc_fcgi.h"
 #endif
+
+#include "error_numbers.h"
+
+#include "synch.h"
 
 union SEMUN {
     int val;
@@ -111,3 +114,4 @@ int get_key(char* path, int id, key_t& key) {
     return 0;
 }
 
+#endif

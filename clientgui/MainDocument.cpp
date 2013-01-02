@@ -407,6 +407,7 @@ CMainDocument::CMainDocument() : rpc(this) {
     m_iNoticeSequenceNumber = 0;
     m_iLastReadNoticeSequenceNumber = -1;
     m_dLastReadNoticeArrivalTime = 0.0;
+    m_bWaitingForGetNoticesRPC = false;
 
     m_dtCachedStateTimestamp = wxDateTime((time_t)0);
     m_iGet_state_rpc_result = 0;
@@ -906,8 +907,8 @@ void CMainDocument::RunPeriodicRPCs(int frameRefreshRate) {
         pFrame->AddPendingEvent(event);
         CTaskBarIcon* pTaskbar = wxGetApp().GetTaskBarIcon();
         if (pTaskbar) {
-            CTaskbarEvent event(wxEVT_TASKBAR_REFRESH, pTaskbar);
-            pTaskbar->AddPendingEvent(event);
+            CTaskbarEvent tbevent(wxEVT_TASKBAR_REFRESH, pTaskbar);
+            pTaskbar->AddPendingEvent(tbevent);
         }
         CDlgEventLog* eventLog = wxGetApp().GetEventLog();
         if (eventLog) {
@@ -972,18 +973,23 @@ void CMainDocument::RunPeriodicRPCs(int frameRefreshRate) {
     ts = dtNow - m_dtNoticesTimeStamp;
     if ((currentTabView & VW_NOTIF) || 
         (ts.GetSeconds() >= NOTICESBACKGROUNDRPC_INTERVAL)) {
-    
-        request.clear();
-        request.which_rpc = RPC_GET_NOTICES;
-        // m_iNoticeSequenceNumber could change between request and execution
-        // of RPC, so pass in a pointer rather than its value
-        request.arg1 = &m_iNoticeSequenceNumber;
-        request.arg2 = &notices;
-        request.rpcType = RPC_TYPE_ASYNC_WITH_REFRESH_AFTER;
-        request.completionTime = &m_dtNoticesTimeStamp;
-        request.resultPtr = &m_iGet_notices_rpc_result;
-       
-        RequestRPC(request);
+        // Don't request another get_notices RPC until we have 
+        // updated m_iNoticeSequenceNumber from the previous 
+        // one; otherwise we will get duplicate notices
+        if (!m_bWaitingForGetNoticesRPC) {
+            m_bWaitingForGetNoticesRPC =  true;
+            request.clear();
+            request.which_rpc = RPC_GET_NOTICES;
+            // m_iNoticeSequenceNumber could change between request and execution
+            // of RPC, so pass in a pointer rather than its value
+            request.arg1 = &m_iNoticeSequenceNumber;
+            request.arg2 = &notices;
+            request.rpcType = RPC_TYPE_ASYNC_WITH_REFRESH_AFTER;
+            request.completionTime = &m_dtNoticesTimeStamp;
+            request.resultPtr = &m_iGet_notices_rpc_result;
+           
+            RequestRPC(request);
+        }
     }
     
     ts = dtNow - m_dtCachedStateTimestamp;
@@ -1303,10 +1309,10 @@ PROJECT* CMainDocument::project(unsigned int i) {
 
 
 PROJECT* CMainDocument::project(char* url) {
-	for (unsigned int i=0; i< state.projects.size(); i++) {
-		PROJECT* tp = state.projects[i];
-		if (!strcmp(url, tp->master_url)) return tp;
-	}
+    for (unsigned int i=0; i< state.projects.size(); i++) {
+        PROJECT* tp = state.projects[i];
+        if (!strcmp(url, tp->master_url)) return tp;
+    }
     return NULL;
 }
 
@@ -1528,7 +1534,9 @@ int CMainDocument::WorkResume(char* url, char* name) {
 // If the graphics application for the current task is already 
 // running, return a pointer to its RUNNING_GFX_APP struct.
 //
-RUNNING_GFX_APP* CMainDocument::GetRunningGraphicsApp(RESULT* result, int slot) {
+RUNNING_GFX_APP* CMainDocument::GetRunningGraphicsApp(
+    RESULT* rp, int slot
+) {
     bool exited = false;
     std::vector<RUNNING_GFX_APP>::iterator gfx_app_iter;
     
@@ -1536,7 +1544,7 @@ RUNNING_GFX_APP* CMainDocument::GetRunningGraphicsApp(RESULT* result, int slot) 
         gfx_app_iter != m_running_gfx_apps.end(); 
         gfx_app_iter++
     ) {
-         if ( (slot >= 0) && ((*gfx_app_iter).slot != slot) ) continue;
+         if ((slot >= 0) && ((*gfx_app_iter).slot != slot)) continue;
 
 #ifdef _WIN32
         unsigned long exit_code;
@@ -1551,8 +1559,9 @@ RUNNING_GFX_APP* CMainDocument::GetRunningGraphicsApp(RESULT* result, int slot) 
         }
 #endif
         if (! exited) {
-            if ( (result->name == (*gfx_app_iter).name) &&
-                (result->project_url == (*gfx_app_iter).project_url) ) {
+            if ((rp->name == (*gfx_app_iter).name) &&
+                (rp->project_url == (*gfx_app_iter).project_url)
+            ) {
                 return &(*gfx_app_iter);
             }
     
@@ -1660,15 +1669,15 @@ void CMainDocument::KillGraphicsApp(int pid) {
 }
 #endif
 
-int CMainDocument::WorkShowGraphics(RESULT* result) {
+int CMainDocument::WorkShowGraphics(RESULT* rp) {
     int iRetVal = 0;
     
-    if (strlen(result->web_graphics_url)) {
-        wxString url(result->web_graphics_url, wxConvUTF8);
+    if (strlen(rp->web_graphics_url)) {
+        wxString url(rp->web_graphics_url, wxConvUTF8);
         wxLaunchDefaultBrowser(url);
         return 0;
     }
-    if (strlen(result->graphics_exec_path)) {
+    if (strlen(rp->graphics_exec_path)) {
         // V6 Graphics
         RUNNING_GFX_APP gfx_app;
         RUNNING_GFX_APP* previous_gfx_app;
@@ -1680,12 +1689,12 @@ int CMainDocument::WorkShowGraphics(RESULT* result) {
         int      id;
 #endif
 
-        p = strrchr((char*)result->slot_path, '/');
+        p = strrchr((char*)rp->slot_path, '/');
         if (!p) return ERR_INVALID_PARAM;
         slot = atoi(p+1);
         
         // See if we are already running the graphics application for this task
-        previous_gfx_app = GetRunningGraphicsApp(result, slot);
+        previous_gfx_app = GetRunningGraphicsApp(rp, slot);
 
 #ifndef __WXMSW__
         char* argv[4];
@@ -1709,13 +1718,13 @@ int CMainDocument::WorkShowGraphics(RESULT* result) {
         // exits with "RegisterProcess failed (error = -50)" unless 
         // we pass its full path twice in the argument list to execv.
         //
-        argv[1] = (char *)result->graphics_exec_path;
-        argv[2] = (char *)result->graphics_exec_path;
+        argv[1] = (char *)rp->graphics_exec_path;
+        argv[2] = (char *)rp->graphics_exec_path;
         argv[3] = 0;
     
          if (g_use_sandbox) {
             iRetVal = run_program(
-                result->slot_path,
+                rp->slot_path,
                "../../switcher/switcher",
                 3,
                 argv,
@@ -1724,8 +1733,8 @@ int CMainDocument::WorkShowGraphics(RESULT* result) {
             );
         } else {        
             iRetVal = run_program(
-                result->slot_path,
-                result->graphics_exec_path,
+                rp->slot_path,
+                rp->graphics_exec_path,
                 1,
                 &argv[2],
                 0,
@@ -1741,8 +1750,8 @@ int CMainDocument::WorkShowGraphics(RESULT* result) {
         argv[0] = 0;
         
         iRetVal = run_program(
-            result->slot_path,
-            result->graphics_exec_path,
+            rp->slot_path,
+            rp->graphics_exec_path,
             0,
             argv,
             0,
@@ -1751,8 +1760,8 @@ int CMainDocument::WorkShowGraphics(RESULT* result) {
 #endif
         if (!iRetVal) {
             gfx_app.slot = slot;
-            gfx_app.project_url = result->project_url;
-            gfx_app.name = result->name;
+            gfx_app.project_url = rp->project_url;
+            gfx_app.name = rp->name;
             gfx_app.pid = id;
             m_running_gfx_apps.push_back(gfx_app);
         }
@@ -1775,32 +1784,32 @@ int CMainDocument::WorkShowVMConsole(RESULT* result) {
         strCommand = wxT("rdesktop-vrdp ") + strConnection;
         wxExecute(strCommand);
 #elif defined(__WXMAC__)
-    FSRef theFSRef;
-    OSStatus status = noErr;
+        FSRef theFSRef;
+        OSStatus status = noErr;
 
-    // I have found no reliable way to pass the IP address and port to Microsoft's 
-    // Remote Desktop Connection application for the Mac, so I'm using CoRD.  
-    // Unfortunately, CoRD does not seem as reliable as I would like either.
-    //
-    // First try to find the CoRD application by Bundle ID and Creator Code
-    status = LSFindApplicationForInfo('RDC#', CFSTR("net.sf.cord"),   
+        // I have found no reliable way to pass the IP address and port to Microsoft's 
+        // Remote Desktop Connection application for the Mac, so I'm using CoRD.  
+        // Unfortunately, CoRD does not seem as reliable as I would like either.
+        //
+        // First try to find the CoRD application by Bundle ID and Creator Code
+        status = LSFindApplicationForInfo('RDC#', CFSTR("net.sf.cord"),   
                                         NULL, &theFSRef, NULL);
-    if (status != noErr) {
-        CBOINCBaseFrame* pFrame = wxGetApp().GetFrame();
-        if (pFrame) {
-            pFrame->ShowAlert(
-                _("Missing application"), 
-                _("Please download and install the CoRD application from http://cord.sourceforge.net"),
-                wxOK | wxICON_INFORMATION,
+        if (status != noErr) {
+            CBOINCBaseFrame* pFrame = wxGetApp().GetFrame();
+            if (pFrame) {
+                pFrame->ShowAlert(
+                    _("Missing application"), 
+                    _("Please download and install the CoRD application from http://cord.sourceforge.net"),
+                    wxOK | wxICON_INFORMATION,
                     false
                 );
-        } 
-        return ERR_FILE_MISSING;
-    }
+            } 
+            return ERR_FILE_MISSING;
+        }
 
-    strCommand = wxT("osascript -e 'tell application \"CoRD\"' -e 'activate' -e 'open location \"rdp://") + strConnection + wxT("\"' -e 'end tell'");
-    strCommand.Replace(wxT("localhost"), wxT("127.0.0.1"));
-    system(strCommand.char_str());
+        strCommand = wxT("osascript -e 'tell application \"CoRD\"' -e 'activate' -e 'open location \"rdp://") + strConnection + wxT("\"' -e 'end tell'");
+        strCommand.Replace(wxT("localhost"), wxT("127.0.0.1"));
+        system(strCommand.char_str());
 #endif
     }
 
@@ -1831,7 +1840,7 @@ int CMainDocument::CachedNoticeUpdate() {
 
     if (in_this_func) return 0;
     in_this_func = true;
-
+    
     if (IsConnected()) {
         // Can't look up previous last read message until we know machine name
         if (!strlen(state.host_info.domain_name)) {
@@ -1926,7 +1935,7 @@ int CMainDocument::GetNoticeCount() {
     // only after a get_notices RPC completes so notices buffer is stable.
     CachedStateUpdate();
 
-    if (!notices.notices.empty()) {
+    if (notices.received) {
         iCount = (int)notices.notices.size();
     }
     
@@ -2318,10 +2327,6 @@ int CMainDocument::SetProxyConfiguration() {
     if (!proxy_info.http_user_name.empty() || !proxy_info.http_user_passwd.empty())
         proxy_info.use_http_authentication = true;
 
-    proxy_info.socks_version = 4;
-    if (!proxy_info.socks5_user_name.empty() || !proxy_info.socks5_user_passwd.empty())
-        proxy_info.socks_version = 5;
-
     iRetVal = rpc.set_proxy_settings(proxy_info);
     if (iRetVal) {
         wxLogTrace(wxT("Function Status"), wxT("CMainDocument::SetProxyInfo - Set Proxy Info Failed '%d'"), iRetVal);
@@ -2381,11 +2386,11 @@ int CMainDocument::GetSimpleGUIWorkCount() {
     CachedSimpleGUIUpdate();
     CachedStateUpdate();
 
-	for(i=0; i<results.results.size(); i++) {
-		if (results.results[i]->active_task) {
-			iCount++;
-		}
-	}
+    for(i=0; i<results.results.size(); i++) {
+        if (results.results[i]->active_task) {
+            iCount++;
+        }
+    }
     return iCount;
 }
 
@@ -2407,12 +2412,17 @@ wxString suspend_reason_wxstring(int reason) {
     return _("unknown reason");
 }
 
+bool uses_gpu(RESULT* r) {
+	// kludge.  But r->avp isn't populated.
+    return (strstr(r->resources, "GPU") != NULL);
+}
+
 wxString result_description(RESULT* result, bool show_resources) {
     CMainDocument* doc = wxGetApp().GetDocument();
     PROJECT* project;
     CC_STATUS       status;
     int             retval;
-	wxString strBuffer= wxEmptyString;
+    wxString strBuffer= wxEmptyString;
 
     strBuffer.Clear();
     retval = doc->GetCoreClientStatus(status);
@@ -2425,7 +2435,7 @@ wxString result_description(RESULT* result, bool show_resources) {
     }
 
     project = doc->state.lookup_project(result->project_url);
-	int throttled = status.task_suspend_reason & SUSPEND_REASON_CPU_THROTTLE;
+    int throttled = status.task_suspend_reason & SUSPEND_REASON_CPU_THROTTLE;
     switch(result->state) {
     case RESULT_NEW:
         strBuffer += _("New"); 
@@ -2450,6 +2460,12 @@ wxString result_description(RESULT* result, bool show_resources) {
         } else if (status.task_suspend_reason && !throttled) {
             strBuffer += _("Suspended - ");
             strBuffer += suspend_reason_wxstring(status.task_suspend_reason);
+            if (strlen(result->resources) && show_resources) {
+                strBuffer += wxString(wxT(" (")) + wxString(result->resources, wxConvUTF8) + wxString(wxT(")"));
+            }
+        } else if (status.gpu_suspend_reason && uses_gpu(result)) {
+            strBuffer += _("GPU suspended - ");
+            strBuffer += suspend_reason_wxstring(status.gpu_suspend_reason);
             if (strlen(result->resources) && show_resources) {
                 strBuffer += wxString(wxT(" (")) + wxString(result->resources, wxConvUTF8) + wxString(wxT(")"));
             }
@@ -2479,7 +2495,13 @@ wxString result_description(RESULT* result, bool show_resources) {
             strBuffer += _("Ready to start");
         }
         if (result->scheduler_wait) {
-            strBuffer += _(" (Scheduler wait)");
+            if (strlen(result->scheduler_wait_reason)) {
+                strBuffer += _(" (Scheduler wait: ");
+                strBuffer += wxString(result->scheduler_wait_reason, wxConvUTF8);
+                strBuffer += _(")");
+            } else {
+                strBuffer += _(" (Scheduler wait)");
+            }
         }
         if (result->network_wait) {
             strBuffer += _(" (Waiting for network access)");
@@ -2502,14 +2524,23 @@ wxString result_description(RESULT* result, bool show_resources) {
         break;
     case RESULT_ABORTED:
         switch(result->exit_status) {
-        case ERR_ABORTED_VIA_GUI:
+        case EXIT_ABORTED_VIA_GUI:
             strBuffer += _("Aborted by user");
             break;
-        case ERR_ABORTED_BY_PROJECT:
+        case EXIT_ABORTED_BY_PROJECT:
             strBuffer += _("Aborted by project");
             break;
-        case ERR_UNSTARTED_LATE:
+        case EXIT_UNSTARTED_LATE:
             strBuffer += _("Aborted: not started by deadline");
+            break;
+        case EXIT_DISK_LIMIT_EXCEEDED:
+            strBuffer += _("Aborted: disk limit exceeded");
+            break;
+        case EXIT_TIME_LIMIT_EXCEEDED:
+            strBuffer += _("Aborted: run time limit exceeded");
+            break;
+        case EXIT_MEM_LIMIT_EXCEEDED:
+            strBuffer += _("Aborted: memory limit exceeded");
             break;
         default:
             strBuffer += _("Aborted");

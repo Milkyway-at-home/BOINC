@@ -28,13 +28,14 @@
 #endif
 #endif
 
+#include "miofile.h"
+#include "error_numbers.h"
+
+#include "cert_sig.h"
+
 #ifdef _MSC_VER
 #define snprintf _snprintf
 #endif
-
-#include "miofile.h"
-#include "error_numbers.h"
-#include "cert_sig.h"
 
 CERT_SIG::CERT_SIG() {
     this->clear();
@@ -149,6 +150,7 @@ int CERT_SIGS::parse_file(const char* filename) {
     mf.init_file(f);
     XML_PARSER xp(&mf);
     if (!xp.parse_start("signatures")) {
+        fclose(f);
         return ERR_XML_PARSE;
     }
     retval = this->parse(xp);

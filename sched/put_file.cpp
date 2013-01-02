@@ -53,7 +53,7 @@ void usage() {
 
 int main(int argc, char** argv) {
     int i, retval;
-    char file_name[256], url[1024], path[1024];
+    char file_name[256], url[1024], path[MAXPATHLEN];
     int host_id;
     vector<const char*> urls;
     double nbytes = -1;
@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    retval = put_file(
+    retval = create_put_file_msg(
         host_id, file_name, urls, md5, nbytes, dtime()+max_latency
     );
 

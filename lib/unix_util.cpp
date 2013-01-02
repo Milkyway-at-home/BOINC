@@ -1,3 +1,5 @@
+// DEPRECATED
+
 // This file is part of BOINC.
 // http://boinc.berkeley.edu
 // Copyright (C) 2008 University of California
@@ -15,8 +17,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with BOINC.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "unix_util.h"
-
 // Note.  This already has an ifdef around it. If it is causing problem
 // then HAVE_SETENV should be defined in your configuration files.
 #ifndef HAVE_SETENV
@@ -25,6 +25,9 @@
 #include <cstring>
 #include <cerrno>
 #include <cstdlib>
+#include <stdio.h>
+
+#include "unix_util.h"
 
 static std::vector<char *> envstrings;
 

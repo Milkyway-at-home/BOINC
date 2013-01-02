@@ -45,16 +45,16 @@ LPFN_ISWOW64PROCESS fnIsWow64Process;
 #include <sys/sysctl.h>
 #endif
 
-
-
-#include "client_types.h"
-#include "client_state.h"
 #include "error_numbers.h"
-#include "log_flags.h"
 #include "filesys.h"
 #include "str_util.h"
 #include "str_replace.h"
 #include "util.h"
+
+#include "client_types.h"
+#include "client_state.h"
+#include "log_flags.h"
+#include "project.h"
 
 // return the primary platform id.
 //
@@ -316,20 +316,21 @@ void CLIENT_STATE::detect_platforms() {
 // write XML list of supported platforms
 //
 void CLIENT_STATE::write_platforms(PROJECT* p, MIOFILE& mf) {
-
-    mf.printf(
-        "    <platform_name>%s</platform_name>\n",
-        p->anonymous_platform ? "anonymous" : get_primary_platform()
-    );
-
-    for (unsigned int i=1; i<platforms.size(); i++) {
-        PLATFORM& platform = platforms[i];
+    if (p->anonymous_platform) {
+        mf.printf("    <platform_name>anonymous</platform_name>\n");
+    } else {
         mf.printf(
-            "    <alt_platform>\n"
-            "        <name>%s</name>\n"
-            "    </alt_platform>\n",
-            platform.name.c_str()
+            "    <platform_name>%s</platform_name>\n", get_primary_platform()
         );
+        for (unsigned int i=1; i<platforms.size(); i++) {
+            PLATFORM& platform = platforms[i];
+            mf.printf(
+                "    <alt_platform>\n"
+                "        <name>%s</name>\n"
+                "    </alt_platform>\n",
+                platform.name.c_str()
+            );
+        }
     }
 }
 

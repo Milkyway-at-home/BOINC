@@ -29,6 +29,45 @@ extern bool use_hyst_fetch;
 #define RSC_TYPE_ANY    -1
 #define RSC_TYPE_CPU    0
 
+// reasons for not being able to fetch work
+//
+#define CANT_FETCH_WORK_NON_CPU_INTENSIVE   1
+#define CANT_FETCH_WORK_SUSPENDED_VIA_GUI   2
+#define CANT_FETCH_WORK_MASTER_URL_FETCH_PENDING   3
+#define CANT_FETCH_WORK_MIN_RPC_TIME        4
+#define CANT_FETCH_WORK_DONT_REQUEST_MORE_WORK        5
+#define CANT_FETCH_WORK_DOWNLOAD_STALLED    6
+#define CANT_FETCH_WORK_RESULT_SUSPENDED    7
+#define CANT_FETCH_WORK_TOO_MANY_UPLOADS    8
+#define CANT_FETCH_WORK_NOT_HIGHEST_PRIORITY    9
+#define CANT_FETCH_WORK_DONT_NEED           10
+
+inline const char* cant_fetch_work_string(int reason) {
+    switch (reason) {
+    case CANT_FETCH_WORK_NON_CPU_INTENSIVE:
+        return "non CPU intensive";
+    case CANT_FETCH_WORK_SUSPENDED_VIA_GUI:
+        return "suspended via Manager";
+    case CANT_FETCH_WORK_MASTER_URL_FETCH_PENDING:
+        return "master URL fetch pending";
+    case CANT_FETCH_WORK_MIN_RPC_TIME:
+        return "scheduler RPC backoff";
+    case CANT_FETCH_WORK_DONT_REQUEST_MORE_WORK:
+        return "\"no new tasks\" requested via Manager";
+    case CANT_FETCH_WORK_DOWNLOAD_STALLED:
+        return "some download is stalled";
+    case CANT_FETCH_WORK_RESULT_SUSPENDED:
+        return "some task is suspended via Manager";
+    case CANT_FETCH_WORK_TOO_MANY_UPLOADS:
+        return "too many uploads in progress";
+    case CANT_FETCH_WORK_NOT_HIGHEST_PRIORITY:
+        return "project is not highest priority";
+    case CANT_FETCH_WORK_DONT_NEED:
+        return "don't need";
+    }
+    return "";
+}
+
 struct PROJECT;
 struct RESULT;
 struct ACTIVE_TASK;
@@ -58,9 +97,14 @@ struct RSC_PROJECT_WORK_FETCH {
         // this project's share relative to projects from which
         // we could probably get work for this resource;
         // determines how many instances this project deserves
-    bool has_runnable_jobs;
+    int n_runnable_jobs;
     double sim_nused;
     double nused_total;     // sum of instances over all runnable jobs
+    int ncoprocs_excluded;
+        // number of excluded instances
+    int non_excluded_instances;
+        // bitmap of non-excluded instances
+        // (i.e. instances this project's jobs can run on)
     int deadlines_missed;
     int deadlines_missed_copy;
         // copy of the above used during schedule_cpus()
@@ -74,9 +118,11 @@ struct RSC_PROJECT_WORK_FETCH {
         queue_est = 0;
         anon_skip = false;
         fetchable_share = 0;
-        has_runnable_jobs = false;
+        n_runnable_jobs = 0;
         sim_nused = 0;
         nused_total = 0;
+        ncoprocs_excluded = 0;
+        non_excluded_instances = 0;
         deadlines_missed = 0;
         deadlines_missed_copy = 0;
     }
@@ -117,12 +163,13 @@ struct BUSY_TIME_ESTIMATOR {
     // on that and following instances
     //
     inline void update(double dur, double nused) {
+        if (ninstances==0) return;
         int i, j;
         if (nused < 1) return;
-        double best = busy_time[0];
+        double best = 0;
         int ibest = 0;
-        for (i=1; i<ninstances; i++) {
-            if (busy_time[i] < best) {
+        for (i=0; i<ninstances; i++) {
+            if (!i || busy_time[i] < best) {
                 best = busy_time[i];
                 ibest = i;
             }
@@ -138,10 +185,9 @@ struct BUSY_TIME_ESTIMATOR {
     // the least busy instance
     //
     inline double get_busy_time() {
-        if (!ninstances) return 0;
-        double best = busy_time[0];
-        for (int i=1; i<ninstances; i++) {
-            if (busy_time[i] < best) {
+        double best = 0;
+        for (int i=0; i<ninstances; i++) {
+            if (!i || busy_time[i] < best) {
                 best = busy_time[i];
             }
         }
@@ -162,6 +208,11 @@ struct RSC_WORK_FETCH {
         // seconds of idle instances between now and now+work_buf_total()
     double nidle_now;
     double sim_nused;
+    int sim_used_instances;
+        // bitmap of instances used in simulation,
+        // taking into account GPU exclusions
+    int sim_excluded_instances;
+        // bitmap of instances not used (i.e. starved because of exclusion)
     double total_fetchable_share;
         // total RS of projects from which we could fetch jobs for this device
     double saturated_time;
@@ -195,13 +246,14 @@ struct RSC_WORK_FETCH {
     void accumulate_shortfall(double d_time);
     void update_saturated_time(double dt);
     void update_busy_time(double dur, double nused);
-    PROJECT* choose_project_hyst();
+    PROJECT* choose_project_hyst(bool strict);
     PROJECT* choose_project(int);
     void supplement(PROJECT*);
     RSC_PROJECT_WORK_FETCH& project_state(PROJECT*);
     void print_state(const char*);
     void clear_request();
     void set_request(PROJECT*);
+    void set_request_excluded(PROJECT*);
     bool may_have_work(PROJECT*);
     RSC_WORK_FETCH() {
         rsc_type = 0;
@@ -228,9 +280,9 @@ struct PROJECT_WORK_FETCH {
         // temporary copy used during schedule_cpus() and work fetch
     double rec_temp_save;
         // temporary used during RR simulation
-    bool can_fetch_work;
-    bool compute_can_fetch_work(PROJECT*);
-    bool has_runnable_jobs;
+    int cant_fetch_work_reason;
+    int compute_cant_fetch_work_reason(PROJECT*);
+    int n_runnable_jobs;
     PROJECT_WORK_FETCH() {
         memset(this, 0, sizeof(*this));
     }
@@ -240,22 +292,26 @@ struct PROJECT_WORK_FETCH {
 // global work fetch state
 //
 struct WORK_FETCH {
-    PROJECT* choose_project();
-        // find a project to ask for work
+    PROJECT* choose_project(bool strict);
+        // Find a project to ask for work.
+        // If strict is false consider requesting work
+        // even if buffer is above min level
+        // or project is backed off for a resource type
     PROJECT* non_cpu_intensive_project_needing_work();
-    void compute_work_request(PROJECT*);
+    void piggyback_work_request(PROJECT*);
         // we're going to contact this project anyway;
-        // decide how much work to task for
+        // piggyback a work request if appropriate.
     void accumulate_inst_sec(ACTIVE_TASK*, double dt);
     void write_request(FILE*, PROJECT*);
     void handle_reply(
         PROJECT*, SCHEDULER_REPLY*, std::vector<RESULT*>new_results
     );
-    void set_initial_work_request();
+    void set_initial_work_request(PROJECT*);
     void set_all_requests(PROJECT*);
     void set_all_requests_hyst(PROJECT*, int rsc_type);
     void print_state();
     void init();
+    void compute_cant_fetch_work_reason();
     void rr_init();
     void clear_request();
     void compute_shares();

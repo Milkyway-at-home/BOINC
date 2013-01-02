@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-## $Id$
+## $Id: test_rsc.py 2243 2003-09-04 00:41:51Z davea $
 
 # Test whether the scheduling server filters out work units too big for client
 

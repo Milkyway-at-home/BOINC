@@ -92,7 +92,7 @@ struct CLIENT_STATE {
     GET_PROJECT_LIST_OP get_project_list_op;
     ACCT_MGR_OP acct_mgr_op;
 
-    TIME_STATS time_stats;
+    CLIENT_TIME_STATS time_stats;
     GLOBAL_PREFS global_prefs;
     NET_STATS net_stats;
     ACTIVE_TASK_SET active_tasks;
@@ -185,7 +185,6 @@ struct CLIENT_STATE {
         // this affects auto-update
     bool run_by_updater;
     double now;
-    double client_start_time;
     double last_wakeup_time;
     bool initialized;
     bool cant_write_state_file;
@@ -379,6 +378,7 @@ struct CLIENT_STATE {
         // disk usage not counting projects
         // computed by get_disk_usages()
     double total_disk_usage;
+        // client plus projects
     int get_disk_usages();
     void get_disk_shares();
     double allowed_disk_usage(double boinc_total);
@@ -413,7 +413,7 @@ struct CLIENT_STATE {
     PROJECT* next_project_master_pending();
     PROJECT* next_project_sched_rpc_pending();
     PROJECT* next_project_trickle_up_pending();
-    PROJECT* find_project_with_overdue_results();
+    PROJECT* find_project_with_overdue_results(bool network_suspend_soon);
     bool had_or_requested_work;
     bool scheduler_rpc_poll();
 
@@ -465,6 +465,7 @@ struct CLIENT_STATE {
     int proj_min_results(PROJECT*, double);
     void check_project_timeout();
     double overall_cpu_frac();
+    double overall_cpu_and_network_frac();
     double overall_gpu_frac();
     double time_until_work_done(PROJECT*, int, double);
     bool compute_work_requests();
@@ -542,10 +543,14 @@ extern void print_suspend_tasks_message(int);
     // we'll find out about it within a day.
 
 #define WF_DEFER_INTERVAL   300
-    // if a project is uploading, and the last upload started within this interval,
+    // if a project is uploading,
+    // and the last upload started within this interval,
     // don't fetch work from it.
     // This allows the work fetch to be merged with the reporting of the
     // jobs that are currently uploading.
+
+#define RESULT_REPORT_IF_AT_LEAST_N 64
+    // If a project has at least this many ready-to-report tasks, report them.
 
 //////// CPU SCHEDULING
 
@@ -555,6 +560,9 @@ extern void print_suspend_tasks_message(int);
 #define DEBT_ADJUST_PERIOD CPU_SCHED_PERIOD
     // debt is adjusted at least this often,
     // since adjust_debts() is called from enforce_schedule()
+
+#define DEADLINE_CUSHION    0
+    // try to finish jobs this much in advance of their deadline
 
 #define MAX_EXIT_TIME   15
     // if an app takes this long to exit, kill it

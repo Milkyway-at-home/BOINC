@@ -19,6 +19,7 @@
 #define _PREFS_
 
 #include <cstdio>
+
 #include "miofile.h"
 #include "parse.h"
 
@@ -66,6 +67,7 @@ struct GLOBAL_PREFS_MASK {
     bool cpu_usage_limit;
     bool daily_xfer_limit_mb;
     bool daily_xfer_period_days;
+    bool network_wifi_only;
 
     GLOBAL_PREFS_MASK();
     void clear();
@@ -126,7 +128,7 @@ struct TIME_PREFS : public TIME_SPAN {
     }
     
     void clear();
-    bool suspended() const;
+    bool suspended(double t);
     
 };
 
@@ -171,6 +173,11 @@ struct GLOBAL_PREFS {
     bool host_specific;
         // an account manager can set this; if set, don't propagate
     bool override_file_present;
+    bool network_wifi_only;
+        // introduced with Android. Do network communication only when on Wifi,
+        // not on public cell networks.
+        // CAUTION: this only applies to file transfers.
+        // scheduler RPCs are made regardless of this preference.
 
     GLOBAL_PREFS();
     void defaults();

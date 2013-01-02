@@ -50,23 +50,13 @@ inline void dont_need_message(
 bool need_this_resource(
     HOST_USAGE& host_usage, APP_VERSION* avp, CLIENT_APP_VERSION* cavp
 ) {
-    if (g_wreq->rsc_spec_request) {
-        if (host_usage.ncudas) {
-            if (!g_wreq->need_cuda()) {
-                dont_need_message("CUDA", avp, cavp);
-                return false;
-            }
-        } else if (host_usage.natis) {
-            if (!g_wreq->need_ati()) {
-                dont_need_message("ATI", avp, cavp);
-                return false;
-            }
-        } else {
-            if (!g_wreq->need_cpu()) {
-                dont_need_message("CPU", avp, cavp);
-                return false;;
-            }
-        }
+    if (!g_wreq->rsc_spec_request) {
+        return true;
+    }
+    int pt = host_usage.proc_type;
+    if (!g_wreq->need_proc_type(pt)) {
+        dont_need_message(proc_type_name(pt), avp, cavp);
+        return false;
     }
     return true;
 }
@@ -99,23 +89,17 @@ inline int host_usage_to_gavid(HOST_USAGE& hu, APP& app) {
 //
 inline int scaled_max_jobs_per_day(DB_HOST_APP_VERSION& hav, HOST_USAGE& hu) {
     int n = hav.max_jobs_per_day;
-    if (hu.ncudas) {
-        if (g_request->coprocs.nvidia.count) {
-            n *= g_request->coprocs.nvidia.count;
-        }
-        if (config.gpu_multiplier) {
-            n *= config.gpu_multiplier;
-        }
-    } else if (hu.natis) {
-        if (g_request->coprocs.ati.count) {
-            n *= g_request->coprocs.ati.count;
-        }
-        if (config.gpu_multiplier) {
-            n *= config.gpu_multiplier;
-        }
-    } else {
+    if (hu.proc_type == PROC_TYPE_CPU) {
         if (g_reply->host.p_ncpus) {
             n *= g_reply->host.p_ncpus;
+        }
+    } else {
+        COPROC* cp = g_request->coprocs.type_to_coproc(hu.proc_type);
+        if (cp->count) {
+            n *= cp->count;
+        }
+        if (config.gpu_multiplier) {
+            n *= config.gpu_multiplier;
         }
     }
     if (config.debug_quota) {
@@ -235,16 +219,19 @@ CLIENT_APP_VERSION* get_app_version_anonymous(
     return best;
 }
 
-#define ET_RATIO_LIMIT  10.
+#define ET_RATIO_LIMIT  250.
     // if the FLOPS estimate based on elapsed time
-    // exceeds project_flops by more than this factor, cap it.
+    // exceeds projected_flops by more than this factor, cap it.
     // The host may have received a bunch of short jobs recently
+
+#define GPU_CPU_RATIO   10.
+    // a conservative estimate of the ratio of a typical GPU to CPU
 
 // input:
 // cav.host_usage.projected_flops
 //      This is the <flops> specified in app_info.xml
 //      If not specified there, it's a conservative estimate
-//      (CPU speed * (ncpus + ngpus))
+//      (CPU speed * (ncpus + 10*ngpus))
 //      In either case, this value will be used by the client
 //      to estimate job runtime and runtime limit
 //          est runtime = wu.rsc_fpops_est/x
@@ -270,7 +257,9 @@ void estimate_flops_anon_platform() {
 
         cav.rsc_fpops_scale = 1;
 
-        if (cav.host_usage.avg_ncpus == 0 && cav.host_usage.ncudas == 0 && cav.host_usage.natis == 0) {
+        if (cav.host_usage.avg_ncpus == 0
+            && cav.host_usage.proc_type == PROC_TYPE_CPU
+        ) {
             cav.host_usage.avg_ncpus = 1;
         }
 
@@ -376,7 +365,7 @@ void estimate_flops(HOST_USAGE& hu, APP_VERSION& av) {
                 );
             }
         } else {
-            hu.projected_flops = g_reply->host.p_fpops * (hu.avg_ncpus + hu.ncudas + hu.natis);
+            hu.projected_flops = g_reply->host.p_fpops * (hu.avg_ncpus + GPU_CPU_RATIO*hu.gpu_usage);
             if (config.debug_version_select) {
                 log_messages.printf(MSG_NORMAL,
                     "[version] [AV#%d] (%s) using conservative projected flops: %.2fG\n",
@@ -395,7 +384,7 @@ static void app_version_desc(BEST_APP_VERSION& bav, char* buf) {
         return;
     }
     if (bav.cavp) {
-        sprintf(buf, "anonymous platform (%s)", bav.host_usage.resource_name());
+        sprintf(buf, "anonymous platform (%s)", proc_type_name(bav.host_usage.proc_type));
     } else {
         sprintf(buf, "[AV#%d]", bav.avp->id);
     }
@@ -424,11 +413,15 @@ static double max_32b_address_space() {
 // - if plan class, check if this host can handle it
 // - check if we need work for the resource
 //
+// If all these are satisfied, return a pointer to a BEST_APP_VERSION struct
+// with HOST_USAGE filled in correctly.
+// Else return NULL.
+//
 static BEST_APP_VERSION* check_homogeneous_app_version(
-    WORKUNIT& wu, bool reliable_only
+    WORKUNIT& wu, bool /* reliable_only */
     // TODO: enforce reliable_only
 ) {
-    static BEST_APP_VERSION bav;
+    BEST_APP_VERSION bav;
 
     bool found;
     APP_VERSION *avp = ssp->lookup_app_version(wu.app_version_id);
@@ -485,13 +478,25 @@ static BEST_APP_VERSION* check_homogeneous_app_version(
     if (!need_this_resource(bav.host_usage, avp, NULL)) {
         return NULL;
     }
-    return &bav;
+
+    // dynamically allocate the BEST_APP_VERSION.
+    // This is a memory leak, but that's OK
+    //
+    BEST_APP_VERSION* bavp = new BEST_APP_VERSION;
+    *bavp = bav;
+    return bavp;
 }
 
-// return BEST_APP_VERSION for the given job and host, or NULL if none
+// return the app version with greatest projected FLOPS
+// for the given job and host, or NULL if none is available
 //
-// check_req: check whether we still need work for the resource
-// This check is not done for:
+// NOTE: the BEST_APP_VERSION structure returned by this
+// must not be modified or reused;
+// a pointer to it is stored in APP_VERSION.
+//
+// check_req: if set, return only app versions that use resources
+//  for which the work request is nonzero.
+//  This check is not done for:
 //    - assigned jobs
 //    - resent jobs
 // reliable_only: use only versions for which this host is "reliable"
@@ -525,11 +530,17 @@ BEST_APP_VERSION* get_app_version(
         return NULL;
     }
 
-    // handle the case where we're using homogeneous app version
-    // and the WU is already committed to an app version
+    // if the app uses, homogeneous app version,
+    // don't send to anonymous platform client.
+    // Then check if the WU is already committed to an app version
     //
-    if (app->homogeneous_app_version && wu.app_version_id) {
-        return check_homogeneous_app_version(wu, reliable_only);
+    if (app->homogeneous_app_version) {
+        if (g_wreq->anonymous_platform) {
+            return NULL;
+        }
+        if ( wu.app_version_id) {
+            return check_homogeneous_app_version(wu, reliable_only);
+        }
     }
 
     // see if app is already in memoized array
@@ -566,54 +577,22 @@ BEST_APP_VERSION* get_app_version(
                 break;
             }
 
-            // if we previously chose a CUDA app but don't need more CUDA work,
-            // fall through and find another version
+            // if we previously chose an app version but don't need more work
+            // for that processor type, fall through and find another version
             //
-            if (check_req
-                && g_wreq->rsc_spec_request
-                && bavp->host_usage.ncudas > 0
-                && !g_wreq->need_cuda()
-            ) {
-                if (config.debug_version_select) {
-                    log_messages.printf(MSG_NORMAL,
-                        "[version] have CUDA version but no more CUDA work needed\n"
-                    );
+            if (check_req && g_wreq->rsc_spec_request) {
+                int pt = bavp->host_usage.proc_type;
+                if (!g_wreq->need_proc_type(pt)) {
+                    if (config.debug_version_select) {
+                        log_messages.printf(MSG_NORMAL,
+                            "[version] have %s version but no more %s work needed\n",
+                            proc_type_name(pt),
+                            proc_type_name(pt)
+                        );
+                    }
+                    g_wreq->best_app_versions.erase(bavi);
+                    break;
                 }
-                g_wreq->best_app_versions.erase(bavi);
-                break;
-            }
-
-            // same, ATI
-            //
-            if (check_req
-                && g_wreq->rsc_spec_request
-                && bavp->host_usage.natis > 0
-                && !g_wreq->need_ati()
-            ) {
-                if (config.debug_version_select) {
-                    log_messages.printf(MSG_NORMAL,
-                        "[version] have ATI version but no more ATI work needed\n"
-                    );
-                }
-                g_wreq->best_app_versions.erase(bavi);
-                break;
-            }
-
-            // same, CPU
-            //
-            if (check_req
-                && g_wreq->rsc_spec_request
-                && !bavp->host_usage.ncudas
-                && !bavp->host_usage.natis
-                && !g_wreq->need_cpu()
-            ) {
-                if (config.debug_version_select) {
-                    log_messages.printf(MSG_NORMAL,
-                        "[version] have CPU version but no more CPU work needed\n"
-                    );
-                }
-                g_wreq->best_app_versions.erase(bavi);
-                break;
             }
 
             if (config.debug_version_select) {
@@ -684,16 +663,6 @@ BEST_APP_VERSION* get_app_version(
             if (av.appid != wu.appid) continue;
             if (av.platformid != p->id) continue;
 
-            if (g_request->core_client_version < av.min_core_version) {
-                if (config.debug_version_select) {
-                    log_messages.printf(MSG_NORMAL,
-                        "[version] [AV#%d] client version %d < min core version %d\n",
-                        av.id, g_request->core_client_version, av.min_core_version
-                    );
-                }
-                g_wreq->outdated_client = true;
-                continue;
-            }
             if (strlen(av.plan_class)) {
                 if (!app_plan(*g_request, av.plan_class, host_usage)) {
                     if (config.debug_version_select) {
@@ -721,33 +690,15 @@ BEST_APP_VERSION* get_app_version(
 
             // skip versions that go against resource prefs
             //
-            if (host_usage.ncudas && g_wreq->no_cuda) {
+            int pt = host_usage.proc_type;
+            if (g_wreq->dont_use_proc_type[pt]) {
                 if (config.debug_version_select) {
                     log_messages.printf(MSG_NORMAL,
-                        "[version] [AV#%d] Skipping CUDA version - user prefs say no CUDA\n",
-                        av.id
+                        "[version] [AV#%d] Skipping %s version - user prefs say no %s\n",
+                        av.id,
+                        proc_type_name(pt),
+                        proc_type_name(pt)
                     );
-                    g_wreq->no_cuda_prefs = true;
-                }
-                continue;
-            }
-            if (host_usage.natis && g_wreq->no_ati) {
-                if (config.debug_version_select) {
-                    log_messages.printf(MSG_NORMAL,
-                        "[version] [AV#%d] Skipping ATI version - user prefs say no ATI\n",
-                        av.id
-                    );
-                    g_wreq->no_ati_prefs = true;
-                }
-                continue;
-            }
-            if (!(host_usage.uses_gpu()) && g_wreq->no_cpu) {
-                if (config.debug_version_select) {
-                    log_messages.printf(MSG_NORMAL,
-                        "[version] [AV#%d] Skipping CPU version - user prefs say no CPUs\n",
-                        av.id
-                    );
-                    g_wreq->no_cpu_prefs = true;
                 }
                 continue;
             }
@@ -785,7 +736,31 @@ BEST_APP_VERSION* get_app_version(
 
             // skip versions for resources we don't need
             //
-            if (!need_this_resource(host_usage, &av, NULL)) {
+            if (check_req && !need_this_resource(host_usage, &av, NULL)) {
+                continue;
+            }
+
+            // skip versions which require a newer core client
+            //
+            if (g_request->core_client_version < av.min_core_version) {
+                if (config.debug_version_select) {
+                    log_messages.printf(MSG_NORMAL,
+                        "[version] [AV#%d] client version %d < min core version %d\n",
+                        av.id, g_request->core_client_version, av.min_core_version
+                    );
+                }
+                // Do not tell the user he needs to update the client
+                // just because the client is too old for a particular app version
+                // g_wreq->outdated_client = true;
+                continue;
+            }
+            if (av.max_core_version && g_request->core_client_version > av.max_core_version) {
+                if (config.debug_version_select) {
+                    log_messages.printf(MSG_NORMAL,
+                        "[version] [AV#%d] client version %d > max core version %d\n",
+                        av.id, g_request->core_client_version, av.max_core_version
+                    );
+                }
                 continue;
             }
 
@@ -798,8 +773,23 @@ BEST_APP_VERSION* get_app_version(
             // pick the fastest version.
             // Throw in a random factor in case the estimates are off.
             //
-            double r = 1 + .1*rand_normal();
+            DB_HOST_APP_VERSION* havp = gavid_to_havp(av.id);
+            double r = 1;
+            long n=1;
+            if (havp) {
+                n=std::max((long)havp->pfc.n,(long)n);
+            } 
+            if (config.version_select_random_factor) {
+                r += config.version_select_random_factor*rand_normal()/n;
+            }
             if (r*host_usage.projected_flops > bavp->host_usage.projected_flops) {
+                if (config.debug_version_select && (host_usage.projected_flops <= bavp->host_usage.projected_flops)) {
+                      log_messages.printf(MSG_NORMAL,
+                          "[version] [AV#%d] Random factor wins.  r=%f n=%ld\n",
+                          av.id, r, n
+                    );
+                }
+                host_usage.projected_flops*=r;
                 bavp->host_usage = host_usage;
                 bavp->avp = &av;
                 bavp->reliable = app_version_is_reliable(av.id);

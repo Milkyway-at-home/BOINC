@@ -32,6 +32,7 @@
 
 #include <cstdio>
 #include <string.h>
+#include <sys/param.h>
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -46,9 +47,10 @@
 #include <procfs.h>  // definitions for solaris /proc structs
 #endif
 
-#include "procinfo.h"
 #include "str_util.h"
 #include "str_replace.h"
+
+#include "procinfo.h"
 
 using std::vector;
 
@@ -170,7 +172,7 @@ int procinfo_setup(PROC_MAP& pm) {
     FILE* fd;
     PROC_STAT ps;
     PROCINFO p;
-    char pidpath[1024];
+    char pidpath[MAXPATHLEN];
     char buf[1024];
     int pid = getpid();
     int retval, final_retval = 0;
@@ -183,7 +185,7 @@ int procinfo_setup(PROC_MAP& pm) {
         if (!piddir) break;
         if (!isdigit(piddir->d_name[0])) continue;
 
-#if HAVE_PROCFS_H && HAVE__PROC_SELF_PSINFO  // solaris
+#if defined(HAVE_PROCFS_H) && defined(HAVE__PROC_SELF_PSINFO)  // solaris
         psinfo_t psinfo;
         sprintf(pidpath, "/proc/%s/psinfo", piddir->d_name);
         fd = fopen(pidpath, "r");

@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with BOINC.  If not, see <http://www.gnu.org/licenses/>.
 
-// Functions to check the integrity of core client data structures.
+// Functions to check the integrity of client data structures.
 // Not currently used, but might be handy if *0 type crashes occur
 
 #include "cpp.h"
@@ -29,6 +29,7 @@
 
 #include "client_msgs.h"
 #include "client_state.h"
+#include "result.h"
 
 void CLIENT_STATE::check_project_pointer(PROJECT* p) {
     unsigned int i;

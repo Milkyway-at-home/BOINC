@@ -19,6 +19,7 @@
 #include "boinc_win.h"
 #elif defined(_WIN32) && defined(__STDWX_H__)
 #include "stdwx.h"
+#define MAXPATHLEN 4096
 #endif
 
 #if defined(__MINGW32__)
@@ -68,20 +69,20 @@
 #endif
 #endif
 
-#ifdef _WIN32
-typedef BOOL (CALLBACK* FreeFn)(LPCSTR, PULARGE_INTEGER, PULARGE_INTEGER, PULARGE_INTEGER);
-#endif
-
 #include "util.h"
 #include "str_util.h"
 #include "str_replace.h"
 #include "error_numbers.h"
+
 #include "filesys.h"
 
+#ifdef _WIN32
+typedef BOOL (CALLBACK* FreeFn)(LPCSTR, PULARGE_INTEGER, PULARGE_INTEGER, PULARGE_INTEGER);
+#endif
 
 using std::string;
 
-char boinc_failed_file[256];
+char boinc_failed_file[MAXPATHLEN];
 
 // routines for enumerating the entries in a directory
 
@@ -106,6 +107,19 @@ int is_dir(const char* path) {
 }
 
 #ifndef _WIN32
+
+int is_file_follow_symlinks(const char* path) {
+    struct stat sbuf;
+    int retval = stat(path, &sbuf);
+    return (!retval && (((sbuf.st_mode) & S_IFMT) == S_IFREG));
+}
+
+int is_dir_follow_symlinks(const char* path) {
+    struct stat sbuf;
+    int retval = stat(path, &sbuf);
+    return (!retval && (((sbuf.st_mode) & S_IFMT) == S_IFDIR));
+}
+
 int is_symlink(const char* path) {
     struct stat sbuf;
     int retval = lstat(path, &sbuf);
@@ -199,7 +213,7 @@ void dir_close(DIRREF dirp) {
 }
 
 bool is_dir_empty(const char *p) {
-    char file[256];
+    char file[MAXPATHLEN];
 
     DIRREF dir = dir_open(p);
     if (!dir) return true;
@@ -317,10 +331,15 @@ int boinc_delete_file(const char* path) {
 // get file size
 //
 int file_size(const char* path, double& size) {
-    struct stat sbuf;
     int retval;
 
+#if defined(_WIN32) && !defined(__CYGWIN32__) && !defined(__MINGW32__)
+    struct __stat64 sbuf;
+    retval = _stat64(path, &sbuf);
+#else
+    struct stat sbuf;
     retval = stat(path, &sbuf);
+#endif
     if (retval) return ERR_NOT_FOUND;
     size = (double)sbuf.st_size;
     return 0;
@@ -328,7 +347,7 @@ int file_size(const char* path, double& size) {
 
 int boinc_truncate(const char* path, double size) {
     int retval;
-#if defined(_WIN32) &&  !defined(__CYGWIN32__)
+#if defined(_WIN32) && !defined(__CYGWIN32__)
     // the usual Windows nightmare.
     // There's another function, SetEndOfFile(),
     // that supposedly works with files over 2GB,
@@ -348,7 +367,7 @@ int boinc_truncate(const char* path, double size) {
 // remove everything from specified directory
 //
 int clean_out_dir(const char* dirpath) {
-    char filename[256], path[256];
+    char filename[MAXPATHLEN], path[MAXPATHLEN];
     int retval;
     DIRREF dirp;
 
@@ -400,7 +419,7 @@ int dir_size(const char* dirpath, double& size, bool recurse) {
     } while (FindNextFileA(hFind, &findData));
 	::FindClose(hFind);
 #else
-    char filename[1024], subdir[1024];
+    char filename[MAXPATHLEN], subdir[MAXPATHLEN];
     int retval=0;
     DIRREF dirp;
     double x;
@@ -480,13 +499,6 @@ FILE* boinc_fopen(const char* path, const char* mode) {
     return f;
 }
 
-int boinc_flush(FILE* f) {
-#ifdef _WIN32
-    return _commit(fileno(f));
-#else
-    return fsync(fileno(f));
-#endif /* _WIN32 */
-}
 
 int boinc_file_exists(const char* path) {
     struct stat buf;
@@ -536,7 +548,7 @@ int boinc_copy(const char* orig, const char* newf) {
     }
     return 0;
 #elif defined(__EMX__)
-    char cmd[1024];
+    char cmd[2*MAXPATHLEN];
     sprintf(cmd, "copy \"%s\" \"%s\"", orig, newf);
     return system(cmd);
 #else
@@ -582,7 +594,15 @@ static int boinc_rename_aux(const char* old, const char* newf) {
     if (MoveFileExA(old, newf, MOVEFILE_REPLACE_EXISTING|MOVEFILE_WRITE_THROUGH)) return 0;
     return GetLastError();
 #else
+    // rename() doesn't work between filesystems.
+    // So if it fails, try the "mv" command, which does work
+    //
     int retval = rename(old, newf);
+    if (retval) {
+        char buf[MAXPATHLEN+MAXPATHLEN];
+        sprintf(buf, "mv \"%s\" \"%s\"", old, newf);
+        retval = system(buf);
+    }
     if (retval) return ERR_RENAME;
     return 0;
 #endif
@@ -647,11 +667,11 @@ int boinc_chown(const char* path, gid_t gid) {
 // create directories dirpath/a, dirpath/a/b etc.
 //
 int boinc_make_dirs(const char* dirpath, const char* filepath) {
-    char buf[1024], oldpath[1024], newpath[1024];
+    char buf[MAXPATHLEN], oldpath[MAXPATHLEN], newpath[MAXPATHLEN];
     int retval;
     char *p, *q;
 
-    if (strlen(filepath) + strlen(dirpath) > 1023) return ERR_BUFFER_OVERFLOW;
+    if (strlen(filepath) + strlen(dirpath) > MAXPATHLEN-1) return ERR_BUFFER_OVERFLOW;
     strcpy(buf, filepath);
     strcpy(oldpath, dirpath);
 
@@ -727,13 +747,13 @@ int FILE_LOCK::unlock(const char* filename) {
 
 void boinc_getcwd(char* path) {
 #ifdef _WIN32
-    getcwd(path, 256);
+    getcwd(path, MAXPATHLEN);
 #else
     char* p 
 #ifdef __GNUC__
       __attribute__ ((unused))
 #endif
-      = getcwd(path, 256);
+      = getcwd(path, MAXPATHLEN);
 #endif
 }
 
@@ -747,10 +767,37 @@ void relative_to_absolute(const char* relname, char* path) {
 
 // get total and free space on current filesystem (in bytes)
 //
+#if defined(_WIN32) && !(defined(WXDEBUG) || defined(WXNDEBUG))
+int boinc_allocate_file(const char* path, double size) {
+    int retval = 0;
+    HANDLE h = CreateFile(
+        path,
+        GENERIC_WRITE,
+        0,
+        NULL,
+        OPEN_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL
+    );
+    if (h == INVALID_HANDLE_VALUE) return ERR_FOPEN;
+    LARGE_INTEGER sz;
+    sz.LowPart = fmod(size, 4294967296.);
+    sz.HighPart = (LONG)(size/4294967296.);
+    if (SetFilePointerEx(h, sz, NULL, FILE_BEGIN) == 0) {
+        retval = ERR_FOPEN;
+    }
+    if (!retval && SetEndOfFile(h) == 0) {
+        retval = ERR_FOPEN;
+    }
+    CloseHandle(h);
+    return retval;
+}
+#endif
+
 #ifdef _WIN32
 int get_filesystem_info(double &total_space, double &free_space, char*) {
-    char buf[256];
-    boinc_getcwd(buf);
+    char cwd[MAXPATHLEN];
+    boinc_getcwd(cwd);
     FreeFn pGetDiskFreeSpaceEx;
     pGetDiskFreeSpaceEx = (FreeFn)GetProcAddress(
         GetModuleHandleA("kernel32.dll"), "GetDiskFreeSpaceExA"
@@ -760,7 +807,7 @@ int get_filesystem_info(double &total_space, double &free_space, char*) {
         ULARGE_INTEGER TotalNumberOfBytes;
         ULARGE_INTEGER FreeBytesAvailable;
         pGetDiskFreeSpaceEx(
-            buf, &FreeBytesAvailable, &TotalNumberOfBytes,
+            cwd, &FreeBytesAvailable, &TotalNumberOfBytes,
             &TotalNumberOfFreeBytes
         );
         signed __int64 uMB;
@@ -774,7 +821,7 @@ int get_filesystem_info(double &total_space, double &free_space, char*) {
         DWORD dwFreeClusters;
         DWORD dwTotalClusters;
         GetDiskFreeSpaceA(
-            buf, &dwSectPerClust, &dwBytesPerSect, &dwFreeClusters,
+            cwd, &dwSectPerClust, &dwBytesPerSect, &dwFreeClusters,
             &dwTotalClusters
         );
         free_space = (double)dwFreeClusters * dwSectPerClust * dwBytesPerSect;
@@ -799,31 +846,3 @@ int get_filesystem_info(double &total_space, double &free_space, char* path) {
 #endif
     return 0;
 }
-
-#ifndef _WIN32
-
-int get_file_dir(char* filename, char* dir) {
-    char buf[8192], *p, path[256];
-    struct stat sbuf;
-    int retval;
-
-    p = getenv("PATH");
-    if (!p) return ERR_NOT_FOUND;
-    strcpy(buf, p);
-
-    p = strtok(buf, ":");
-    while (p) {
-        sprintf(path, "%s/%s", p, filename);
-        retval = stat(path, &sbuf);
-        if (!retval && (sbuf.st_mode & 0111)) {
-            strcpy(dir, p);
-            return 0;
-        }
-        p = strtok(0, ":");
-    }
-    return ERR_NOT_FOUND;
-}
-
-
-#endif
-

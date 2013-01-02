@@ -22,7 +22,7 @@
 
 #ifndef _WIN32
 #include <sys/types.h>
-#if HAVE_SYS_SHM_H
+#ifndef ANDROID
 #include <sys/shm.h>
 #endif
 #endif

@@ -1,6 +1,6 @@
 #!/usr/local/bin/php -q
 <?php {
-    // $Id$
+    // $Id: test_concat.php 1383 2003-06-11 23:09:11Z quarl $
     // tests whether command-line arg passing works
 
     include_once("test.inc");

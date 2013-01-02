@@ -1,6 +1,6 @@
 #!/usr/local/bin/php -q
 <?php {
-    // $Id$
+    // $Id: test_uc.php 1510 2003-06-17 01:36:47Z quarl $
 
     // This tests whether the most basic mechanisms are working
     // Also whether stderr output is reported correctly

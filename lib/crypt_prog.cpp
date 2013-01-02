@@ -109,6 +109,7 @@ unsigned int random_int() {
         die("can't open /dev/random\n");
     }
     fread(&n, sizeof(n), 1, f);
+    fclose(f);
 #endif
     return n;
 }
@@ -190,8 +191,15 @@ int main(int argc, char** argv) {
         signature.len = 256;
         retval = scan_hex_data(f, signature);
         if (retval) die("scan_hex_data");
-        retval = verify_file(argv[2], NULL, public_key, signature, is_valid);
-        if (retval) die("verify_file");
+
+        char md5_buf[64];
+        double size;
+        retval = md5_file(argv[2], md5_buf, size);
+        if (retval) die("md5_file");
+        retval = check_file_signature(
+            md5_buf, public_key, signature, is_valid
+        );
+        if (retval) die("check_file_signature");
         if (is_valid) {
             printf("file is valid\n");
         } else {
@@ -350,7 +358,6 @@ int main(int argc, char** argv) {
         } else {
             // o2b
             rsa_key_ = (RSA *)calloc(1, sizeof(RSA));
-            memset(rsa_key_, 0, sizeof(RSA));
             if (rsa_key_ == NULL) {
                 die("could not allocate memory for RSA structure.\n");
             }

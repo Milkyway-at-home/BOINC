@@ -88,8 +88,7 @@ UINT CACreateProjectInitFile::OnExecution()
         //
         strProjectInitFile = strDataDirectory + _T("\\project_init.xml");
 
-        FILE* fProjectInitFile = NULL;
-        fProjectInitFile = _tfopen(strProjectInitFile.c_str(), _T("w"));
+        FILE* fProjectInitFile = _tfopen(strProjectInitFile.c_str(), _T("w"));
         
         _ftprintf(
             fProjectInitFile,

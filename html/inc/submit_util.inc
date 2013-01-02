@@ -100,7 +100,7 @@ function abort_batch($batch) {
 }
 
 function retire_batch($batch) {
-    $wus = BoincWorkunit::enum("batch=$batch_id");
+    $wus = BoincWorkunit::enum("batch=$batch->id");
     $now = time();
     foreach ($wus as $wu) {
         $wu->update("assimilate_state=2, transition_time=$now");
@@ -118,6 +118,28 @@ function batch_state_string($state) {
     }
     return "unknown state $state";
 }
+// get the total size of output files of a batch
+//
+function batch_output_file_size($batchid) {
+    $batch_td_size=0;
+    $wus = BoincWorkunit::enum("batch=$batchid");
+    $fanout = parse_config(get_config(), "<uldl_dir_fanout>");
+    $upload_dir = parse_config(get_config(), "<upload_dir>");
+    foreach ($wus as $wu) {
+        if (!$wu->canonical_resultid) continue;
+        $result = BoincResult::lookup_id($wu->canonical_resultid);
+        $names = get_outfile_names($result);
+        foreach ($names as $name) {
+            $path = dir_hier_path($name, $upload_dir, $fanout);
+            if (is_file($path)) {
+                $s=stat($path);
+                $size=$s['size'];
+                $batch_td_size+=$size;
+            }
+        }
+    }
+    return $batch_td_size;
+}
 
 function boinc_get_output_file_url($user, $result, $i) {
     $name = $result->name;
@@ -130,4 +152,10 @@ function boinc_get_output_files_url($user, $batch_id) {
     return "get_output.php?batch_id=$batch_id&auth_str=$auth_str";
 }
 
+function boinc_get_wu_output_files_url($user, $wu_id) {
+    
+    //echo "url: user authenticator= $user->authenticator, wu_id=$wu_id<br/>";
+    $auth_str =  md5($user->authenticator.$wu_id);
+    return "get_output.php?wu_id=$wu_id&auth_str=$auth_str";
+}
 ?>

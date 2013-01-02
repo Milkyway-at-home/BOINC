@@ -15,6 +15,10 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with BOINC.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifdef _USING_FCGI_
+#include "boinc_fcgi.h"
+#endif
+
 #if   defined(_WIN32) && !defined(__STDWX_H__)
 #include "boinc_win.h"
 #elif defined(_WIN32) && defined(__STDWX_H__)
@@ -44,6 +48,7 @@
 #include <errno.h>
 #include <string>
 #include <cstring>
+#include <math.h>
 #if HAVE_IEEEFP_H
 #include <ieeefp.h>
 extern "C" {
@@ -55,17 +60,12 @@ extern "C" {
 #include "error_numbers.h"
 #include "common_defs.h"
 #include "filesys.h"
-#include "util.h"
 #include "base64.h"
 #include "mfile.h"
 #include "miofile.h"
 #include "parse.h"
 
-
-#ifdef _USING_FCGI_
-#include "boinc_fcgi.h"
-#define perror FCGI::perror
-#endif
+#include "util.h"
 
 using std::min;
 using std::string;
@@ -310,7 +310,7 @@ void boinc_crash() {
 #ifdef _WIN32
     DebugBreak();
 #else
-    *(int*)0 = 0;
+    abort();
 #endif
 }
 
@@ -438,7 +438,11 @@ int run_program(
             if (retval) return retval;
         }
         execv(file, argv);
+#ifdef _USING_FCGI_
+        FCGI::perror("execv");
+#else
         perror("execv");
+#endif
         exit(errno);
     }
 
@@ -516,7 +520,7 @@ static int get_client_mutex(const char*) {
     }
 #else
 static int get_client_mutex(const char* dir) {
-    char path[1024];
+    char path[MAXPATHLEN];
     static FILE_LOCK file_lock;
 
     sprintf(path, "%s/%s", dir, LOCK_FILE_NAME);

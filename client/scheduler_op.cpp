@@ -27,12 +27,12 @@
 #include <ctime>
 #endif
 
+#include "error_numbers.h"
+#include "filesys.h"
+#include "parse.h"
 #include "str_util.h"
 #include "str_replace.h"
 #include "util.h"
-#include "parse.h"
-#include "error_numbers.h"
-#include "filesys.h"
 
 #include "client_state.h"
 #include "client_types.h"
@@ -40,6 +40,8 @@
 #include "file_names.h"
 #include "log_flags.h"
 #include "main.h"
+#include "project.h"
+#include "result.h"
 #include "scheduler_op.h"
 
 using std::vector;
@@ -104,7 +106,7 @@ int SCHEDULER_OP::init_op_project(PROJECT* p, int r) {
     }
 
     if (reason == RPC_REASON_INIT) {
-        work_fetch.set_initial_work_request();
+        work_fetch.set_initial_work_request(p);
         if (!gstate.cpu_benchmarks_done()) {
             gstate.cpu_benchmarks_set_defaults();
         }
@@ -227,7 +229,6 @@ static void request_string(char* buf) {
 int SCHEDULER_OP::start_rpc(PROJECT* p) {
     int retval;
     char request_file[1024], reply_file[1024], buf[256];
-    const char *trickle_up_msg;
 
     safe_strcpy(scheduler_url, p->get_scheduler_url(url_index, url_random));
     if (log_flags.sched_ops) {
@@ -235,28 +236,24 @@ int SCHEDULER_OP::start_rpc(PROJECT* p) {
             "Sending scheduler request: %s.", rpc_reason_string(reason)
         );
         if (p->trickle_up_pending && reason != RPC_REASON_TRICKLE_UP) {
-            trickle_up_msg = ", sending trickle-up message";
-        } else {
-            trickle_up_msg = "";
+            msg_printf(p, MSG_INFO, "Sending trickle-up message");
+        }
+        if (p->nresults_returned) {
+            msg_printf(p, MSG_INFO,
+                "Reporting %d completed tasks", p->nresults_returned
+            );
         }
         request_string(buf);
         if (strlen(buf)) {
-            if (p->nresults_returned) {
-                msg_printf(p, MSG_INFO,
-                    "Reporting %d completed tasks, requesting new tasks for %s%s",
-                    p->nresults_returned, buf, trickle_up_msg
-                );
-            } else {
-                msg_printf(p, MSG_INFO, "Requesting new tasks for %s%s", buf, trickle_up_msg);
-            }
+            msg_printf(p, MSG_INFO, "Requesting new tasks for %s", buf);
         } else {
-            if (p->nresults_returned) {
+            if (p->pwf.cant_fetch_work_reason) {
                 msg_printf(p, MSG_INFO,
-                    "Reporting %d completed tasks, not requesting new tasks%s",
-                    p->nresults_returned, trickle_up_msg
+                    "Not requesting tasks: %s",
+                    cant_fetch_work_string(p->pwf.cant_fetch_work_reason)
                 );
             } else {
-                msg_printf(p, MSG_INFO, "Not reporting or requesting tasks%s", trickle_up_msg);
+                msg_printf(p, MSG_INFO, "Not requesting tasks");
             }
         }
     }
@@ -303,7 +300,7 @@ int SCHEDULER_OP::init_master_fetch(PROJECT* p) {
         msg_printf(p, MSG_INFO, "[sched_op] Fetching master file");
     }
     cur_proj = p;
-    retval = http_op.init_get(p, p->master_url, master_filename, true);
+    retval = http_op.init_get(p, p->master_url, master_filename, true, 0, 0);
     if (retval) {
         if (log_flags.sched_ops) {
             msg_printf(p, MSG_INFO,
@@ -373,6 +370,9 @@ int SCHEDULER_OP::parse_master_file(PROJECT* p, vector<std::string> &urls) {
     // couldn't find any scheduler URLs in the master file?
     //
     if ((int) urls.size() == 0) {
+        msg_printf(p, MSG_INTERNAL_ERROR,
+            "No scheduler URLs found in master file\n"
+        );
         p->sched_rpc_pending = 0;
         return ERR_XML_PARSE;
     }
@@ -542,6 +542,7 @@ void SCHEDULER_REPLY::clear() {
     message_ack = false;
     project_is_down = false;
     send_full_workload = false;
+    dont_use_dcf = false;
     send_time_stats_log = 0;
     send_job_log = 0;
     messages.clear();
@@ -853,6 +854,8 @@ int SCHEDULER_REPLY::parse(FILE* in, PROJECT* project) {
                 handle_no_rsc_apps("CPU", project, btemp);
             }
             continue;
+
+        // deprecated syntax
         } else if (xp.parse_bool("no_cuda_apps", btemp)) {
             if (!project->anonymous_platform) {
                 handle_no_rsc_apps(GPU_TYPE_NVIDIA, project, btemp);
@@ -863,14 +866,17 @@ int SCHEDULER_REPLY::parse(FILE* in, PROJECT* project) {
                 handle_no_rsc_apps(GPU_TYPE_ATI, project, btemp);
             }
             continue;
+
         } else if (xp.parse_str("no_rsc_apps", buf, sizeof(buf))) {
             if (!project->anonymous_platform) {
-                handle_no_rsc_apps(buf, project, btemp);
+                handle_no_rsc_apps(buf, project, true);
             }
             continue;
         } else if (xp.parse_bool("verify_files_on_app_start", project->verify_files_on_app_start)) {
             continue;
         } else if (xp.parse_bool("send_full_workload", send_full_workload)) {
+            continue;
+        } else if (xp.parse_bool("dont_use_dcf", dont_use_dcf)) {
             continue;
         } else if (xp.parse_int("send_time_stats_log", send_time_stats_log)){
             continue;
@@ -879,7 +885,7 @@ int SCHEDULER_REPLY::parse(FILE* in, PROJECT* project) {
         } else if (xp.parse_int("scheduler_version", scheduler_version)) {
             continue;
         } else if (xp.match_tag("project_files")) {
-            retval = project->parse_project_files(xp, true);
+            retval = parse_project_files(xp, project_files);
 #ifdef ENABLE_AUTO_UPDATE
         } else if (xp.match_tag("auto_update")) {
             retval = auto_update.parse(xp);
@@ -895,6 +901,8 @@ int SCHEDULER_REPLY::parse(FILE* in, PROJECT* project) {
         } else if (xp.parse_int("userid", project->userid)) {
             continue;
         } else if (xp.parse_int("teamid", project->teamid)) {
+            continue;
+        } else if (xp.parse_double("desired_disk_usage", project->desired_disk_usage)) {
             continue;
         } else {
             if (log_flags.unparsed_xml) {

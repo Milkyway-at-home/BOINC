@@ -248,9 +248,17 @@ void CTaskBarIcon::OnSuspendResumeGPU(wxCommandEvent& WXUNUSED(event)) {
 }
 
 void CTaskBarIcon::OnAbout(wxCommandEvent& WXUNUSED(event)) {
-    bool bWasVisible;
+    bool bWasVisible = wxGetApp().IsApplicationVisible();
+#ifdef __WXMAC__
+    bool bEventLogWasShown = false;
 
-    bWasVisible = wxGetApp().IsApplicationVisible();
+    CDlgEventLog* eventLog = wxGetApp().GetEventLog();
+    if (eventLog) {
+        bEventLogWasShown = eventLog->IsShown();
+        if (bEventLogWasShown && !bWasVisible) eventLog->Show(false);
+    }
+#endif
+    
     wxGetApp().ShowApplication(true);
 
     ResetTaskBar();
@@ -261,6 +269,10 @@ void CTaskBarIcon::OnAbout(wxCommandEvent& WXUNUSED(event)) {
     if (!bWasVisible) {
         wxGetApp().ShowApplication(false);
     }
+    
+#ifdef __WXMAC__
+    if (bEventLogWasShown) eventLog->Show(true);
+#endif
 }
 
 
@@ -366,6 +378,15 @@ wxMenu *CTaskBarIcon::CreatePopupMenu() {
 // Rather than using an entire separate icon, overlay the Dock icon with a badge 
 // so we don't need additional Snooze and Disconnected icons for branding.
 bool CTaskBarIcon::SetIcon(const wxIcon& icon, const wxString& ) {
+    CTaskBarIcon* pTaskbar = wxGetApp().GetTaskBarIcon();
+    if (pTaskbar) {
+        return pTaskbar->SetMacTaskBarIcon(icon);
+    }
+    return false;
+}
+
+
+bool CTaskBarIcon::SetMacTaskBarIcon(const wxIcon& icon) {
     wxIcon macIcon;
     bool result;
     OSStatus err = noErr ;
@@ -379,7 +400,7 @@ bool CTaskBarIcon::SetIcon(const wxIcon& icon, const wxString& ) {
     CMacSystemMenu* sysMenu = wxGetApp().GetMacSystemMenu();
     if (sysMenu == NULL) return 0;
     
-    result = sysMenu->SetIcon(icon);
+    result = sysMenu->SetMacMenuIcon(icon);
 
     RestoreApplicationDockTileImage();      // Remove any previous badge
 
@@ -502,7 +523,7 @@ wxMenu *CTaskBarIcon::BuildContextMenu() {
     pMenu->AppendSeparator();
 
     m_SnoozeMenuItem = pMenu->AppendCheckItem(ID_TB_SUSPEND, _("Snooze"), wxEmptyString);
-    if (pDoc->state.have_nvidia || pDoc->state.have_ati) {
+    if (pDoc->state.have_nvidia || pDoc->state.have_ati || pDoc->state.have_intel) {
         m_SnoozeGPUMenuItem = pMenu->AppendCheckItem(ID_TB_SUSPEND_GPU, _("Snooze GPU"), wxEmptyString);
     }
 
@@ -612,7 +633,7 @@ void CTaskBarIcon::AdjustMenuItems(wxMenu* pMenu) {
         }
     }
     
-    if (pDoc->state.have_nvidia || pDoc->state.have_ati) {
+    if (pDoc->state.have_nvidia || pDoc->state.have_ati || pDoc->state.have_intel) {
         switch (status.gpu_mode) {
         case RUN_MODE_NEVER:
             switch (status.gpu_mode_perm) {
@@ -639,7 +660,7 @@ void CTaskBarIcon::AdjustMenuItems(wxMenu* pMenu) {
             }
             break;
         }
-        if (pDoc->state.have_nvidia || pDoc->state.have_ati) {
+        if (pDoc->state.have_nvidia || pDoc->state.have_ati || pDoc->state.have_intel) {
             if (status.task_mode == RUN_MODE_NEVER) {
                 m_SnoozeGPUMenuItem->Check(false);
                 m_SnoozeGPUMenuItem->Enable(false);
@@ -703,7 +724,7 @@ void CTaskBarIcon::UpdateTaskbarStatus() {
         }
         strMessage += wxT(".\n");
 
-        if (!comp_suspended && (pDoc->state.have_nvidia || pDoc->state.have_ati)) {
+        if (!comp_suspended && (pDoc->state.have_nvidia || pDoc->state.have_ati || pDoc->state.have_intel)) {
             switch(status.gpu_suspend_reason) {
             case 0:
                 strMessage += _("GPU computing is enabled");

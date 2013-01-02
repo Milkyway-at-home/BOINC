@@ -123,12 +123,13 @@ page_tail();
 // and using the features for the logged in user in $user.
 //
 function show_forum($forum, $start, $sort_style, $user) {
-    $gotoStr = "";
-    $nav = show_page_nav($forum, $sort_style, $start);
-    if ($nav) {
-        $gotoStr = "<div align=\"right\">$nav</div><br>";
-    }
-    echo $gotoStr; // Display the navbar
+    $page_nav = page_links(
+        "forum_forum.php?id=$forum->id&amp;sort=$sort_style",
+        $forum->threads,
+        THREADS_PER_PAGE,
+        $start
+    );
+    echo $page_nav;
     start_forum_table(array(
         "",
         tra("Threads"),
@@ -153,6 +154,7 @@ function show_forum($forum, $start, $sort_style, $user) {
     }
 
     // Run through the list of threads, displaying each of them
+    //
     $n = 0; $i=0;
     foreach ($threads as $thread) {
         $owner = BoincUser::lookup_id($thread->owner);
@@ -201,11 +203,11 @@ function show_forum($forum, $start, $sort_style, $user) {
         }
         echo "</nobr></td>";
 
-        $titlelength = 48;
         $title = cleanup_title($thread->title);
-        if (strlen($title) > $titlelength) {
-            $title = substr($title, 0, $titlelength)."...";
-        }
+        //$titlelength = 9999;
+        //if (strlen($title) > $titlelength) {
+        //    $title = substr($title, 0, $titlelength)."...";
+        //}
         echo "<td class=\"threadline\"><a href=\"forum_thread.php?id=$thread->id\"><b>$title</b></a><br></td>";
         $n = ($n+1)%2;
 
@@ -219,7 +221,7 @@ function show_forum($forum, $start, $sort_style, $user) {
         flush();
     }
     end_table();
-    echo "<br>$gotoStr";    // show page links
+    echo "<br>$page_nav";    // show page links
 }
 
 ?>

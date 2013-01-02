@@ -58,6 +58,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <locale>
+#include <algorithm>
 #endif
 
 #include "diagnostics.h"
@@ -69,11 +70,28 @@
 #include "md5_file.h"
 #include "network.h"
 #include "common_defs.h"
+
 #include "gui_rpc_client.h"
 
 using std::string;
 using std::vector;
 using std::sort;
+
+int TIME_STATS::parse(XML_PARSER& xp) {
+    memset(this, 0, sizeof(TIME_STATS));
+    while (!xp.get_tag()) {
+        if (xp.match_tag("/time_stats")) return 0;
+        if (xp.parse_double("now", now)) continue;
+        if (xp.parse_double("on_frac", on_frac)) continue;
+        if (xp.parse_double("connected_frac", connected_frac)) continue;
+        if (xp.parse_double("cpu_and_network_available_frac", cpu_and_network_available_frac)) continue;
+        if (xp.parse_double("active_frac", active_frac)) continue;
+        if (xp.parse_double("gpu_active_frac", gpu_active_frac)) continue;
+        if (xp.parse_double("client_start_time", client_start_time)) continue;
+        if (xp.parse_double("previous_uptime", previous_uptime)) continue;
+    }
+    return ERR_XML_PARSE;
+}
 
 int DAILY_XFER::parse(XML_PARSER& xp) {
     while (!xp.get_tag()) {
@@ -246,6 +264,7 @@ void PROJECT::get_name(std::string& s) {
 
 int PROJECT::parse(XML_PARSER& xp) {
     int retval;
+    char buf[256];
 
     while (!xp.get_tag()) {
         if (xp.match_tag("/project")) return 0;
@@ -272,12 +291,115 @@ int PROJECT::parse(XML_PARSER& xp) {
         if (xp.parse_double("download_backoff", download_backoff)) continue;
         if (xp.parse_double("upload_backoff", upload_backoff)) continue;
         if (xp.parse_double("sched_priority", sched_priority)) continue;
-        if (xp.parse_double("cpu_backoff_time", cpu_backoff_time)) continue;
-        if (xp.parse_double("cpu_backoff_interval", cpu_backoff_interval)) continue;
-        if (xp.parse_double("cuda_backoff_time", cuda_backoff_time)) continue;
-        if (xp.parse_double("cuda_backoff_interval", cuda_backoff_interval)) continue;
-        if (xp.parse_double("ati_backoff_time", ati_backoff_time)) continue;
-        if (xp.parse_double("ati_backoff_interval", ati_backoff_interval)) continue;
+
+        // resource-specific stuff, old format
+        //
+        if (xp.parse_double("cpu_backoff_time", rsc_desc_cpu.backoff_time)) continue;
+        if (xp.parse_double("cpu_backoff_interval", rsc_desc_cpu.backoff_interval)) continue;
+        if (xp.parse_double("cuda_backoff_time", rsc_desc_nvidia.backoff_time)) continue;
+        if (xp.parse_double("cuda_backoff_interval", rsc_desc_nvidia.backoff_interval)) continue;
+        if (xp.parse_double("ati_backoff_time", rsc_desc_ati.backoff_time)) continue;
+        if (xp.parse_double("ati_backoff_interval", rsc_desc_intel_gpu.backoff_interval)) continue;
+        if (xp.parse_double("intel_gpu_backoff_time", rsc_desc_intel_gpu.backoff_time)) continue;
+        if (xp.parse_double("intel_gpu_backoff_interval", rsc_desc_ati.backoff_interval)) continue;
+        if (xp.parse_double("last_rpc_time", last_rpc_time)) continue;
+
+        // deprecated elements
+        //
+        if (xp.parse_bool("no_cpu_pref", rsc_desc_cpu.no_rsc_pref)) continue;
+        if (xp.parse_bool("no_cuda_pref", rsc_desc_nvidia.no_rsc_pref)) continue;
+
+        // resource-specific stuff, new format
+        //
+        if (xp.match_tag("rsc_backoff_time")) {
+            double value = 0;
+            while (!xp.get_tag()) {
+                if (xp.match_tag("/rsc_backoff_time")) {
+                    if (!strcmp(buf, "CPU")) {
+                        rsc_desc_cpu.backoff_time = value;
+                    } else if (!strcmp(buf, "NVIDIA")) {
+                        rsc_desc_nvidia.backoff_time = value;
+                    } else if (!strcmp(buf, "ATI")) {
+                        rsc_desc_ati.backoff_time = value;
+                    } else if (!strcmp(buf, "INTEL_GPU")) {
+                        rsc_desc_intel_gpu.backoff_time = value;
+                    }
+                    break;
+                }
+                if (xp.parse_str("name", buf, sizeof(buf))) continue;
+                if (xp.parse_double("value", value)) continue;
+            }
+            continue;
+        }
+        if (xp.match_tag("rsc_backoff_interval")) {
+            double value = 0;
+            while (!xp.get_tag()) {
+                if (xp.match_tag("/rsc_backoff_interval")) {
+                    if (!strcmp(buf, "CPU")) {
+                        rsc_desc_cpu.backoff_interval = value;
+                    } else if (!strcmp(buf, "NVIDIA")) {
+                        rsc_desc_nvidia.backoff_interval = value;
+                    } else if (!strcmp(buf, "ATI")) {
+                        rsc_desc_ati.backoff_interval = value;
+                    } else if (!strcmp(buf, "INTEL_GPU")) {
+                        rsc_desc_intel_gpu.backoff_interval = value;
+                    }
+                    break;
+                }
+                if (xp.parse_str("name", buf, sizeof(buf))) continue;
+                if (xp.parse_double("value", value)) continue;
+            }
+            continue;
+        }
+        if (xp.parse_str("no_rsc_ams", buf, sizeof(buf))) {
+            if (!strcmp(buf, proc_type_name_xml(PROC_TYPE_CPU))) {
+                rsc_desc_cpu.no_rsc_ams = true;
+            } else if (!strcmp(buf, proc_type_name_xml(PROC_TYPE_NVIDIA_GPU))) {
+                rsc_desc_nvidia.no_rsc_ams = true;
+            } else if (!strcmp(buf, proc_type_name_xml(PROC_TYPE_AMD_GPU))) {
+                rsc_desc_ati.no_rsc_ams = true;
+            } else if (!strcmp(buf, proc_type_name_xml(PROC_TYPE_INTEL_GPU))) {
+                rsc_desc_intel_gpu.no_rsc_ams = true;
+            }
+            continue;
+        }
+        if (xp.parse_str("no_rsc_apps", buf, sizeof(buf))) {
+            if (!strcmp(buf, proc_type_name_xml(PROC_TYPE_CPU))) {
+                rsc_desc_cpu.no_rsc_apps = true;
+            } else if (!strcmp(buf, proc_type_name_xml(PROC_TYPE_NVIDIA_GPU))) {
+                rsc_desc_nvidia.no_rsc_apps = true;
+            } else if (!strcmp(buf, proc_type_name_xml(PROC_TYPE_AMD_GPU))) {
+                rsc_desc_ati.no_rsc_apps = true;
+            } else if (!strcmp(buf, proc_type_name_xml(PROC_TYPE_INTEL_GPU))) {
+                rsc_desc_intel_gpu.no_rsc_apps = true;
+            }
+            continue;
+        }
+        if (xp.parse_str("no_rsc_pref", buf, sizeof(buf))) {
+            if (!strcmp(buf, proc_type_name_xml(PROC_TYPE_CPU))) {
+                rsc_desc_cpu.no_rsc_pref = true;
+            } else if (!strcmp(buf, proc_type_name_xml(PROC_TYPE_NVIDIA_GPU))) {
+                rsc_desc_nvidia.no_rsc_pref = true;
+            } else if (!strcmp(buf, proc_type_name_xml(PROC_TYPE_AMD_GPU))) {
+                rsc_desc_ati.no_rsc_pref = true;
+            } else if (!strcmp(buf, proc_type_name_xml(PROC_TYPE_INTEL_GPU))) {
+                rsc_desc_intel_gpu.no_rsc_pref = true;
+            }
+            continue;
+        }
+        if (xp.parse_str("no_rsc_config", buf, sizeof(buf))) {
+            if (!strcmp(buf, proc_type_name_xml(PROC_TYPE_CPU))) {
+                rsc_desc_cpu.no_rsc_config = true;
+            } else if (!strcmp(buf, proc_type_name_xml(PROC_TYPE_NVIDIA_GPU))) {
+                rsc_desc_nvidia.no_rsc_config = true;
+            } else if (!strcmp(buf, proc_type_name_xml(PROC_TYPE_AMD_GPU))) {
+                rsc_desc_ati.no_rsc_config = true;
+            } else if (!strcmp(buf, proc_type_name_xml(PROC_TYPE_INTEL_GPU))) {
+                rsc_desc_intel_gpu.no_rsc_config = true;
+            }
+            continue;
+        }
+
         if (xp.parse_double("duration_correction_factor", duration_correction_factor)) continue;
         if (xp.parse_bool("anonymous_platform", anonymous_platform)) continue;
         if (xp.parse_bool("master_url_fetch_pending", master_url_fetch_pending)) continue;
@@ -304,13 +426,19 @@ int PROJECT::parse(XML_PARSER& xp) {
             continue;
         }
         if (xp.parse_double("project_files_downloaded_time", project_files_downloaded_time)) continue;
-        if (xp.parse_double("last_rpc_time", last_rpc_time)) continue;
-        if (xp.parse_bool("no_cpu_pref", no_cpu_pref)) continue;
-        if (xp.parse_bool("no_cuda_pref", no_cuda_pref)) continue;
-        if (xp.parse_bool("no_ati_pref", no_ati_pref)) continue;
+        if (xp.parse_bool("no_ati_pref", rsc_desc_cpu.no_rsc_pref)) continue;
         if (xp.parse_str("venue", venue, sizeof(venue))) continue;
     }
     return ERR_XML_PARSE;
+}
+
+void RSC_DESC::clear() {
+    backoff_time = 0;
+    backoff_interval = 0;
+    no_rsc_ams = false;
+    no_rsc_apps = false;
+    no_rsc_pref = false;
+    no_rsc_config = false;
 }
 
 void PROJECT::clear() {
@@ -329,12 +457,10 @@ void PROJECT::clear() {
     min_rpc_time = 0;
     download_backoff = 0;
     upload_backoff = 0;
-    cpu_backoff_time = 0;
-    cpu_backoff_interval = 0;
-    cuda_backoff_time = 0;
-    cuda_backoff_interval = 0;
-    ati_backoff_time = 0;
-    ati_backoff_interval = 0;
+    rsc_desc_cpu.clear();
+    rsc_desc_nvidia.clear();
+    rsc_desc_ati.clear();
+    rsc_desc_intel_gpu.clear();
     duration_correction_factor = 0;
     anonymous_platform = false;
     master_url_fetch_pending = false;
@@ -351,9 +477,6 @@ void PROJECT::clear() {
     last_rpc_time = 0;
     gui_urls.clear();
     statistics.clear();
-    no_cpu_pref = false;
-    no_cuda_pref = false;
-    no_ati_pref = false;
     strcpy(venue, "");
 }
 
@@ -389,25 +512,18 @@ APP_VERSION::~APP_VERSION() {
 }
 
 int APP_VERSION::parse_coproc(XML_PARSER& xp) {
-    char type_buf[256];
-    double count = 0;
-
     while (!xp.get_tag()) {
         if (xp.match_tag("/coproc")) {
-            if (!strcmp(type_buf, "CUDA")) {
-                ncudas = count;
-            } else if (!strcmp(type_buf, GPU_TYPE_ATI)) {
-                natis = count;
-            }
             return 0;
         }
-        if (xp.parse_str("type", type_buf, sizeof(type_buf))) continue;
-        if (xp.parse_double("count", count)) continue;
+        if (xp.parse_int("gpu_type", gpu_type)) continue;
+        if (xp.parse_double("gpu_usage", gpu_usage)) continue;
     }
     return ERR_XML_PARSE;
 }
 
 int APP_VERSION::parse(XML_PARSER& xp) {
+    clear();
     while (!xp.get_tag()) {
         if (xp.match_tag("/app_version")) return 0;
         if (xp.parse_str("app_name", app_name, sizeof(app_name))) continue;
@@ -500,6 +616,7 @@ int RESULT::parse(XML_PARSER& xp) {
         if (xp.parse_bool("project_suspended_via_gui", project_suspended_via_gui)) continue;
         if (xp.parse_bool("coproc_missing", coproc_missing)) continue;
         if (xp.parse_bool("scheduler_wait", scheduler_wait)) continue;
+        if (xp.parse_str("scheduler_wait_reason", scheduler_wait_reason, sizeof(scheduler_wait_reason))) continue;
         if (xp.parse_bool("network_wait", network_wait)) continue;
         if (xp.match_tag("active_task")) {
             active_task = true;
@@ -515,7 +632,7 @@ int RESULT::parse(XML_PARSER& xp) {
 #if 0
         if (xp.match_tag("stderr_out")) {
             char buf[65536];
-            xp.element_contents(("</stderr_out>", buf);
+            xp.element_contents("</stderr_out>", buf);
             stderr_out = buf;
             continue;
         }
@@ -568,6 +685,7 @@ void RESULT::clear() {
     project_suspended_via_gui = false;
     coproc_missing = false;
     scheduler_wait = false;
+    strcpy(scheduler_wait_reason, "");
     network_wait = false;
 
     active_task = false;
@@ -705,7 +823,6 @@ int GR_PROXY_INFO::parse(XML_PARSER& xp) {
     use_http_authentication = false;
     while (!xp.get_tag()) {
         if (xp.match_tag("/proxy_info")) return 0;
-        if (xp.parse_int("socks_version", socks_version)) continue;
         if (xp.parse_string("socks_server_name", socks_server_name)) continue;
         if (xp.parse_int("socks_server_port", socks_server_port)) continue;
         if (xp.parse_string("socks5_user_name", socks5_user_name)) continue;
@@ -726,7 +843,6 @@ void GR_PROXY_INFO::clear() {
     use_http_proxy = false;
     use_socks_proxy = false;
     use_http_authentication = false;
-    socks_version = 0;
     socks_server_name.clear();
     http_server_name.clear();
     socks_server_port = 0;
@@ -860,8 +976,13 @@ int CC_STATE::parse(XML_PARSER& xp) {
             host_info.parse(xp);
             continue;
         }
+        if (xp.match_tag("time_stats")) {
+            time_stats.parse(xp);
+            continue;
+        }
         if (xp.parse_bool("have_cuda", have_nvidia)) continue;
         if (xp.parse_bool("have_ati", have_ati)) continue;
+        if (xp.parse_bool("have_intel", have_intel)) continue;
     }
     return 0;
 }
@@ -893,6 +1014,7 @@ void CC_STATE::clear() {
     host_info.clear_host_info();
     have_nvidia = false;
     have_ati = false;
+    have_intel = false;
 }
 
 PROJECT* CC_STATE::lookup_project(const char* url) {
@@ -960,7 +1082,7 @@ RESULT* CC_STATE::lookup_result(PROJECT* project, const char* name) {
 RESULT* CC_STATE::lookup_result(const char* url, const char* name) {
     unsigned int i;
     for (i=0; i<results.size(); i++) {
-        if (strcmp(results[i]->project->master_url, url)) continue;
+        if (strcmp(results[i]->project_url, url)) continue;
         if (!strcmp(results[i]->name, name)) return results[i];
     }
     return 0;
@@ -1048,6 +1170,7 @@ NOTICES::~NOTICES() {
 
 void NOTICES::clear() {
     complete = false;
+    received = false;
     unsigned int i;
     for (i=0; i<notices.size(); i++) {
         delete notices[i];
@@ -1789,30 +1912,29 @@ int RPC_CLIENT::set_proxy_settings(GR_PROXY_INFO& pi) {
     RPC rpc(this);
 
     sprintf(buf,
-        "<set_proxy_settings>\n%s%s%s"
+        "<set_proxy_settings>\n"
         "    <proxy_info>\n"
+        "%s%s%s"
         "        <http_server_name>%s</http_server_name>\n"
         "        <http_server_port>%d</http_server_port>\n"
         "        <http_user_name>%s</http_user_name>\n"
         "        <http_user_passwd>%s</http_user_passwd>\n"
         "        <socks_server_name>%s</socks_server_name>\n"
         "        <socks_server_port>%d</socks_server_port>\n"
-        "        <socks_version>%d</socks_version>\n"
         "        <socks5_user_name>%s</socks5_user_name>\n"
         "        <socks5_user_passwd>%s</socks5_user_passwd>\n"		
-		"        <no_proxy>%s</no_proxy\n"
+		"        <no_proxy>%s</no_proxy>\n"
         "    </proxy_info>\n"
         "</set_proxy_settings>\n",
-        pi.use_http_proxy?"   <use_http_proxy/>\n":"",
-        pi.use_socks_proxy?"   <use_socks_proxy/>\n":"",
-        pi.use_http_authentication?"   <use_http_auth/>\n":"",
+        pi.use_http_proxy?"        <use_http_proxy/>\n":"",
+        pi.use_socks_proxy?"        <use_socks_proxy/>\n":"",
+        pi.use_http_authentication?"        <use_http_auth/>\n":"",
         pi.http_server_name.c_str(),
         pi.http_server_port,
         pi.http_user_name.c_str(),
         pi.http_user_passwd.c_str(),
         pi.socks_server_name.c_str(),
         pi.socks_server_port,
-        pi.socks_version,
         pi.socks5_user_name.c_str(),
         pi.socks5_user_passwd.c_str(),
 		pi.noproxy_hosts.c_str()
@@ -2260,7 +2382,7 @@ int RPC_CLIENT::get_global_prefs_working_struct(GLOBAL_PREFS& prefs, GLOBAL_PREF
     prefs.parse(xp, "", found_venue, mask);
 
     if (!mask.are_prefs_set()) {
-        return ERR_FILE_NOT_FOUND;
+        return ERR_NOT_FOUND;
     }
     return 0;
 }
@@ -2323,7 +2445,7 @@ int RPC_CLIENT::get_global_prefs_override_struct(GLOBAL_PREFS& prefs, GLOBAL_PRE
     prefs.parse(xp, "", found_venue, mask);
 
     if (!mask.are_prefs_set()) {
-        return ERR_FILE_NOT_FOUND;
+        return ERR_NOT_FOUND;
     }
     return 0;
 }
@@ -2411,6 +2533,7 @@ int RPC_CLIENT::get_notices(int seqno, NOTICES& notices) {
     );
     retval = rpc.do_rpc(buf);
     if (retval) return retval;
+    notices.received = true;
     return parse_notices(rpc.xp, notices);
 }
 
@@ -2428,6 +2551,7 @@ int RPC_CLIENT::get_notices_public(int seqno, NOTICES& notices) {
     );
     retval = rpc.do_rpc(buf);
     if (retval) return retval;
+    notices.received = true;
     return parse_notices(rpc.xp, notices);
 }
 

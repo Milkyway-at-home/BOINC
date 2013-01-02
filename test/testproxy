@@ -2,7 +2,7 @@
 
 # -T
 
-# $Id$
+# $Id: testproxy 1676 2003-07-15 18:19:29Z davea $
 
 # testproxy - proxy a TCP/IP connection with configurable mid-way
 #             disconnections, for simulating internet transfer failures

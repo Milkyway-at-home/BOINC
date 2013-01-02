@@ -235,7 +235,7 @@ language("English", array(
     //site("http://www.boinc-doc.net", "boinc-doc.net"),
     site("http://www.boincuk.com/", "BOINC UK and Team Lookers"),
     //site("http://www.kazlev.karoo.net/", "TeamACC (Arthur C. Clarke fans)"),
-    site("http://www.setiusa.net/", "SETI.USA"),
+    //site("http://www.setiusa.net/", "SETI.USA"),
     site("http://www.boincsynergy.com/", "BOINC Synergy"),
     //site("http://www.esea.dk/esea/boinc.asp", "Earth Space Exploration Agency"),
     site("http://www.tswb.org", "Team Starfire World BOINC"),
@@ -302,12 +302,12 @@ language("Korean", array(
 
 language("Polish", array(
     //site("http://www.boinc-polska.org/", "BOINC-Polska.org"),
-    site("http://www.boinc.org.pl/", "Team boinc.pl"),
+    //site("http://www.boinc.org.pl/", "Team boinc.pl"),
     site("http://www.boinc.prv.pl", "BOINC@Kolobrzeg"),
     site("http://www.boincatpoland.org", "BOINC@Poland"),
     site("http://boinc.pl", "BOINC Polish National Team"),
     site("http://www.tomaszpawel.republika.pl/", "TomaszPawelTeam"),
-    site("http://www.gpuforce.oxyone.pl/", "GPU Force"),
+    //site("http://www.gpuforce.oxyone.pl/", "GPU Force"),
 ));
 language("Portuguese", array(
     site( "http://portugalathome.pt.vu/", "Portugal@home"),

@@ -36,13 +36,14 @@
 #endif
 
 #include "diagnostics.h"
-#include "parse.h"
-#include "util.h"
-#include "str_util.h"
 #include "error_numbers.h"
-#include "miofile.h"
 #include "md5_file.h"
+#include "miofile.h"
 #include "network.h"
+#include "parse.h"
+#include "str_util.h"
+#include "util.h"
+
 #include "gui_rpc_client.h"
 
 using std::string;
@@ -172,7 +173,6 @@ void GR_PROXY_INFO::print() {
     //printf("HTTP user password: %s\n",this->http_user_passwd.c_str()); 
     printf("SOCKS server name: %s\n",this->socks_server_name.c_str()); 
     printf("SOCKS server port: %d\n",this->socks_server_port); 
-    printf("SOCKS version: %d\n",this->socks_version); 
     printf("SOCKS5 user name: %s\n",this->socks5_user_name.c_str()); 
     //printf("SOCKS5 user password: %s\n",this->socks5_user_passwd.c_str()); 
     printf("no proxy hosts: %s\n",this->noproxy_hosts.c_str()); 
@@ -211,6 +211,17 @@ void SIMPLE_GUI_INFO::print() {
     }
 }
 
+void TIME_STATS::print() {
+    printf("  now: %f\n", now);
+    printf("  on_frac: %f\n", on_frac);
+    printf("  connected_frac: %f\n", connected_frac);
+    printf("  cpu_and_network_available_frac: %f\n", cpu_and_network_available_frac);
+    printf("  active_frac: %f\n", active_frac);
+    printf("  gpu_active_frac: %f\n", gpu_active_frac);
+    printf("  client_start_time: %f\n", client_start_time);
+    printf("  previous_uptime: %f\n", previous_uptime);
+}
+
 void CC_STATE::print() {
     unsigned int i;
     printf("======== Projects ========\n");
@@ -238,6 +249,8 @@ void CC_STATE::print() {
         printf("%d) -----------\n", i+1);
         results[i]->print();
     }
+    printf("\n======== Time stats ========\n");
+    time_stats.print();
 }
 
 void print_status(

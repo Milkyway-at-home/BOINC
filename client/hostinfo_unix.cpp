@@ -62,9 +62,15 @@
 #endif
 
 #include <sys/stat.h>
+
 #if HAVE_SYS_SWAP_H
+#ifdef ANDROID
+#include <linux/swap.h>
+#else
 #include <sys/swap.h>
 #endif
+#endif
+
 #if HAVE_SYS_SYSCTL_H
 #include <sys/sysctl.h>
 #endif
@@ -144,8 +150,16 @@ mach_port_t gEventHandle = NULL;
 #define _SC_PAGESIZE _SC_PAGE_SIZE
 #endif
 
+#if HAVE_DPMS
+#include <X11/extensions/dpms.h>
+#endif
+
 #if HAVE_XSS
 #include <X11/extensions/scrnsaver.h>
+#endif
+
+#ifdef ANDROID
+#include "android_log.h"
 #endif
 
 // The following is intended to be true both on Linux
@@ -205,6 +219,46 @@ bool HOST_INFO::host_is_running_on_batteries() {
     CFRelease(blob);
     CFRelease(list);
     return retval;
+
+#elif ANDROID
+    // using /sys/class/power_supply/*/online
+    // power supplies are both ac and usb!
+    //
+    char acpath[1024];
+    snprintf(acpath, sizeof(acpath), "/sys/class/power_supply/ac/online");
+    char usbpath[1024];
+    snprintf(usbpath, sizeof(usbpath), "/sys/class/power_supply/usb/online");
+
+    FILE *fsysac = fopen(acpath, "r");
+    FILE *fsysusb = fopen(usbpath, "r");
+    int aconline = 0;
+    int usbonline = 0;
+    bool power_supply_online = false;
+
+    if(fsysac) {
+        (void) fscanf(fsysac, "%d", &aconline);
+        fclose(fsysac);
+    }
+
+    if(fsysusb) {
+        (void) fscanf(fsysusb, "%d", &usbonline);
+        fclose(fsysusb);
+    }
+
+    if ((aconline == 1) || (usbonline == 1)){
+        power_supply_online = true;
+        char msg[1024];
+        snprintf(msg, sizeof(msg),
+            "power supply online! status for usb: %d and ac: %d",
+            usbonline,
+            aconline
+        );
+        LOGD(msg);
+    } else {
+        LOGD("running on batteries");
+    }
+
+    return !power_supply_online;
 
 #elif LINUX_LIKE_SYSTEM
     static enum {
@@ -416,13 +470,16 @@ static void parse_cpuinfo_linux(HOST_INFO& host) {
 #elif __ia64__
     strcpy(host.p_model, "IA-64 ");
     model_hack = true;
+#elif __arm__
+    strcpy(host.p_vendor, "ARM");
+    vendor_hack = vendor_found = true;
 #endif
 
     host.m_cache=-1;
     strcpy(features, "");
     while (fgets(buf, 1024, f)) {
         strip_whitespace(buf);
-         if (
+        if (
                 /* there might be conflicts if we dont #ifdef */
 #ifdef __ia64__
             strstr(buf, "vendor     : ")
@@ -442,46 +499,50 @@ static void parse_cpuinfo_linux(HOST_INFO& host) {
                 vendor_found = true;
                 strlcpy(host.p_vendor, strchr(buf, ':') + 2, sizeof(host.p_vendor));
             } else if (!vendor_found) {
-            vendor_found = true;
-        strlcpy(buf2, strchr(buf, ':') + 2, sizeof(host.p_vendor) - strlen(host.p_vendor) - 1);
-        strcat(host.p_vendor, buf2);
+                vendor_found = true;
+                strlcpy(buf2, strchr(buf, ':') + 2,
+                    sizeof(host.p_vendor) - strlen(host.p_vendor) - 1
+                );
+                strlcat(host.p_vendor, buf2, sizeof(host.p_vendor));
             }
         }
         if (
 #ifdef __ia64__
-        strstr(buf, "family     : ") || strstr(buf, "model name : ")
+            strstr(buf, "family     : ") || strstr(buf, "model name : ")
 #elif __powerpc__ || __sparc__
-        strstr(buf, "cpu\t\t: ")
+            strstr(buf, "cpu\t\t: ")
+#elif __arm__
+            strstr(buf, "Processor\t: ")
 #else
-        strstr(buf, "model name\t: ") || strstr(buf, "cpu model\t\t: ")
+            strstr(buf, "model name\t: ") || strstr(buf, "cpu model\t\t: ")
 #endif
-                ) {
+        ) {
             if (!model_hack && !model_found) {
                 model_found = true;
 #ifdef __powerpc__
-        char *coma = NULL;
-            if ((coma = strrchr(buf, ','))) {   /* we have ", altivec supported" */
-            *coma = '\0';    /* strip the unwanted line */
-                strcpy(features, "altivec");
-                features_found = true;
-            }
+                char *coma = NULL;
+                if ((coma = strrchr(buf, ','))) {   /* we have ", altivec supported" */
+                    *coma = '\0';    /* strip the unwanted line */
+                    strcpy(features, "altivec");
+                    features_found = true;
+                }
 #endif
                 strlcpy(host.p_model, strchr(buf, ':') + 2, sizeof(host.p_model));
             } else if (!model_found) {
 #ifdef __ia64__
-        /* depending on kernel version, family can be either
-        a number or a string. If number, we have a model name,
-        else we don't */
-        char *testc = NULL;
-        testc = strrchr(buf, ':')+2;
-        if (isdigit(*testc)) {
-            family = atoi(testc);
-            continue;    /* skip this line */
-        }
+                /* depending on kernel version, family can be either
+                a number or a string. If number, we have a model name,
+                else we don't */
+                char *testc = NULL;
+                testc = strrchr(buf, ':')+2;
+                if (isdigit(*testc)) {
+                    family = atoi(testc);
+                    continue;    /* skip this line */
+                }
 #endif
-        model_found = true;
-        strlcpy(buf2, strchr(buf, ':') + 2, sizeof(host.p_model) - strlen(host.p_model) - 1);
-        strcat(host.p_model, buf2);
+                model_found = true;
+                strlcpy(buf2, strchr(buf, ':') + 2, sizeof(host.p_model) - strlen(host.p_model) - 1);
+                strcat(host.p_model, buf2);
             }
         }
 #ifndef __hppa__
@@ -536,7 +597,9 @@ static void parse_cpuinfo_linux(HOST_INFO& host) {
             } else if ((strstr(buf, "features\t\t: ") == buf)) {
                 strlcpy(features, strchr(buf, ':') + 2, sizeof(features));
             } else if ((strstr(buf, "features   : ") == buf)) {    /* ia64 */
-            strlcpy(features, strchr(buf, ':') + 2, sizeof(features));
+                strlcpy(features, strchr(buf, ':') + 2, sizeof(features));
+            } else if ((strstr(buf, "Features\t: ") == buf)) { /* arm */
+               strlcpy(features, strchr(buf, ':') + 2, sizeof(features));
             }
             if (strlen(features)) {
                 features_found = true;
@@ -576,9 +639,10 @@ static void parse_cpuinfo_linux(HOST_INFO& host) {
 
 void use_cpuid(HOST_INFO& host) {
     u_int p[4];
-    int hasMMX, hasSSE, hasSSE2, hasSSE3, has3DNow, has3DNowExt = 0;
+    int hasMMX, hasSSE, hasSSE2, hasSSE3, has3DNow, has3DNowExt;
     char capabilities[256];
 
+    hasMMX = hasSSE = hasSSE2 = hasSSE3 = has3DNow = has3DNowExt = 0;
     do_cpuid(0x0, p);
 
     if (p[0] >= 0x1) {
@@ -600,14 +664,18 @@ void use_cpuid(HOST_INFO& host) {
     }
 
     capabilities[0] = '\0';
-    if (hasSSE) strncat(capabilities, "sse ", 4);
-    if (hasSSE2) strncat(capabilities, "sse2 ", 5);
-    if (hasSSE3) strncat(capabilities, "sse3 ", 5);
-    if (has3DNow) strncat(capabilities, "3dnow ", 6);
-    if (has3DNowExt) strncat(capabilities, "3dnowext ", 9);
-    if (hasMMX) strncat(capabilities, "mmx ", 4);
+    if (hasSSE) strcat(capabilities, "sse ");
+    if (hasSSE2) strcat(capabilities, "sse2 ");
+    if (hasSSE3) strcat(capabilities, "sse3 ");
+    if (has3DNow) strcat(capabilities, "3dnow ");
+    if (has3DNowExt) strcat(capabilities, "3dnowext ");
+    if (hasMMX) strcat(capabilities, "mmx ");
     strip_whitespace(capabilities);
-    snprintf(host.p_model, sizeof(host.p_model), "%s [] [%s]", host.p_model, capabilities);
+    char buf[1024];
+    snprintf(buf, sizeof(buf), "%s [] [%s]",
+        host.p_model, capabilities
+    );
+    strlcat(host.p_model, buf, sizeof(host.p_model));
 }
 #endif
 #endif
@@ -827,7 +895,9 @@ static void get_cpu_info_haiku(HOST_INFO& host) {
 
 // detect the network usage totals for the host.
 //
-int get_network_usage_totals(unsigned int& total_received, unsigned int& total_sent) {
+int get_network_usage_totals(
+    unsigned int& total_received, unsigned int& total_sent
+) {
     static size_t  sysctlBufferSize = 0;
     static uint8_t *sysctlBuffer = NULL;
 
@@ -937,8 +1007,7 @@ typedef struct {
 
 static io_connect_t conn;
 
-kern_return_t SMCOpen()
-{
+kern_return_t SMCOpen() {
     kern_return_t       result;
     mach_port_t         masterPort;
     io_iterator_t       iterator;
@@ -948,30 +1017,26 @@ kern_return_t SMCOpen()
 
     CFMutableDictionaryRef matchingDictionary = IOServiceMatching("AppleSMC");
     result = IOServiceGetMatchingServices(masterPort, matchingDictionary, &iterator);
-    if (result != kIOReturnSuccess)
-    {
+    if (result != kIOReturnSuccess) {
         return result;
     }
 
     device = IOIteratorNext(iterator);
     IOObjectRelease(iterator);
-    if (device == 0)
-    {
+    if (device == 0) {
         return result;
     }
 
     result = IOServiceOpen(device, mach_task_self(), 0, &conn);
     IOObjectRelease(device);
-    if (result != kIOReturnSuccess)
-    {
+    if (result != kIOReturnSuccess) {
         return result;
     }
 
     return kIOReturnSuccess;
 }
 
-kern_return_t SMCClose()
-{
+kern_return_t SMCClose() {
     if (conn) {
         return IOServiceClose(conn);
     }
@@ -993,20 +1058,20 @@ kern_return_t SMCReadKey(UInt32 key, SMCBytes_t val) {
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5
     result = IOConnectCallStructMethod(conn,
-                                       KERNEL_INDEX_SMC,
-                                       &inputStructure,
-                                       sizeof(inputStructure),
-                                       &outputStructure,
-                                       &structureOutputSize
-                                       );
+        KERNEL_INDEX_SMC,
+        &inputStructure,
+        sizeof(inputStructure),
+        &outputStructure,
+        &structureOutputSize
+    );
 #else
     result = IOConnectMethodStructureIStructureO(conn,
-                                                 KERNEL_INDEX_SMC,
-                                                 sizeof(inputStructure),
-                                                 &structureOutputSize,
-                                                 &inputStructure,
-                                                 &outputStructure
-                                                 );
+        KERNEL_INDEX_SMC,
+        sizeof(inputStructure),
+        &structureOutputSize,
+        &inputStructure,
+        &outputStructure
+    );
 #endif
     if (result != kIOReturnSuccess) {
         return result;
@@ -1017,20 +1082,20 @@ kern_return_t SMCReadKey(UInt32 key, SMCBytes_t val) {
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5
     result = IOConnectCallStructMethod(conn,
-                                       KERNEL_INDEX_SMC,
-                                       &inputStructure,
-                                       sizeof(inputStructure),
-                                       &outputStructure,
-                                       &structureOutputSize
-                                       );
+        KERNEL_INDEX_SMC,
+        &inputStructure,
+        sizeof(inputStructure),
+        &outputStructure,
+        &structureOutputSize
+    );
 #else
     result = IOConnectMethodStructureIStructureO(conn,
-                                                 KERNEL_INDEX_SMC,
-                                                 sizeof(inputStructure),
-                                                 &structureOutputSize,
-                                                 &inputStructure,
-                                                 &outputStructure
-                                                 );
+        KERNEL_INDEX_SMC,
+        sizeof(inputStructure),
+        &structureOutputSize,
+        &inputStructure,
+        &outputStructure
+    );
 #endif
     if (result != kIOReturnSuccess) {
         return result;
@@ -1102,6 +1167,15 @@ int get_max_cpu_temperature() {
 }
 
 #endif
+
+// Is this a dual GPU MacBook with automatic GPU switching?
+bool isDualGPUMacBook() {
+    io_service_t service = IO_OBJECT_NULL;
+    
+    service = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("AppleGraphicsControl"));
+    return (service != IO_OBJECT_NULL);
+}
+
 #endif  // __APPLE__
 
 // see if Virtualbox is installed
@@ -1119,9 +1193,9 @@ int HOST_INFO::get_virtualbox_version() {
     OSStatus status = noErr;
 
     // First try to locate the VirtualBox application by Bundle ID and Creator Code
-    status = LSFindApplicationForInfo('VBOX', CFSTR("org.virtualbox.app.VirtualBox"),   
-                                        NULL, &theFSRef, NULL
-                                    );
+    status = LSFindApplicationForInfo(
+        'VBOX', CFSTR("org.virtualbox.app.VirtualBox"), NULL, &theFSRef, NULL
+    );
     if (status == noErr) {
         status = FSRefMakePath(&theFSRef, (unsigned char *)path, sizeof(path));
     }
@@ -1276,7 +1350,7 @@ int HOST_INFO::get_host_info() {
     m_nbytes = (double)sysconf(_SC_PAGESIZE) * (double)sysconf(_SC_PHYS_PAGES);
     if (m_nbytes < 0) {
         msg_printf(NULL, MSG_INTERNAL_ERROR,
-            "RAM size not measured correctly: page size %d, #pages %d",
+            "RAM size not measured correctly: page size %ld, #pages %ld",
             sysconf(_SC_PAGESIZE), sysconf(_SC_PHYS_PAGES)
         );
     }
@@ -1303,15 +1377,8 @@ int HOST_INFO::get_host_info() {
     getsysinfo( GSI_PHYSMEM, (caddr_t) &mem_size, sizeof( mem_size));
     m_nbytes = 1024.* (double)mem_size;
 #elif defined(HW_PHYSMEM) 
-    // for OpenBSD
-    mib[0] = CTL_HW; 
-    int mem_size; 
-    mib[1] = HW_PHYSMEM; 
-    len = sizeof(mem_size); 
-    sysctl(mib, 2, &mem_size, &len, NULL, 0); 
-    m_nbytes = mem_size; 
-#elif defined(__FreeBSD__)
-    unsigned int mem_size;
+    // for OpenBSD & NetBSD & FreeBSD
+    int mem_size;
     mib[0] = CTL_HW;
     mib[1] = HW_PHYSMEM;
     len = sizeof(mem_size);
@@ -1400,7 +1467,11 @@ int HOST_INFO::get_host_info() {
 #if HAVE_SYS_UTSNAME_H
     struct utsname u;
     uname(&u);
+#ifdef ANDROID
+    safe_strcpy(os_name, "Android");
+#else
     safe_strcpy(os_name, u.sysname);
+#endif //ANDROID
 #if defined(__EMX__) // OS2: version is in u.version
     safe_strcpy(os_version, u.version);
 #elif defined(__HAIKU__)
@@ -1589,15 +1660,14 @@ inline bool user_idle(time_t t, struct utmp* u) {
 // CGEventSourceSecondsSinceLastEventType() API does work with ARD and VNC, 
 // except when BOINC is a pre-login launchd daemon running as user boinc_master.
 //
-// So as a workaround in OS 10.7, we use CGEventSourceSecondsSinceLastEventType 
-// unless running as a daemon.  Therefore BOINC still won't detect activity from
-// remote via Apple Remote Desktop or Screen Sharing (VNC) when run as a daemon 
-// under OS 10.7.
+// Also, CGEventSourceSecondsSinceLastEventType() does not detect user activity 
+// when the user who launched the client is switched out by fast user switching.
 //
 // So we use weak-linking of NxIdleTime() to prevent a run-time crash from the 
 // dynamic linker and use it if it exists. 
-// If NXIdleTime does not exist, use CGEventSourceSecondsSinceLastEventType() 
-// under OS 10.7, or IOHIDGetParameter() under OS 10.6.
+// If NXIdleTime does not exist, we call both IOHIDGetParameter() and 
+// CGEventSourceSecondsSinceLastEventType().  If both return without error, 
+// we use the lower of the two returned values.
 //
 bool HOST_INFO::users_idle(
     bool check_all_logins, double idle_time_to_run, double *actual_idle_time
@@ -1606,6 +1676,7 @@ bool HOST_INFO::users_idle(
     static long     OSVersionInfo = 0;
     OSStatus        err = noErr;
     double          idleTime = 0;
+    double          idleTimeFromCG = 0;
     io_service_t    service;
     kern_return_t   kernResult = kIOReturnError; 
     UInt64          params;
@@ -1647,38 +1718,41 @@ bool HOST_INFO::users_idle(
             }
         }
     } else {        // NXIdleTime API does not exist in OS 10.6 and later
-    if ((OSVersionInfo >= 0x1070) && (! gstate.executing_as_daemon)) {
-                
-            idleTime =  CGEventSourceSecondsSinceLastEventType  
+        if (gEventHandle) {
+            kernResult = IOHIDGetParameter( gEventHandle, CFSTR(EVSIOIDLE), sizeof(UInt64), &params, &rcnt );
+            if ( kernResult != kIOReturnSuccess ) {
+                msg_printf(NULL, MSG_INFO,
+                    "User idle time measurement failed because IOHIDGetParameter failed."
+                );
+                error_posted = true;
+                goto bail;
+            }
+            idleTime = ((double)params) / 1000.0 / 1000.0 / 1000.0;
+            
+             if (!gstate.executing_as_daemon) {
+                idleTimeFromCG =  CGEventSourceSecondsSinceLastEventType  
                         (kCGEventSourceStateCombinedSessionState, kCGAnyInputEventType);
-    } else {        // OS Version < 10.7
-       if (gEventHandle) {
-                kernResult = IOHIDGetParameter( gEventHandle, CFSTR(EVSIOIDLE), sizeof(UInt64), &params, &rcnt );
-                if ( kernResult != kIOReturnSuccess ) {
-                    msg_printf(NULL, MSG_INFO,
-                        "User idle time measurement failed because IOHIDGetParameter failed."
+        
+                if (idleTimeFromCG < idleTime) {
+                    idleTime = idleTimeFromCG;
+                }
+            }
+        } else {
+            service = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching(kIOHIDSystemClass));
+            if (service) {
+                 kernResult = IOServiceOpen(service, mach_task_self(), kIOHIDParamConnectType, &gEventHandle);
+            }
+            if ( (!service) || (kernResult != KERN_SUCCESS) ) {
+                // When the system first starts up, allow time for HIDSystem to be available if needed
+                if (TickCount() > (120*60)) {        // If system has been up for more than 2 minutes 
+                     msg_printf(NULL, MSG_INFO,
+                        "Could not connect to HIDSystem: user idle detection is disabled."
                     );
                     error_posted = true;
                     goto bail;
                 }
-                idleTime = ((double)params) / 1000.0 / 1000.0 / 1000.0;
-            } else {
-                service = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching(kIOHIDSystemClass));
-                if (service) {
-                     kernResult = IOServiceOpen(service, mach_task_self(), kIOHIDParamConnectType, &gEventHandle);
-                }
-                if ( (!service) || (kernResult != KERN_SUCCESS) ) {
-                    // When the system first starts up, allow time for HIDSystem to be available if needed
-                    if (TickCount() > (120*60)) {        // If system has been up for more than 2 minutes 
-                         msg_printf(NULL, MSG_INFO,
-                            "Could not connect to HIDSystem: user idle detection is disabled."
-                        );
-                        error_posted = true;
-                        goto bail;
-                    }
-                }
-            }   // End (gEventHandle == NULL)
-        }       // End (OSVersionInfo < 0x1070)
+            }
+        }   // End (gEventHandle == NULL)
     }           // End NXIdleTime API does not exist
     
  bail:   
@@ -1692,6 +1766,7 @@ bool HOST_INFO::users_idle(
 
 #if LINUX_LIKE_SYSTEM
 bool interrupts_idle(time_t t) {
+    // This method doesn't really work reliably on USB keyboards and mice.
     static FILE *ifp = NULL;
     static long irq_count[256];
     static time_t last_irq = time(NULL);
@@ -1735,7 +1810,51 @@ bool xss_idle(long idle_treshold) {
     
     if(disp != NULL) {
         XScreenSaverQueryInfo(disp, DefaultRootWindow(disp), xssInfo);
-        idle_time = xssInfo->idle / 1000; // xssInfo->idle is in ms
+
+        idle_time = xssInfo->idle;
+
+#if HAVE_DPMS
+        int dummy;
+        CARD16 standby, suspend, off;
+        CARD16 state;
+        BOOL onoff;
+
+        if (DPMSQueryExtension(disp, &dummy, &dummy)) {
+            if (DPMSCapable(disp)) {
+                DPMSGetTimeouts(disp, &standby, &suspend, &off);
+                DPMSInfo(disp, &state, &onoff);
+
+                if (onoff) {
+                    switch (state) {
+                      case DPMSModeStandby:
+                          /* this check is a littlebit paranoid, but be sure */
+                          if (idle_time < (unsigned) (standby * 1000)) {
+                              idle_time += (standby * 1000);
+                          }
+                          break;
+                      case DPMSModeSuspend:
+                          if (idle_time < (unsigned) ((suspend + standby) * 1000)) {
+                              idle_time += ((suspend + standby) * 1000);
+                          }
+                          break;
+                      case DPMSModeOff:
+                          if (idle_time < (unsigned) ((off + suspend + standby) * 1000)) {
+                              idle_time += ((off + suspend + standby) * 1000);
+                          }
+                          break;
+                      case DPMSModeOn:
+                        default:
+                          break;
+                    }
+                }
+
+            } 
+        }
+#endif
+
+        // convert from milliseconds to seconds
+        idle_time = idle_time / 1000;
+
     } else {
         disp = XOpenDisplay(NULL);
         // XOpenDisplay may return NULL if there is no running X
@@ -1767,9 +1886,16 @@ bool HOST_INFO::users_idle(bool check_all_logins, double idle_time_to_run) {
 
 #if LINUX_LIKE_SYSTEM
     // Check /proc/interrupts to detect keyboard or mouse activity.
+    // this ignores USB keyboards/mice.  They don't use the keyboard
+    // and mouse interrupts.
     if (!interrupts_idle(idle_time)) {
         return false;
     }
+
+    // Lets at least check the dev entries which should be correct for
+    // USB mice.  The tty check will catch keyboards if they are entering
+    // data into a tty.
+    if (!device_idle(idle_time, "/dev/input/mice")) return false;
 
 #if HAVE_XSS
     if (!xss_idle((long)(idle_time_to_run * 60))) {

@@ -26,6 +26,7 @@
 #define sockaddr_storage sockaddr_in
 #else
 #include <sys/select.h>
+#include <sys/socket.h>
 #include <unistd.h>
 #endif
 
@@ -54,8 +55,10 @@ extern int get_socket_error(int fd);
 extern const char* socket_error_str();
 extern void reset_dns();
 
-#if defined(_WIN32) && defined(USE_WINSOCK)
+#if defined(_WIN32) && !defined(__CYGWIN32__)
 typedef int BOINC_SOCKLEN_T;
+#else
+typedef socklen_t BOINC_SOCKLEN_T;
 #endif
 
 #if defined(_WIN32) && defined(USE_WINSOCK)

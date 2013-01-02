@@ -239,6 +239,12 @@ if options.test_app:
 
 t = project.config.tasks.make_node_and_append("task")
 t.period = '24 hours'
+t.output = 'antique_file_deleter.out'
+t.cmd = 'antique_file_deleter -d 2'
+t.disabled = 0
+
+t = project.config.tasks.make_node_and_append("task")
+t.period = '24 hours'
 t.output = 'db_dump.out'
 t.cmd = 'db_dump -d 2 --dump_spec ../db_dump_spec.xml'
 t.disabled = 1
@@ -281,18 +287,10 @@ t.disabled = 1
 
 project.config.write()
 
-svn_version_file = proot+'/local.revision'
 try:
-    cmd = '/bin/sh -c \'/usr/bin/svnversion ' + options.srcdir + '\' > '+svn_version_file
-    os.system(cmd)
+    os.system('cd '+proot+'/html/ops; ./db_schemaversion.php > '+proot+'/db_revision')
 except:
-    print '''Couldn't find svnversion'''
-
-try:
-    cmd = '/bin/sh -c \'/usr/bin/svnversion ' + options.srcdir + '\' > '+proot+'/db_revision'
-    os.system(cmd)
-except:
-    print '''Couldn't find svnversion'''
+    print '''Couldn't set db schema version number'''
 
 try:
     os.system('cd '+proot+'/html/ops; ./update_translations.php -d 1')

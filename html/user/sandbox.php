@@ -38,7 +38,7 @@ ini_set('display_startup_errors', true);
 require_once("../inc/sandbox.inc");
 require_once("../inc/submit_db.inc");
 
-function list_files($user) {
+function list_files($user, $err_msg) {
     $dir = sandbox_dir($user);
     $d = opendir($dir);
     if (!$d) error_page("Can't open sandbox directory");
@@ -52,6 +52,9 @@ function list_files($user) {
         </form>
         <hr>
     ";
+    if (strcmp($err_msg,"")!=0){
+        echo "<p>$err_msg<hr>";
+    }
     $files = array();
     while (($f = readdir($d)) !== false) {
         if ($f == '.') continue;
@@ -63,45 +66,58 @@ function list_files($user) {
     } else {
         sort($files);
         start_table();
-        table_header("Name<br><span class=note>(click to view)</span>", "Modified", "Size (bytes)", "MD5", "");
-        foreach($files as $f) {
+        table_header("Name<br><span class=note>(click to view)</span>", "Modified", "Size (bytes)", "MD5", "Delete","Download");
+        foreach ($files as $f) {
             $path = "$dir/$f";
             list($error, $size, $md5) = sandbox_parse_link_file($path);
             if ($error) {
                 table_row($f, "Can't parse link file", "", "<a href=sandbox.php?action=delete_files&name=$f>delete</a>");
-            } else {
-                $ct = time_str(filemtime($path));
-                table_row(
-                    "<a href=sandbox.php?action=view_file&name=$f>$f</a>",
-                    $ct,
-                    $size,
-                    $md5,
-                    button_text(
-                        "sandbox.php?action=delete_file&name=$f",
-                        "Delete"
-                    )
-                );
+                continue;
             }
+            $p = sandbox_physical_path($user, $md5);
+            if (!is_file($p)) {
+                table_row($f, "Physical file not found", "", "");
+                continue;
+            }
+            $ct = time_str(filemtime($path));
+            table_row(
+                "<a href=sandbox.php?action=view_file&name=$f>$f</a>",
+                $ct,
+                $size,
+                $md5,
+                button_text(
+                    "sandbox.php?action=delete_file&name=$f",
+                    "Delete"
+                ),
+                button_text(
+                    "sandbox.php?action=download_file&name=$f",
+                    "Download"
+                )
+            );
         }
         end_table();
     }
-    echo "
-        <p><a href=lammps.php>Submit LAMMPS jobs</a>
-    ";
     page_tail();
 }
 
 function upload_file($user) {
     $tmp_name = $_FILES['new_file']['tmp_name'];
-    if (is_uploaded_file($tmp_name)) {
-        $name = $_FILES['new_file']['name'];
-        if (strstr($name, "/")) {
-            error_page("no / allowed");
-        }
-        $md5 = md5_file($tmp_name);
-        $s = stat($tmp_name);
-        $size = $s['size'];
-
+    if (!is_uploaded_file($tmp_name)) {
+        error_page("$tmp_name is not uploaded file");
+    }
+    $name = $_FILES['new_file']['name'];
+    if (strstr($name, "/")) {
+        error_page("no / allowed");
+    }
+    $md5 = md5_file($tmp_name);
+    $s = stat($tmp_name);
+    $size = $s['size'];
+    list($exist, $elf) = sandbox_lf_exist($user, $md5);
+    if ($exist){
+        $notice = "<strong>Notice:</strong> Invalid Upload<br/>";
+        $notice .= "You are trying to upload file  <strong>$name</strong><br/>";
+        $notice .= "Another file <strong>$elf</strong> with the same content(md5: $md5) already exist!<br/>";
+    } else{
         // move file to download dir
         //
         $phys_path = sandbox_physical_path($user, $md5);
@@ -112,15 +128,16 @@ function upload_file($user) {
         $dir = sandbox_dir($user);
         $link_path = "$dir/$name";
         sandbox_write_link_file($link_path, $size, $md5);
+            $notice = "Successfully uploaded file <strong>$name</strong>!<br/>";
+        }
     }
-    Header("Location: sandbox.php");
+    list_files($user, $notice);    
 }
 
 function delete_file($user) {
     $name = get_str('name');
     $dir = sandbox_dir($user);
     list($error, $size, $md5) = sandbox_parse_link_file("$dir/$name");
-    unlink("$dir/$name");
     if ($error) {
         error_page("can't parse link file");
     }
@@ -128,10 +145,31 @@ function delete_file($user) {
     if (!is_file($p)) {
         error_page("no such physical file");
     }
-    unlink($p);
-    Header("Location: sandbox.php");
+    $bused = sandbox_file_in_use($user, $name);
+    if ($bused){
+        $notice = "<strong>$name</strong> is being used by batch(es), you can not delete it now!<br/>";
+    } else{ 
+        $notice = "<strong>$name</strong> is not being used by any batch(es) and successfully deleted from your sandbox<br/>";
+        unlink("$dir/$name");
+        unlink($p);
+    
+    }
+    list_files($user,$notice);
+    //Header("Location: sandbox.php");
 }
-
+function download_file($user) {
+    $name = get_str('name');
+    $dir = sandbox_dir($user);
+    list($err, $size, $md5) = sandbox_parse_link_file("$dir/$name");
+    if ($err) {
+        error_page("can't parse link file");
+    }
+    $p = sandbox_physical_path($user, $md5);
+    if (!is_file($p)) {
+        error_page("$p does not exist!");
+    }
+    do_download($p, $name);
+}
 function view_file($user) {
     $name = get_str('name');
     $dir = sandbox_dir($user);
@@ -145,6 +183,7 @@ function view_file($user) {
 }
 
 $user = get_logged_in_user();
+//print_r($user);
 $user_submit = BoincUserSubmit::lookup_userid($user->id);
 if (!$user_submit) error_page("no job submission access");
 
@@ -152,9 +191,10 @@ $action = get_str('action', true);
 if (!$action) $action = post_str('action', true);
 
 switch ($action) {
-case '': list_files($user); break;
+case '': list_files($user,""); break;
 case 'upload_file': upload_file($user); break;
 case 'delete_file': delete_file($user); break;
+case 'download_file': download_file($user); break;
 case 'view_file': view_file($user); break;
 default: error_page("no such action: $action");
 }

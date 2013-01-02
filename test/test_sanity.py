@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-## $Id$
+## $Id: test_sanity.py 2246 2003-09-04 05:07:17Z quarl $
 
 from testbase import *
 import urllib, random

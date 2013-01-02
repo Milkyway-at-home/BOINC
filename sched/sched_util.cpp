@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with BOINC.  If not, see <http://www.gnu.org/licenses/>.
 
+// Utility functions for server software (not just scheduler)
 
 #include "config.h"
 #include <cstdlib>
@@ -88,6 +89,15 @@ void check_stop_daemons() {
     }
 }
 
+// sleep for n seconds, but check every second for trigger file
+//
+void daemon_sleep(int nsecs) {
+    for (int i=0; i<nsecs; i++) {
+        check_stop_daemons();
+        sleep(1);
+    }
+}
+
 bool check_stop_sched() {
     return boinc_file_exists(config.project_path(STOP_SCHED_FILENAME));
 }
@@ -107,7 +117,7 @@ int try_fopen(const char* path, FCGI_FILE*& f, const char *mode) {
 #endif
     const char* p;
     DIR* d;
-    char dirpath[256];
+    char dirpath[MAXPATHLEN];
 
 #ifndef _USING_FCGI_
     f = fopen(path, mode);
@@ -162,7 +172,7 @@ int dir_hier_path(
     const char* filename, const char* root, int fanout,
     char* path, bool create
 ) {
-    char dir[256], dirpath[256];
+    char dir[256], dirpath[MAXPATHLEN];
     int retval;
 
     if (fanout==0) {
@@ -307,18 +317,20 @@ bool app_plan_uses_gpu(const char* plan_class) {
 // This could be used, for example, so that late workunits
 // are sent only to cloud or cluster resources
 //
-int restrict_wu_to_user(DB_WORKUNIT& wu, int userid) {
+int restrict_wu_to_user(WORKUNIT& _wu, int userid) {
     DB_RESULT result;
     DB_ASSIGNMENT asg;
+    DB_WORKUNIT wu;
+    wu = _wu;
     char buf[256];
     int retval;
 
     // mark unsent results as DIDNT_NEED
     //
-    sprintf(buf, "workunitid=%d and server_state=%d",
+    sprintf(buf, "where workunitid=%d and server_state=%d",
         wu.id, RESULT_SERVER_STATE_UNSENT
     );
-    while (result.enumerate(buf)) {
+    while (!result.enumerate(buf)) {
         char buf2[256];
         sprintf(buf2, "server_state=%d, outcome=%d",
             RESULT_SERVER_STATE_OVER,

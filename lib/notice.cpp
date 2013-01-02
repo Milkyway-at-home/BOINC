@@ -22,8 +22,8 @@
 #endif
 
 #include "error_numbers.h"
-#include "notice.h"
 
+#include "notice.h"
 
 NOTICE::NOTICE() {
     clear();

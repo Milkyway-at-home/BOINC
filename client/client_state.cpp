@@ -26,6 +26,7 @@
 #include <ctime>
 #include <cstdarg>
 #include <cstring>
+#include <math.h>
 #if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
@@ -37,26 +38,30 @@
 #endif
 
 #include "cpp.h"
-#include "parse.h"
-#include "str_util.h"
-#include "str_replace.h"
-#include "util.h"
 #include "error_numbers.h"
 #include "filesys.h"
+#include "parse.h"
+#include "str_replace.h"
+#include "str_util.h"
+#include "util.h"
 #ifdef _WIN32
 #include "run_app_windows.h"
 #endif
 
+#include "app_config.h"
+#include "async_file.h"
+#include "client_msgs.h"
+#include "cs_notice.h"
+#include "cs_trickle.h"
 #include "file_names.h"
 #include "hostinfo.h"
 #include "hostinfo_network.h"
-#include "network.h"
 #include "http_curl.h"
-#include "client_msgs.h"
-#include "shmem.h"
+#include "network.h"
+#include "project.h"
+#include "result.h"
 #include "sandbox.h"
-#include "cs_notice.h"
-#include "cs_trickle.h"
+#include "shmem.h"
 
 #include "client_state.h"
 
@@ -199,6 +204,7 @@ void CLIENT_STATE::show_host_info() {
 
 int rsc_index(const char* name) {
     const char* nm = strcmp(name, "CUDA")?name:GPU_TYPE_NVIDIA;
+        // handle old state files
     for (int i=0; i<coprocs.n_rsc; i++) {
         if (!strcmp(nm, coprocs.coprocs[i].type)) {
             return i;
@@ -295,11 +301,11 @@ int CLIENT_STATE::init() {
 
     srand((unsigned int)time(0));
     now = dtime();
-    client_start_time = now;
     scheduler_op->url_random = drand();
 
     notices.init();
     daily_xfer_history.init();
+    time_stats.init();
 
     detect_platforms();
     time_stats.start();
@@ -365,8 +371,7 @@ int CLIENT_STATE::init() {
         vector<string> descs;
         vector<string> warnings;
         coprocs.get(
-            config.use_all_gpus, descs, warnings,
-            config.ignore_nvidia_dev, config.ignore_ati_dev
+            config.use_all_gpus, descs, warnings, config.ignore_gpu_instance
         );
         for (i=0; i<descs.size(); i++) {
             msg_printf(NULL, MSG_INFO, "%s", descs[i].c_str());
@@ -400,17 +405,18 @@ int CLIENT_STATE::init() {
             coprocs.add(coprocs.ati);
         }
     }
+    if (coprocs.have_intel_gpu()) {
+        if (rsc_index(GPU_TYPE_INTEL)>0) {
+            msg_printf(NULL, MSG_INFO, "INTEL GPU info taken from cc_config.xml");
+        } else {
+            coprocs.add(coprocs.intel_gpu);
+        }
+    }
     host_info._coprocs = coprocs;
     
     if (coprocs.none() ) {
         msg_printf(NULL, MSG_INFO, "No usable GPUs found");
     }
-	for (int j=1; j<coprocs.n_rsc; j++) {
-		COPROC& cp = coprocs.coprocs[j];
-		if (cp.have_opencl) {
-			msg_printf(NULL, MSG_INFO, "%s GPU %d is OpenCL-capable", cp.type, cp.device_num);
-		}
-	}
 
     set_no_rsc_config();
 
@@ -431,6 +437,10 @@ int CLIENT_STATE::init() {
     // for projects with no account file
     //
     parse_state_file();
+
+    // check for app_config.xml files in project dirs
+    //
+    check_app_config();
 
     // this needs to go after parse_state_file because
     // GPU exclusions refer to projects
@@ -466,10 +476,10 @@ int CLIENT_STATE::init() {
             avp->flops = avp->avg_ncpus * host_info.p_fpops;
 
             // for GPU apps, use conservative estimate:
-            // assume app will run at peak CPU speed, not peak GPU
+            // assume GPU runs at 10X peak CPU speed
             //
             if (avp->gpu_usage.rsc_type) {
-                avp->flops += avp->gpu_usage.usage * host_info.p_fpops;
+                avp->flops += avp->gpu_usage.usage * 10 * host_info.p_fpops;
             }
         }
     }
@@ -564,12 +574,13 @@ int CLIENT_STATE::init() {
     //
     set_client_state_dirty("init");
 
-    // initialize GUI RPC data structures before we start accepting
-    // GUI RPC's.
+    // check for initialization files
     //
     acct_mgr_info.init();
     project_init.init();
 
+    // set up for handling GUI RPCs
+    //
     if (!no_gui_rpc) {
         // When we're running at boot time,
         // it may be a few seconds before we can socket/bind/listen.
@@ -615,6 +626,10 @@ int CLIENT_STATE::init() {
     //
     check_too_large_jobs();
 
+    // initialize project priorities (for the GUI, in case we're suspended)
+    //
+    project_priority_init(false);
+
     initialized = true;
     return 0;
 }
@@ -635,15 +650,17 @@ void CLIENT_STATE::do_io_or_sleep(double x) {
     struct timeval tv;
     set_now();
     double end_time = now + x;
-    int loops = 0;
+    //int loops = 0;
 
     while (1) {
+        bool action = do_async_file_ops();
+
         curl_fds.zero();
         gui_rpc_fds.zero();
         http_ops->get_fdset(curl_fds);
         all_fds = curl_fds;
         gui_rpcs.get_fdset(gui_rpc_fds, all_fds);
-        double_to_timeval(x, tv);
+        double_to_timeval(action?0:x, tv);
         n = select(
             all_fds.max_fd+1,
             &all_fds.read_fds, &all_fds.write_fds, &all_fds.exc_fds,
@@ -659,8 +676,9 @@ void CLIENT_STATE::do_io_or_sleep(double x) {
         http_ops->got_select(all_fds, x);
         gui_rpcs.got_select(all_fds);
 
-        if (n==0) break;
+        if (!action && n==0) break;
 
+#if 0
         // Limit number of times thru this loop.
         // Can get stuck in while loop, if network isn't available,
         // DNS lookups tend to eat CPU cycles.
@@ -672,6 +690,7 @@ void CLIENT_STATE::do_io_or_sleep(double x) {
 #endif
             break;
         }
+#endif
 
         set_now();
         if (now > end_time) break;
@@ -1054,7 +1073,7 @@ int CLIENT_STATE::link_app_version(PROJECT* p, APP_VERSION* avp) {
         }
 
         if (!strcmp(file_ref.open_name, GRAPHICS_APP_FILENAME)) {
-            char relpath[512], path[512];
+            char relpath[MAXPATHLEN], path[MAXPATHLEN];
             get_pathname(fip, relpath, sizeof(relpath));
             relative_to_absolute(relpath, path);
             strlcpy(avp->graphics_exec_path, path, sizeof(avp->graphics_exec_path));
@@ -1200,7 +1219,7 @@ bool CLIENT_STATE::abort_unstarted_late_jobs() {
             "Aborting task %s; not started and deadline has passed",
             rp->name
         );
-        rp->abort_inactive(ERR_UNSTARTED_LATE);
+        rp->abort_inactive(EXIT_UNSTARTED_LATE);
         action = true;
     }
     return action;
@@ -1410,7 +1429,8 @@ bool CLIENT_STATE::garbage_collect_always() {
 
     // go through APP_VERSIONs;
     // delete any not referenced by any WORKUNIT
-    // and superceded by a more recent version.
+    // and superceded by a more recent version
+    // for the same platform and plan class
     //
     avp_iter = app_versions.begin();
     while (avp_iter != app_versions.end()) {
@@ -1419,9 +1439,10 @@ bool CLIENT_STATE::garbage_collect_always() {
             found = false;
             for (j=0; j<app_versions.size(); j++) {
                 avp2 = app_versions[j];
-                if (avp2->app==avp->app
+                if (avp2->app == avp->app
+                    && avp2->version_num > avp->version_num
                     && (!strcmp(avp2->plan_class, avp->plan_class))
-                    && avp2->version_num>avp->version_num
+                    && (!strcmp(avp2->platform, avp->platform))
                 ) {
                     found = true;
                     break;
@@ -1527,6 +1548,7 @@ bool CLIENT_STATE::update_results() {
             rp->set_state(RESULT_FILES_DOWNLOADING, "CS::update_results");
             action = true;
             break;
+#ifndef SIM
         case RESULT_FILES_DOWNLOADING:
             retval = input_files_available(rp, false);
             if (!retval) {
@@ -1544,9 +1566,10 @@ bool CLIENT_STATE::update_results() {
                 action = true;
             }
             break;
+#endif
         case RESULT_FILES_UPLOADING:
             if (rp->is_upload_done()) {
-                rp->ready_to_report = true;
+                rp->set_ready_to_report();
                 rp->completed_time = gstate.now;
                 rp->project->last_upload_start = 0;
                 rp->set_state(RESULT_FILES_UPLOADED, "CS::update_results");
@@ -1564,7 +1587,7 @@ bool CLIENT_STATE::update_results() {
             break;
         case RESULT_ABORTED:
             if (!rp->ready_to_report) {
-                rp->ready_to_report = true;
+                rp->set_ready_to_report();
                 rp->completed_time = now;
                 action = true;
             }
@@ -1634,7 +1657,7 @@ int CLIENT_STATE::report_result_error(RESULT& res, const char* format, ...) {
         return 0;
     }
 
-    res.ready_to_report = true;
+    res.set_ready_to_report();
     res.completed_time = now;
 
     va_list va;
@@ -1642,7 +1665,7 @@ int CLIENT_STATE::report_result_error(RESULT& res, const char* format, ...) {
     vsnprintf(err_msg, sizeof(err_msg), format, va);
     va_end(va);
 
-    sprintf(buf, "Unrecoverable error for task %s (%s)", res.name, err_msg);
+    sprintf(buf, "Unrecoverable error for task %s", res.name);
 #ifndef SIM
     scheduler_op->backoff(res.project, buf);
 #endif
@@ -1715,12 +1738,11 @@ int CLIENT_STATE::report_result_error(RESULT& res, const char* format, ...) {
 // - stop all active tasks
 // - stop all file transfers
 // - stop scheduler RPC if any
-// - delete all workunits and results
-// - delete all apps and app_versions
+// - delete workunits and results
+// - delete apps and app_versions
 // - garbage collect to delete unneeded files
-// - clear debts and backoffs
+// - clear backoffs
 //
-// Note: does NOT delete persistent files or user-supplied files;
 // does not delete project dir
 //
 int CLIENT_STATE::reset_project(PROJECT* project, bool detaching) {
@@ -1749,6 +1771,7 @@ int CLIENT_STATE::reset_project(PROJECT* project, bool detaching) {
             i--;
         }
     }
+    project->last_upload_start = 0;
 
     // if we're in the middle of a scheduler op to the project, abort it
     //
@@ -1771,6 +1794,15 @@ int CLIENT_STATE::reset_project(PROJECT* project, bool detaching) {
 
     project->user_files.clear();
     project->project_files.clear();
+
+    // clear flags so that sticky files get deleted
+    //
+    for (i=0; i<file_infos.size(); i++) {
+        FILE_INFO* fip = file_infos[i];
+        if (fip->project == project) {
+            fip->sticky = false;
+        }
+    }
 
     garbage_collect_always();
 
@@ -1801,6 +1833,10 @@ int CLIENT_STATE::reset_project(PROJECT* project, bool detaching) {
         garbage_collect_always();
     }
 
+    // force refresh of scheduler URLs
+    //
+    project->scheduler_urls.clear();
+
     project->duration_correction_factor = 1;
     project->ams_resource_share = -1;
     project->min_rpc_time = 0;
@@ -1823,7 +1859,7 @@ int CLIENT_STATE::detach_project(PROJECT* project) {
     vector<FILE_INFO*>::iterator fi_iter;
     FILE_INFO* fip;
     PROJECT* p;
-    char path[256];
+    char path[MAXPATHLEN];
     int retval;
 
     reset_project(project, true);
@@ -2028,9 +2064,9 @@ void CLIENT_STATE::start_abort_sequence() {
         if (rp->computing_done()) continue;
         ACTIVE_TASK* atp = lookup_active_task_by_result(rp);
         if (atp) {
-            atp->abort_task(ERR_ABORTED_ON_EXIT, "aborting on client exit");
+            atp->abort_task(EXIT_CLIENT_EXITING, "aborting on client exit");
         } else {
-            rp->abort_inactive(ERR_ABORTED_ON_EXIT);
+            rp->abort_inactive(EXIT_CLIENT_EXITING);
         }
     }
     for (i=0; i<projects.size(); i++) {

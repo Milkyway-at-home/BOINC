@@ -61,10 +61,9 @@ public:
     char os_name[256];
     char os_version[256];
 
-    // the following are non-empty if that VM system is installed
+    // the following is non-empty if VBox is installed
     //
     char virtualbox_version[256];
-    // ... add entries for VMWare, others
 
     COPROCS _coprocs;
 
@@ -80,6 +79,9 @@ public:
     bool users_idle(bool check_all_logins, double idle_time_to_run, double *actual_idle_time=NULL);
 #else
     bool users_idle(bool check_all_logins, double idle_time_to_run);
+#endif
+#ifdef ANDROID
+    bool host_wifi_online();
 #endif
     int get_host_info();
     int get_local_network_info();
@@ -97,6 +99,8 @@ extern "C" {
 #include <IOKit/hidsystem/IOHIDLib.h>
 #include <IOKit/hidsystem/IOHIDParameter.h>
 #include <IOKit/hidsystem/event_status_driver.h>
+
+bool isDualGPUMacBook();
 
 // Apple has removed NxIdleTime() beginning with OS 10.6, so we must try
 // loading it at run time to avoid a link error.  For details, please see

@@ -470,7 +470,7 @@ bool CAdvancedFrame::CreateMenu() {
         _("Stop work regardless of preferences")
     );
 
-    if (pDoc->state.have_nvidia || pDoc->state.have_ati) {
+    if (pDoc->state.have_nvidia || pDoc->state.have_ati || pDoc->state.have_intel) {
 
 #ifndef __WXGTK__
         menuActivity->AppendSeparator();
@@ -701,6 +701,10 @@ bool CAdvancedFrame::CreateMenu() {
 
     wxMenuBar* m_pOldMenubar = GetMenuBar();
     SetMenuBar(m_pMenubar);
+#ifdef __WXGTK__
+    // Force a redraw of the menu under Ubuntu's new interface
+    SendSizeEvent();
+#endif
 #ifdef __WXMAC__
     m_pMenubar->MacInstallMenuBar();
     MacLocalizeBOINCMenu();
@@ -1818,7 +1822,7 @@ void CAdvancedFrame::OnFrameRender(wxTimerEvent& WXUNUSED(event)) {
                 CC_STATUS  status;
                 if ((pDoc->IsConnected()) && (0 == pDoc->GetCoreClientStatus(status))) {
                     UpdateActivityModeControls(status);
-                    if (pDoc->state.have_nvidia || pDoc->state.have_ati) {
+                    if (pDoc->state.have_nvidia || pDoc->state.have_ati || pDoc->state.have_intel) {
                         UpdateGPUModeControls(status);
                     }
                     UpdateNetworkModeControls(status);

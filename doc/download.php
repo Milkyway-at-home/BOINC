@@ -43,7 +43,7 @@ function download_link($pname, $button=false) {
             </td></tr> </table>
         ";
         if ($pname == 'linux'||$pname == 'linuxx64') {
-            show_linux_info();
+            echo "<p>", linux_info();
         }
     } else {
         echo "<tr>
@@ -103,6 +103,7 @@ function show_download($pname) {
         download_link('win');
         download_link('winx64');
         download_link('mac');
+        download_link('macppc');
         download_link('linux');
         download_link('linuxx64');
         download_link('linuxcompat');
@@ -110,21 +111,22 @@ function show_download($pname) {
     }
     echo "
         <p>
-        <b>"
-        .sprintf(
-            tra("Note: if your computer is equipped with a Graphics Processing Unit (GPU), you may be able to %suse it to compute faster%s"),
-                "<a href=http://boinc.berkeley.edu/wiki/GPU_computing>", ".</a>"
-        )
-        ."</b>
-        <br><br>
+        After downloading BOINC you must <b>install</b> it:
+        <ul>
+        <li> Save the file to disk.
+        <li> Double-click on the file icon.
+        </ul>
+        <p>
         <center>
         <a href=\"wiki/System_requirements\"><span class=nobr>".tra("System requirements")."</span></a>
-        | <a href=\"wiki/Release_Notes\"><span class=nobr>".tra("Release notes")."</span></a>
-        | <a href=\"wiki/BOINC_Help\"><span class=nobr>".tra("Help")."</span></a>
-        | <a href=download_all.php><span class=nobr>".tra("All versions")."</span></a>
-        | <a href=\"trac/wiki/VersionHistory\">".tra("Version history")."</a>
+        &middot; <a href=\"wiki/Release_Notes\"><span class=nobr>".tra("Release notes")."</span></a>
+        &middot; <a href=\"wiki/BOINC_Help\"><span class=nobr>".tra("Help")."</span></a>
+        &middot; <a href=download_all.php><span class=nobr>".tra("All versions")."</span></a>
+        &middot; <a href=\"trac/wiki/VersionHistory\">".tra("Version history")."</a>
+        &middot; <a href=http://boinc.berkeley.edu/wiki/GPU_computing>".tra("GPU computing")."</a>
         </center>
-        </td><td valign=top>
+        </td>
+        <td valign=top>
     ";
     show_pictures();
     echo "
@@ -150,7 +152,11 @@ if (get_str2('all_platforms')) {
         show_download('win');
     }
 } else if (strstr($client_info, 'Mac')) {
-    show_download('mac');
+	if (strstr($client_info, 'PPC Mac OS X')) {
+		show_download('macppc');
+	} else {
+		show_download('mac');
+	}
 } else if (strstr($client_info, 'Linux')) {
     if (strstr($client_info, 'x86_64')) {
         show_download('linuxx64');

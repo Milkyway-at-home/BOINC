@@ -31,6 +31,7 @@
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#include <sys/param.h>
 #include <stdlib.h>
 #include <string>
 #include <time.h>
@@ -122,7 +123,7 @@ int main(int argc, char** argv) {
     R_RSA_PRIVATE_KEY key;
     bool generate_upload_certificate = !config.dont_generate_upload_certificates;
     if (generate_upload_certificate) {
-        char keypath[256];
+        char keypath[MAXPATHLEN];
         sprintf(keypath, "%s/upload_private", config.key_dir);
         retval = read_key_file(keypath, key);
         if (retval) {
@@ -131,7 +132,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    retval = get_file(
+    retval = create_get_file_msg(
         host_id, file_name, urls, max_nbytes,
         dtime() + max_latency,
         generate_upload_certificate, key

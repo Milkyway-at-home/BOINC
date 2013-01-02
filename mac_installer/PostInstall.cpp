@@ -92,13 +92,17 @@ Boolean myFilterProc(DialogRef theDialog, EventRecord *theEvent, DialogItemIndex
 int DeleteReceipt(void);
 OSStatus CheckLogoutRequirement(int *finalAction);
 void CheckUserAndGroupConflicts();
-Boolean SetLoginItemOSAScript(long brandID, Boolean deleteLogInItem);
+Boolean SetLoginItemOSAScript(long brandID, Boolean deleteLogInItem, char *userName);
 Boolean SetLoginItemAPI(long brandID, Boolean deleteLogInItem);
+OSErr GetCurrentScreenSaverSelection(char *moduleName, size_t maxLen);
+OSErr SetScreenSaverSelection(char *moduleName, char *modulePath, int type);
 void SetSkinInUserPrefs(char *userName, char *skinName);
 Boolean CheckDeleteFile(char *name);
 void SetEUIDBackToUser (void);
 static char * PersistentFGets(char *buf, size_t buflen, FILE *f);
 Boolean IsUserMemberOfGroup(const char *userName, const char *groupName);
+static void c2x(char *what);
+static void escape_url(char *in, char*out);
 int CountGroupMembershipEntries(const char *userName, const char *groupName);
 OSErr UpdateAllVisibleUsers(long brandID);
 long GetBrandID(void);
@@ -106,8 +110,9 @@ int TestRPCBind(void);
 static OSStatus ResynchSystem(void);
 OSErr FindProcess (OSType typeToFind, OSType creatorToFind, ProcessSerialNumberPtr processSN);
 pid_t FindProcessPID(char* name, pid_t thePID);
+static void SleepTicks(UInt32 ticksToSleep);
 int FindSkinName(char *name, size_t len);
-static OSErr QuitBOINCManager(OSType signature);
+static OSErr QuitOneProcess(OSType signature);
 static OSErr QuitAppleEventHandler(const AppleEvent *appleEvt, AppleEvent* reply, UInt32 refcon);
 void print_to_log_file(const char *format, ...);
 void strip_cr(char *buf);
@@ -227,7 +232,7 @@ int main(int argc, char *argv[])
 
     Initialize();
 
-    QuitBOINCManager('BNC!'); // Quit any old instance of BOINC manager
+    QuitOneProcess('BNC!'); // Quit any old instance of BOINC manager
     sleep(2);
 
     // Core Client may still be running if it was started without Manager
@@ -805,18 +810,81 @@ void CheckUserAndGroupConflicts()
 #endif  // SANDBOX
 }
 
+enum {
+	kSystemEventsCreator = 'sevs'
+};
 
-Boolean SetLoginItemOSAScript(long brandID, Boolean deleteLogInItem)
+
+Boolean SetLoginItemOSAScript(long brandID, Boolean deleteLogInItem, char *userName)
 {
     int                     i;
     char                    cmd[2048];
-    OSErr                   err;
+    char                    systemEventsPath[1024];
+    ProcessSerialNumber     SystemEventsPSN;
+	FSRef                   appRef;
+    OSErr                   err, err2;
 
-    fprintf(stdout, "Adjusting login items for user\n");
+    fprintf(stdout, "Adjusting login items for user %s\n", userName);
     fflush(stdout);
+
+    // We must launch the System Events application for the target user
+
+    err = FindProcess ('APPL', kSystemEventsCreator, &SystemEventsPSN);
+    if (err == noErr) {
+        // Find SystemEvents process.  If found, quit it in case 
+        // it is running under a different user.
+        fprintf(stdout, "Telling System Events to quit (at start of SetLoginItemOSAScript)\n");
+        fflush(stdout);
+        err = QuitOneProcess(kSystemEventsCreator);
+        if (err != noErr) {
+            fprintf(stdout, "QuitOneProcess(kSystemEventsCreator) returned error %d \n", (int) err);
+            fflush(stdout);
+        }
+        // Wait for the process to be gone
+        for (i=0; i<50; ++i) {      // 5 seconds max delay
+            SleepTicks(6);  // 6 Ticks == 1/10 second
+            err = FindProcess ('APPL', kSystemEventsCreator, &SystemEventsPSN);
+            if (err != noErr) break;
+        }
+        if (i >= 50) {
+            fprintf(stdout, "Failed to make System Events quit\n");
+            fflush(stdout);
+        }
+        sleep(2);
+    }
+    
+    err = LSFindApplicationForInfo(kSystemEventsCreator, NULL, NULL, &appRef, NULL);
+    if (err != noErr) {
+        fprintf(stdout, "LSFindApplicationForInfo(kSystemEventsCreator) returned error %d \n", (int) err);
+        fflush(stdout);
+    } else {
+        FSRefMakePath(&appRef, (UInt8*)systemEventsPath, sizeof(systemEventsPath));
+        fprintf(stdout, "SystemEvents is at %s\n", systemEventsPath);
+        fprintf(stdout, "Launching SystemEvents for user %s\n", userName);
+        fflush(stdout);
+
+        sprintf(cmd, "sudo -iu \"%s\" \\\"%s/Contents/MacOS/System Events\\\" &", userName, systemEventsPath);
+        err = system(cmd);
+        if (err) {
+            fprintf(stdout, "[2] Command: %s returned error %d\n", cmd, (int) err);
+        }
+    }
+    // Wait for the process to start
+    for (i=0; i<50; ++i) {      // 5 seconds max delay
+        SleepTicks(6);  // 6 Ticks == 1/10 second
+        err = FindProcess ('APPL', kSystemEventsCreator, &SystemEventsPSN);
+        if (err == noErr) break;
+    }
+    if (i >= 50) {
+        fprintf(stdout, "Failed to launch System Events for user %s\n", userName);
+        fflush(stdout);
+    }
+    sleep(2);
     
     for (i=0; i<NUMBRANDS; i++) {
-        sprintf(cmd, "osascript -e 'tell application \"System Events\"' -e 'delete (every login item whose path contains \"%s\")' -e 'end tell'", appName[i]);
+        fprintf(stdout, "Deleting any login items containing %s for user %s\n", appName[i], userName);
+        fflush(stdout);
+        sprintf(cmd, "sudo -u \"%s\" osascript -e 'tell application \"System Events\"' -e 'delete (every login item whose path contains \"%s\")' -e 'end tell'", userName, appName[i]);
         err = system(cmd);
         if (err) {
             fprintf(stdout, "[2] Command: %s\n", cmd);
@@ -825,10 +893,14 @@ Boolean SetLoginItemOSAScript(long brandID, Boolean deleteLogInItem)
         }
     }
 
-    if (deleteLogInItem)
-        return false;
-        
-    sprintf(cmd, "osascript -e 'tell application \"System Events\"' -e 'make new login item at end with properties {path:\"%s\", hidden:true, kind:Application, name:\"%s\"}' -e 'end tell'", appPath[brandID], appName[brandID]);
+    if (deleteLogInItem) {
+        err = noErr;
+        goto cleanupSystemEvents;
+    }
+    
+    fprintf(stdout, "Making new login item %s for user %s\n", appName[brandID], userName);
+    fflush(stdout);
+    sprintf(cmd, "sudo -u \"%s\" osascript -e 'tell application \"System Events\"' -e 'make new login item at end with properties {path:\"%s\", hidden:true, name:\"%s\"}' -e 'end tell'", userName, appPath[brandID], appName[brandID]);
     err = system(cmd);
     if (err) {
         fprintf(stdout, "[2] Command: %s\n", cmd);
@@ -836,6 +908,17 @@ Boolean SetLoginItemOSAScript(long brandID, Boolean deleteLogInItem)
     }
     fflush(stdout);
 
+cleanupSystemEvents:
+    // Clean up in case this was our last user
+    fprintf(stdout, "Telling System Events to quit (at end of SetLoginItemOSAScript)\n");
+    fflush(stdout);
+    err2 = QuitOneProcess(kSystemEventsCreator);
+    if (err2 != noErr) {
+        fprintf(stdout, "QuitOneProcess(kSystemEventsCreator) returned error %d \n", (int) err2);
+        fflush(stdout);
+    }
+    sleep(2);
+        
     return (err == noErr);
 }
 
@@ -891,7 +974,6 @@ Boolean SetLoginItemAPI(long brandID, Boolean deleteLogInItem)
 
     return Success;
 }
-
 
 
 // Sets the skin selection in the specified user's preferences to the specified skin
@@ -1058,6 +1140,45 @@ Boolean IsUserMemberOfGroup(const char *userName, const char *groupName) {
 }
 
 
+static void c2x(char *what) {
+    char buf[3];
+    char num = atoi(what);
+    char d1 = num / 16;
+    char d2 = num % 16;
+    int abase1, abase2;
+    if (d1 < 10) abase1 = 48;
+    else abase1 = 55;
+    if (d2 < 10) abase2 = 48;
+    else abase2 = 55;
+    buf[0] = d1+abase1;
+    buf[1] = d2+abase2;
+    buf[2] = 0;
+
+    strcpy(what, buf);
+}
+
+
+static void escape_url(char *in, char*out) {
+    int x, y;
+    for (x=0, y=0; in[x]; ++x) {
+        if (isalnum(in[x])) {
+            out[y] = in[x];
+            ++y;
+        } else {
+            out[y] = '%';
+            ++y;
+            out[y] = 0;
+            char buf[256];
+            sprintf(buf, "%d", (char)in[x]);
+            c2x(buf);
+            strcat(out, buf);
+            y += 2;
+        }
+    }
+    out[y] = 0;
+}
+
+
 // OS 10.7 dscl merge command has a bug such that the command:
 //     dscl . -merge /Groups/GROUPNAME users USERNAME
 // adds the user to the group even if it was already a member, resulting in 
@@ -1069,12 +1190,13 @@ Boolean IsUserMemberOfGroup(const char *userName, const char *groupName) {
 
 int CountGroupMembershipEntries(const char *userName, const char *groupName) {
     int                 count = 0;
-    char                cmd[512], buf[2048];
+    char                cmd[512], buf[2048], escapedUserName[1024];
     FILE                *f;
-    char                *p;
+    char                *p, *q;
     
     // getgrnam(groupName)->gr_mem[] only returns one entry, so we must use dscl
-    sprintf(cmd, "dscl . -read /Groups/%s GroupMembership", groupName);
+    escape_url((char *)userName, escapedUserName); // Avoid confusion if name has embedded spaces
+    sprintf(cmd, "dscl -url . -read /Groups/%s GroupMembership", groupName);
     f = popen(cmd, "r");
     if (f == NULL)
         return 0;
@@ -1083,15 +1205,20 @@ int CountGroupMembershipEntries(const char *userName, const char *groupName) {
     {
         p = buf;
         while (p) {
-            p = strstr(p, userName);
+            p = strstr(p, escapedUserName);
             if (p) {
-                ++ count;
-                p += strlen(userName);
-                
+                q = p-1;
+                p += strlen(escapedUserName);
+                // Count only whole words (preceded and followed by white space) so 
+                // that if we have both 'jon' and 'jones' we don't count 'jon' twice
+                if (isspace(*q) && isspace(*p)) {
+                    ++ count;
+               }
             }
         }
     }
     
+    pclose(f);
     return count;
 }
 
@@ -1145,12 +1272,15 @@ OSErr UpdateAllVisibleUsers(long brandID)
                 int id = atoi(p+1);
                 if (id < 501) continue;
                 human_user_IDs.push_back((uid_t)id);
-            }
-            p = strchr(buf, ' ');
-            if (p) {
-                *p = '\0';
+
+                while (p > buf) {
+                    if (*p != ' ') break;
+                    --p;
+                }
+
+               *(p+1) = '\0';
                 human_user_names.push_back(string(buf));
-                *p = ' ';
+                *(p+1) = ' ';
             }
         }
         pclose(f);
@@ -1159,26 +1289,26 @@ OSErr UpdateAllVisibleUsers(long brandID)
     for (userIndex=human_user_names.size(); userIndex>0; --userIndex) {
         flag = 0;
         strlcpy(human_user_name, human_user_names[userIndex-1].c_str(), sizeof(human_user_name));
-        sprintf(cmd, "dscl . -read /Users/%s NFSHomeDirectory", human_user_name);    
+        sprintf(cmd, "dscl . -read \"/Users/%s\" NFSHomeDirectory", human_user_name);    
         f = popen(cmd, "r");
         if (f) {
             while (PersistentFGets(buf, sizeof(buf), f)) {
                 p = strrchr(buf, ' ');
                 if (p) {
-                    if (strcmp(p, " /var/empty\n") == 0) flag = 1;
+                    if (strstr(p, "/var/empty") != NULL) flag = 1;
                 }
             }
             pclose(f);
         }
 
-        sprintf(cmd, "dscl . -read /Users/%s UserShell", human_user_name);    
+        sprintf(cmd, "dscl . -read \"/Users/%s\" UserShell", human_user_name);    
         f = popen(cmd, "r");
         if (f) {
             while (PersistentFGets(buf, sizeof(buf), f)) {
                 p = strrchr(buf, ' ');
                 if (p) {
-                    if (strcmp(p, " /usr/bin/false\n") == 0) flag |= 2;
-                }
+                    if (strstr(p, "/usr/bin/false") != NULL) flag |= 2;
+               }
             }
             pclose(f);
         }
@@ -1198,7 +1328,7 @@ OSErr UpdateAllVisibleUsers(long brandID)
         // getpwnam works with either the full / login name (pw->pw_gecos) 
         // or the short / Posix name (pw->pw_name)
         pw = getpwnam(human_user_name);
-        if (pw == NULL) {           // "Deleted Users", "Shared", etc.
+        if (pw == NULL) {
             printf("[1] %s not in getpwnam data base\n", human_user_name);
             fflush(stdout);
             continue;
@@ -1241,23 +1371,26 @@ OSErr UpdateAllVisibleUsers(long brandID)
             
             if (OSVersion < 0x1060) {
                 f = popen("defaults -currentHost read com.apple.screensaver moduleName", "r");
-            } else {
-                sprintf(s, "sudo -u %s defaults -currentHost read com.apple.screensaver moduleDict -dict", 
-                        pw->pw_name); 
-                f = popen(s, "r");
-            }
             
-            if (f) {
-                found = false;
-                while (PersistentFGets(s, sizeof(s), f)) {
-                    if (strstr(s, saverName[brandID])) {
-                        found = true;
-                        break;
+                if (f) {
+                    found = false;
+                    while (PersistentFGets(s, sizeof(s), f)) {
+                        if (strstr(s, saverName[brandID])) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    pclose(f);
+                    if (!found) {
+                        saverAlreadySetForAll = false;
                     }
                 }
-                pclose(f);
-                if (!found) {
-                    saverAlreadySetForAll = false;
+            } else {
+                err = GetCurrentScreenSaverSelection(s, sizeof(s) -1);
+                if (err == noErr) {
+                    if (!strstr(s, saverName[brandID])) {
+                        saverAlreadySetForAll = false;
+                    }
                 }
             }
             
@@ -1359,7 +1492,7 @@ OSErr UpdateAllVisibleUsers(long brandID)
                         pw->pw_name, boinc_master_group_name, BMGroupMembershipCount);
             fflush(stdout);
             if (BMGroupMembershipCount == 0) {
-                sprintf(cmd, "dscl . -merge /groups/%s GroupMembership %s", boinc_master_group_name, pw->pw_name);
+                sprintf(cmd, "dscl . -merge /groups/%s GroupMembership \"%s\"", boinc_master_group_name, pw->pw_name);
                 err = system(cmd);
                 printf("[2] %s returned %d\n", cmd, err);
                 fflush(stdout);
@@ -1367,7 +1500,7 @@ OSErr UpdateAllVisibleUsers(long brandID)
             } else {
                 isBMGroupMember = true;
                 for (i=1; i<BMGroupMembershipCount; ++i) {
-                    sprintf(cmd, "dscl . -delete /groups/%s GroupMembership %s", boinc_master_group_name, pw->pw_name);
+                    sprintf(cmd, "dscl . -delete /groups/%s GroupMembership \"%s\"", boinc_master_group_name, pw->pw_name);
                     err = system(cmd);
                     printf("[2] %s returned %d\n", cmd, err);
                     fflush(stdout);
@@ -1379,7 +1512,7 @@ OSErr UpdateAllVisibleUsers(long brandID)
                    pw->pw_name, boinc_project_group_name, BPGroupMembershipCount);
             fflush(stdout);
             if (BPGroupMembershipCount == 0) {
-                sprintf(cmd, "dscl . -merge /groups/%s GroupMembership %s", boinc_project_group_name, pw->pw_name);
+                sprintf(cmd, "dscl . -merge /groups/%s GroupMembership \"%s\"", boinc_project_group_name, pw->pw_name);
                 err = system(cmd);
                 printf("[2] %s returned %d\n", cmd, err);
                 fflush(stdout);
@@ -1387,7 +1520,7 @@ OSErr UpdateAllVisibleUsers(long brandID)
             } else {
                 isBPGroupMember = true;
                 for (i=1; i<BPGroupMembershipCount; ++i) {
-                    sprintf(cmd, "dscl . -delete /groups/%s GroupMembership %s", boinc_project_group_name, pw->pw_name);
+                    sprintf(cmd, "dscl . -delete /groups/%s GroupMembership \"%s\"", boinc_project_group_name, pw->pw_name);
                     err = system(cmd);
                     printf("[2] %s returned %d\n", cmd, err);
                     fflush(stdout);
@@ -1398,7 +1531,6 @@ OSErr UpdateAllVisibleUsers(long brandID)
         isBMGroupMember = true;
 #endif  // SANDBOX
         saved_uid = geteuid();
-        seteuid(pw->pw_uid);                        // Temporarily set effective uid to this user
         deleteLoginItem = CheckDeleteFile(human_user_name);
         if (CheckDeleteFile(pw->pw_name)) {
             deleteLoginItem = true;
@@ -1410,17 +1542,27 @@ OSErr UpdateAllVisibleUsers(long brandID)
             deleteLoginItem = true;
         }
 
-     // Set login item for this user
-        if (OSVersion == 0x1070) {
+        // Set login item for this user
+        if (OSVersion >= 0x1070) {
+            // LoginItemAPI.c does not set hidden property for login items
+            // under OS 10.7.0, so use AppleScript instead to prevent Lion 
+            // from opening BOINC windows at system startup.  This was 
+            // apparently fixed in OS 10.7.1.
+            // LoginItemAPI.c does not work at all under OS 10.8 Preview 3 
+            // but this version of SetLoginItemOSAScript works for OS 10.7.0 
+            // and later, so we use it for OS 10.7.0 and later.
             printf("[2] calling SetLoginItemOSAScript for user %s, euid = %d, deleteLoginItem = %d\n", 
                 pw->pw_name, geteuid(), deleteLoginItem);
             fflush(stdout);
-            SetLoginItemOSAScript(brandID, deleteLoginItem);
+
+            SetLoginItemOSAScript(brandID, deleteLoginItem, pw->pw_name);
         } else {
+            seteuid(pw->pw_uid);    // Temporarily set effective uid to this user
             printf("[2] calling SetLoginItemAPI for user %s, euid = %d, deleteLoginItem = %d\n", 
                     pw->pw_name, geteuid(), deleteLoginItem);
             fflush(stdout);
             SetLoginItemAPI(brandID, deleteLoginItem);
+            seteuid(saved_uid);     // Set effective uid back to privileged user
         }
         
         if (isBMGroupMember) {
@@ -1434,25 +1576,125 @@ OSErr UpdateAllVisibleUsers(long brandID)
             SetSkinInUserPrefs(pw->pw_name, skinName);
         
             if (setSaverForAllUsers) {
+                seteuid(pw->pw_uid);    // Temporarily set effective uid to this user
                 if (OSVersion < 0x1060) {
-                    sprintf(s, "defaults -currentHost write com.apple.screensaver moduleName %s", saverNameEscaped[brandID]);
+                     sprintf(s, "defaults -currentHost write com.apple.screensaver moduleName %s", saverNameEscaped[brandID]);
                     system (s);
                     sprintf(s, "defaults -currentHost write com.apple.screensaver modulePath /Library/Screen\\ Savers/%s.saver", 
                                 saverNameEscaped[brandID]);
+                    system (s);
                 } else {
-                    sprintf(s, "sudo -u %s defaults -currentHost write com.apple.screensaver moduleDict -dict moduleName %s path /Library/Screen\\ Savers/%s.saver", 
-                            pw->pw_name, saverNameEscaped[brandID], saverNameEscaped[brandID]);
+                    sprintf(s, "/Library/Screen Savers/%s.saver", saverName[brandID]);
+                    err = SetScreenSaverSelection(saverName[brandID], s, 0);
                 }
-                system (s);
+                seteuid(saved_uid);     // Set effective uid back to privileged user
             }
         }
-        
-        seteuid(saved_uid);                         // Set effective uid back to privileged user
     }   // End for (userIndex=0; userIndex< human_user_names.size(); ++userIndex)
 
     ResynchSystem();
 
     return noErr;
+}
+
+
+OSErr GetCurrentScreenSaverSelection(char *moduleName, size_t maxLen) {
+    OSErr err = noErr;
+    CFStringRef nameKey = CFStringCreateWithCString(NULL,"moduleName",kCFStringEncodingASCII);
+    CFStringRef moduleNameAsCFString;
+    CFDictionaryRef theData;
+    
+    theData = (CFDictionaryRef)CFPreferencesCopyValue(CFSTR("moduleDict"), 
+                CFSTR("com.apple.screensaver"), 
+                kCFPreferencesCurrentUser,
+                kCFPreferencesCurrentHost
+                );
+    if (theData == NULL) {
+        CFRelease(nameKey);
+        return (-1);
+    }
+    
+    if (CFDictionaryContainsKey(theData, nameKey)  == false) 	
+	{
+        moduleName[0] = 0;
+        CFRelease(nameKey);
+        CFRelease(theData);
+	    return(-1);
+	}
+    
+    moduleNameAsCFString = CFStringCreateCopy(NULL, (CFStringRef)CFDictionaryGetValue(theData, nameKey));
+    CFStringGetCString(moduleNameAsCFString, moduleName, maxLen, kCFStringEncodingASCII);		    
+
+    CFRelease(nameKey);
+    CFRelease(theData);
+    CFRelease(moduleNameAsCFString);
+    return err;
+}
+
+
+OSErr SetScreenSaverSelection(char *moduleName, char *modulePath, int type) {
+    OSErr err = noErr;
+    CFStringRef preferenceName = CFSTR("com.apple.screensaver");
+    CFStringRef mainKeyName = CFSTR("moduleDict");
+    CFDictionaryRef emptyData;
+    CFMutableDictionaryRef newData;
+    Boolean success;
+
+    CFStringRef nameKey = CFStringCreateWithCString(NULL, "moduleName", kCFStringEncodingASCII);
+    CFStringRef nameValue = CFStringCreateWithCString(NULL, moduleName, kCFStringEncodingASCII);
+		
+    CFStringRef pathKey = CFStringCreateWithCString(NULL, "path", kCFStringEncodingASCII);
+    CFStringRef pathValue = CFStringCreateWithCString(NULL, modulePath, kCFStringEncodingASCII);
+    
+    CFStringRef typeKey = CFStringCreateWithCString(NULL, "type", kCFStringEncodingASCII);
+    CFNumberRef typeValue = CFNumberCreate(NULL, kCFNumberIntType, &type);
+    
+    emptyData = CFDictionaryCreate(NULL, NULL, NULL, 0, NULL, NULL);
+    if (emptyData == NULL) {
+        CFRelease(nameKey);
+        CFRelease(nameValue);
+        CFRelease(pathKey);
+        CFRelease(pathValue);
+        CFRelease(typeKey);
+        CFRelease(typeValue);
+        return(-1);
+    }
+
+    newData = CFDictionaryCreateMutableCopy(NULL,0, emptyData);
+
+    if (newData == NULL)
+	{
+        CFRelease(nameKey);
+        CFRelease(nameValue);
+        CFRelease(pathKey);
+        CFRelease(pathValue);
+        CFRelease(typeKey);
+        CFRelease(typeValue);
+        CFRelease(emptyData);
+        return(-1);
+    }
+
+    CFDictionaryAddValue(newData, nameKey, nameValue); 	
+    CFDictionaryAddValue(newData, pathKey, pathValue); 	
+    CFDictionaryAddValue(newData, typeKey, typeValue); 	
+
+    CFPreferencesSetValue(mainKeyName, newData, preferenceName, kCFPreferencesCurrentUser, kCFPreferencesCurrentHost);
+    success = CFPreferencesSynchronize(preferenceName, kCFPreferencesCurrentUser, kCFPreferencesCurrentHost);
+
+    if (!success) {
+        err = -1;
+    }
+    
+    CFRelease(nameKey);
+    CFRelease(nameValue);
+    CFRelease(pathKey);
+    CFRelease(pathValue);
+    CFRelease(typeKey);
+    CFRelease(typeValue);
+    CFRelease(emptyData);
+    CFRelease(newData);
+
+    return err;
 }
 
 
@@ -1564,6 +1806,21 @@ OSErr FindProcess (OSType typeToFind, OSType creatorToFind, ProcessSerialNumberP
 }
 
 
+// Uses usleep to sleep for full duration even if a signal is received
+static void SleepTicks(UInt32 ticksToSleep) {
+    UInt32 endSleep, timeNow, ticksRemaining;
+
+    timeNow = TickCount();
+    ticksRemaining = ticksToSleep;
+    endSleep = timeNow + ticksToSleep;
+    while ( (timeNow < endSleep) && (ticksRemaining <= ticksToSleep) ) {
+        usleep(16667 * ticksRemaining);
+        timeNow = TickCount();
+        ticksRemaining = endSleep - timeNow;
+    } 
+}
+
+
 int FindSkinName(char *name, size_t len)
 {
     FILE *f;
@@ -1635,12 +1892,12 @@ pid_t FindProcessPID(char* name, pid_t thePID)
 }
 
 
-static OSErr QuitBOINCManager(OSType signature) {
-    bool			done = false;
-    ProcessSerialNumber         thisPSN;
+static OSErr QuitOneProcess(OSType signature) {
+    bool                done = false;
+    ProcessSerialNumber thisPSN;
     ProcessInfoRec		thisPIR;
-    OSErr                       err = noErr;
-    Str63			thisProcessName;
+    OSErr               err = noErr;
+    Str63               thisProcessName;
     AEAddressDesc		thisPSNDesc;
     AppleEvent			thisQuitEvent, thisReplyEvent;
     
@@ -1654,9 +1911,10 @@ static OSErr QuitBOINCManager(OSType signature) {
     
     while (done == false) {		
         err = GetNextProcess(&thisPSN);
-        if (err == procNotFound)	
+        if (err == procNotFound) {	
             done = true;		// Finished stepping through all running applications.
-        else {		
+            err = noErr;        // Success
+        } else {		
             err = GetProcessInformation(&thisPSN,&thisPIR);
             if (err != noErr)
                 goto bail;
@@ -1665,7 +1923,7 @@ static OSErr QuitBOINCManager(OSType signature) {
                 err = AECreateDesc(typeProcessSerialNumber, (Ptr)&thisPSN,
                                             sizeof(thisPSN), &thisPSNDesc);
                 if (err != noErr)
-                        goto bail;
+                    goto bail;
 
                 // Create the 'quit' Apple event for this process.
                 err = AECreateAppleEvent(kCoreEventClass, kAEQuitApplication, &thisPSNDesc,
@@ -1680,6 +1938,9 @@ static OSErr QuitBOINCManager(OSType signature) {
                                            kAENormalPriority, kAEDefaultTimeout, 0L, 0L);
                 AEDisposeDesc (&thisQuitEvent);
                 AEDisposeDesc (&thisPSNDesc);
+
+                if (err != noErr)
+                    goto bail;
 #if 0
                 if (err == errAETimeout) {
                     pid_t thisPID;

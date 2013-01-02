@@ -1,6 +1,6 @@
 #!/usr/local/bin/php -q
 <?php {
-    // $Id$
+    // $Id: test_rsc.php 1383 2003-06-11 23:09:11Z quarl $
 
     // test whether the scheduling server filters out work units too big for
     // client

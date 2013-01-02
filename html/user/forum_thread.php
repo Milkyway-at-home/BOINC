@@ -23,11 +23,11 @@ require_once('../inc/util.inc');
 require_once('../inc/forum.inc');
 require_once('../inc/news.inc');
 
-check_get_args(array("id", "sort", "nowrap", "filter"));
-
 $threadid = get_int('id');
 $sort_style = get_int('sort', true);
-$nowrap = get_str('nowrap', true);
+$temp_sort_style = get_int('temp_sort_style', true);
+$start = get_int('start', true);
+$postid = get_int('postid', true);
 $filter = get_str('filter', true);
 
 if ($filter != "false"){
@@ -71,14 +71,9 @@ if ($thread->hidden) {
 }
 
 $title = cleanup_title($thread->title);
-if (!$sort_style) {
-    // get the sorting style from the user or a cookie
-    if ($logged_in_user){
-        $sort_style = $logged_in_user->prefs->thread_sorting;
-    } else if (array_key_exists('sorting', $_COOKIE)) {
-        list($forum_style, $sort_style) = explode("|",$_COOKIE['sorting']);
-    }
-} else {
+if ($temp_sort_style) {
+    $sort_style = $temp_sort_style;
+} else if ($sort_style) {
     if ($logged_in_user){
         $logged_in_user->prefs->thread_sorting = $sort_style;
         $logged_in_user->prefs->update("thread_sorting=$sort_style");
@@ -90,6 +85,13 @@ if (!$sort_style) {
         implode("|", array($forum_style, $sort_style)),
         true
     );
+} else {
+    // get the sorting style from the user or a cookie
+    if ($logged_in_user){
+        $sort_style = $logged_in_user->prefs->thread_sorting;
+    } else if (array_key_exists('sorting', $_COOKIE)) {
+        list($forum_style, $sort_style) = explode("|",$_COOKIE['sorting']);
+    }
 }
 
 if ($logged_in_user && $logged_in_user->prefs->jump_to_unread){
@@ -239,7 +241,7 @@ if (is_news_forum($forum) && $logged_in_user && ($logged_in_user->id == $thread-
         show_button(
             "forum_thread_status.php?action=clear&amp;id=$thread->id",
             tra("Export as Notice"),
-            tra("Export this news item as a Notice")
+            "Show this message to all volunteers in the desktop GUI.  Use this only for messages of interest or importance to all volunteers."
         );
     } else {
         show_button(
@@ -259,16 +261,12 @@ echo "<input type=\"submit\" value=\"".tra('Sort')."\">
     </td></tr></table></form>
 ";
 
-// Here is where the actual thread begins.
-$headings = array(array(tra("Author"),"authorcol"), array(tra("Message"),""));
-
-start_forum_table($headings, "id=\"thread\" cellspacing=0");
 show_posts(
-    $thread, $forum, $sort_style, $filter, $logged_in_user, $nowrap, true
+    $thread, $forum, $start, $postid, $sort_style, $filter, $logged_in_user
 );
-end_table();
 
 if ($reply_url) {
+    echo "<br>";
     show_button(
         $reply_url,
         tra("Post to thread"),

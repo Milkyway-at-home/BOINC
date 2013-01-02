@@ -19,6 +19,7 @@
 #include <string>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "filesys.h"
 #include "md5_file.h"
@@ -143,7 +144,7 @@ static int process_file_info(
     int retval, file_number = -1;
     double nbytes, nbytesdef = -1;
     string md5str, urlstr, tmpstr;
-    char buf[BLOB_SIZE], path[256], top_download_path[256], md5[33], url[256];
+    char buf[BLOB_SIZE], path[MAXPATHLEN], top_download_path[MAXPATHLEN], md5[33], url[256];
 
     out += "<file_info>\n";
     while (!xp.get_tag()) {
@@ -214,7 +215,10 @@ static int process_file_info(
                 if (!config_loc.cache_md5_info || !got_md5_info(path, md5, &nbytes)) {
                     retval = md5_file(path, md5, nbytes);
                     if (retval) {
-                        fprintf(stderr, "process_input_template: md5_file %d\n", retval);
+                        fprintf(stderr,
+                            "process_input_template: md5_file %s\n",
+                            boincerror(retval)
+                        );
                         return retval;
                     } else if (config_loc.cache_md5_info) {
                         write_md5_info(path, md5, nbytes);

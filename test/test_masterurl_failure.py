@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-## $Id$
+## $Id: test_masterurl_failure.py 1655 2003-07-10 00:35:51Z quarl $
 
 from test_uc import *
 

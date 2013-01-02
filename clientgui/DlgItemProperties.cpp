@@ -145,26 +145,35 @@ bool CDlgItemProperties::RestoreState() {
     // Now make sure window is on screen
     GetScreenPosition(&iLeft, &iTop);
     GetSize(&iWidth, &iHeight);
-    
-    Rect titleRect = {iTop, iLeft, iTop+22, iLeft+iWidth };
-    InsetRect(&titleRect, 5, 5);                // Make sure at least a 5X5 piece visible
-    RgnHandle displayRgn = NewRgn();
-    CopyRgn(GetGrayRgn(), displayRgn);          // Region encompassing all displays
-    Rect menuRect = ((**GetMainDevice())).gdRect;
-    menuRect.bottom = GetMBarHeight() + menuRect.top;
-    RgnHandle menuRgn = NewRgn();
-    RectRgn(menuRgn, &menuRect);                // Region hidden by menu bar
-    DiffRgn(displayRgn, menuRgn, displayRgn);   // Subtract menu bar region
-    if (!RectInRgn(&titleRect, displayRgn)) {
+
+    if (!IsWindowOnScreen(iLeft, iTop, iWidth, iHeight)) {
         iTop = iLeft = 30;
         SetSize(iLeft, iTop, iWidth, iHeight, wxSIZE_USE_EXISTING);
     }
-    DisposeRgn(menuRgn);
-    DisposeRgn(displayRgn);
 #endif
 
     return true;
 }
+
+void CDlgItemProperties::show_rsc(wxString rsc_name, RSC_DESC rsc_desc) {
+    if (rsc_desc.no_rsc_pref) {
+        addProperty(_("Don't fetch tasks for ") + rsc_name, _("Project preference"));
+    }
+    if (rsc_desc.no_rsc_ams) {
+        addProperty(_("Don't fetch tasks for ") + rsc_name, _("Account manager preference"));
+    }
+    if (rsc_desc.no_rsc_apps) {
+        addProperty(_("Don't fetch tasks for ") + rsc_name, _("Project has no apps for ") + rsc_name);
+    }
+    if (rsc_desc.no_rsc_config) {
+        addProperty(_("Don't fetch tasks for ") + rsc_name, _("Client configuration excludes ") + rsc_name);
+    }
+    double x = rsc_desc.backoff_time - dtime();
+    if (x<0) x = 0;
+    addProperty(rsc_name + _(" work fetch deferred for"), FormatTime(x));
+    addProperty(rsc_name + _(" work fetch deferral interval"), FormatTime(rsc_desc.backoff_interval));
+}
+
 // show project properties
 //
 void CDlgItemProperties::renderInfos(PROJECT* project_in) {
@@ -178,7 +187,7 @@ void CDlgItemProperties::renderInfos(PROJECT* project_in) {
     // CachedDiskUsageUpdate() may have invalidated our project 
     // pointer, so get an updated pointer to this project
     PROJECT* project = pDoc->project(project_in->master_url);
-    if(!project) return;     // TODO: display some sort of error alert?
+    if (!project) return;     // TODO: display some sort of error alert?
 
     std::vector<PROJECT*> dp = pDoc->disk_usage.projects;
     double diskusage=0.0;    
@@ -186,9 +195,9 @@ void CDlgItemProperties::renderInfos(PROJECT* project_in) {
         PROJECT* tp = dp[i];        
         std::string tname;        
         tp->get_name(tname);
-        wxString t1(wxString(tname.c_str(),wxConvUTF8));
-        if(t1.IsSameAs(wxString(projectname.c_str(),wxConvUTF8)) || t1.IsSameAs(wxString(project->master_url, wxConvUTF8))) {
-            diskusage =tp->disk_usage;
+        wxString t1(wxString(tname.c_str(), wxConvUTF8));
+        if(t1.IsSameAs(wxString(projectname.c_str(), wxConvUTF8)) || t1.IsSameAs(wxString(project->master_url, wxConvUTF8))) {
+            diskusage = tp->disk_usage;
             break;
         }
     }
@@ -198,10 +207,10 @@ void CDlgItemProperties::renderInfos(PROJECT* project_in) {
     SetTitle(wxTitle);
     //layout controls
     addSection(_("General"));
-    addProperty(_("Master URL"),wxString(project->master_url, wxConvUTF8));
-    addProperty(_("User name"),wxString(project->user_name.c_str(),wxConvUTF8));
-    addProperty(_("Team name"),wxString(project->team_name.c_str(),wxConvUTF8));
-    addProperty(_("Resource share"),wxString::Format(wxT("%0.0f"),project->resource_share));
+    addProperty(_("Master URL"), wxString(project->master_url, wxConvUTF8));
+    addProperty(_("User name"), wxString(project->user_name.c_str(), wxConvUTF8));
+    addProperty(_("Team name"), wxString(project->team_name.c_str(), wxConvUTF8));
+    addProperty(_("Resource share"), wxString::Format(wxT("%0.0f"), project->resource_share));
     if (project->min_rpc_time > dtime()) {
         addProperty(_("Scheduler RPC deferred for"), FormatTime(project->min_rpc_time - dtime()));
     }
@@ -211,13 +220,13 @@ void CDlgItemProperties::renderInfos(PROJECT* project_in) {
     if (project->upload_backoff) {
         addProperty(_("File uploads deferred for"), FormatTime(project->upload_backoff));
     }
-    addProperty(_("Disk usage"),FormatDiskSpace(diskusage));
+    addProperty(_("Disk usage"), FormatDiskSpace(diskusage));
     addProperty(_("Computer ID"), wxString::Format(wxT("%d"), project->hostid));
     if (project->non_cpu_intensive) {
         addProperty(_("Non CPU intensive"), _("yes"));
     }
-    addProperty(_("Suspended via GUI"),project->suspended_via_gui ? _("yes") : _("no"));
-    addProperty(_("Don't request more work"),project->dont_request_more_work ? _("yes") : _("no"));
+    addProperty(_("Suspended via GUI"), project->suspended_via_gui ? _("yes") : _("no"));
+    addProperty(_("Don't request more work"), project->dont_request_more_work ? _("yes") : _("no"));
     if (project->scheduler_rpc_in_progress) {
         addProperty(_("Scheduler call in progress"), _("yes"));
     }
@@ -257,33 +266,27 @@ void CDlgItemProperties::renderInfos(PROJECT* project_in) {
     
     if (!project->non_cpu_intensive) {
         addSection(_("Scheduling"));
-        if (project->no_cpu_pref) {
-            addProperty(_("Project preference"), _("Don't fetch CPU tasks"));
-        }
-        addProperty(_("Scheduling priority"),wxString::Format(wxT("%0.2f"), project->sched_priority));
-        double x = project->cpu_backoff_time - dtime();
-        if (x<0) x = 0;
-        addProperty(_("CPU work fetch deferred for"), FormatTime(x));
-        addProperty(_("CPU work fetch deferral interval"), FormatTime(project->cpu_backoff_interval));
+        addProperty(_("Scheduling priority"), wxString::Format(wxT("%0.2f"), project->sched_priority));
+        show_rsc(_("CPU"), project->rsc_desc_cpu);
         if (pDoc->state.have_nvidia) {
-            if (project->no_cuda_pref) {
-                addProperty(_("Project preference"), _("Don't fetch NVIDIA GPU tasks"));
-            }
-            x = project->cuda_backoff_time - dtime();
-            if (x<0) x = 0;
-            addProperty(_("NVIDIA GPU work fetch deferred for"), FormatTime(x));
-            addProperty(_("NVIDIA GPU work fetch deferral interval"), FormatTime(project->cuda_backoff_interval));
+            show_rsc(
+                wxString(proc_type_name(PROC_TYPE_NVIDIA_GPU), wxConvUTF8),
+                project->rsc_desc_nvidia
+            );
         }
         if (pDoc->state.have_ati) {
-            if (project->no_ati_pref) {
-                addProperty(_("Project preference"), _("Don't fetch ATI GPU tasks"));
-            }
-            x = project->ati_backoff_time - dtime();
-            if (x<0) x = 0;
-            addProperty(_("ATI GPU work fetch deferred for"), FormatTime(x));
-            addProperty(_("ATI GPU work fetch deferral interval"), FormatTime(project->ati_backoff_interval));
+            show_rsc(
+                wxString(proc_type_name(PROC_TYPE_AMD_GPU), wxConvUTF8),
+                project->rsc_desc_ati
+            );
         }
-        addProperty(_("Duration correction factor"),wxString::Format(wxT("%0.4f"), project->duration_correction_factor));
+        if (pDoc->state.have_intel) {
+            show_rsc(
+                wxString(proc_type_name(PROC_TYPE_INTEL_GPU), wxConvUTF8),
+                project->rsc_desc_intel_gpu
+            );
+        }
+        addProperty(_("Duration correction factor"), wxString::Format(wxT("%0.4f"), project->duration_correction_factor));
     }
     m_gbSizer->Layout();
     m_scrolledWindow->FitInside();
@@ -307,7 +310,7 @@ void CDlgItemProperties::renderInfos(RESULT* result) {
     }
     
     addProperty(_("Application"), FormatApplicationName(result));
-    addProperty(_("Workunit name"),wxString(result->wu_name, wxConvUTF8));
+    addProperty(_("Workunit name"), wxString(result->wu_name, wxConvUTF8));
     addProperty(_("State"), result_description(result, false));
     if (result->received_time) {
         dt.Set((time_t)result->received_time);
@@ -444,10 +447,10 @@ wxString CDlgItemProperties::FormatTime(float fBuffer) {
 
 // adds a title section label to the dialog 
 void CDlgItemProperties::addSection(const wxString& title) {
-    wxStaticText* staticText = new wxStaticText( m_scrolledWindow, wxID_ANY, title, wxDefaultPosition, wxDefaultSize, 0);
-    staticText->Wrap( -1 );
-    staticText->SetFont( wxFont( wxNORMAL_FONT->GetPointSize(), 70, 90, 92, false, wxEmptyString ) );    
-    m_gbSizer->Add( staticText, wxGBPosition( m_current_row, 0 ), wxGBSpan( 1, 2 ), wxALL|wxEXPAND, 3);
+    wxStaticText* staticText = new wxStaticText(m_scrolledWindow, wxID_ANY, title, wxDefaultPosition, wxDefaultSize, 0);
+    staticText->Wrap(-1);
+    staticText->SetFont(wxFont( wxNORMAL_FONT->GetPointSize(), 70, 90, 92, false, wxEmptyString));    
+    m_gbSizer->Add(staticText, wxGBPosition( m_current_row, 0), wxGBSpan(1, 2), wxALL|wxEXPAND, 3);
     m_current_row++;
 }
 

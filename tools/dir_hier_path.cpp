@@ -23,6 +23,7 @@
 
 #include "config.h"
 #include <cstdio>
+#include <sys/param.h>
 
 #include "util.h"
 #include "sched_config.h"
@@ -37,12 +38,12 @@ const char *usage =
 "   and creates the directory if needed.\n\n";
 
 int main(int argc, char** argv) {
-    char path[256];
+    char path[MAXPATHLEN];
     int retval;
 
     if ( (argc == 1) ||  !strcmp(argv[1], "-h")  || !strcmp(argv[1],"--help") || (argc != 2) ) {
-      printf (usage);
-      exit(1);
+        fprintf(stderr, usage);
+        exit(1);
     }
 
     retval = config.parse_file();
@@ -55,7 +56,7 @@ int main(int argc, char** argv) {
         argv[1], config.download_dir, config.uldl_dir_fanout, path, true
     );
     if (retval) {
-        fprintf(stderr, "dir_hier_path(): %d\n", retval);
+        fprintf(stderr, "dir_hier_path(): %s\n", boincerror(retval));
         exit(1);
     }
     printf("%s\n", path);

@@ -32,7 +32,7 @@
 //      boinc_estimate_batch(); estimate completion time of a batch
 //      boinc_get_output_file(): get the URL for an output file
 //      boinc_get_output_files(): get the URL for zipped batch output
-//      boinc_query_batch(): get detaills of a batch
+//      boinc_query_batch(): get details of a batch
 //      boinc_query_batches(): get list of batches
 //      boinc_query_job(): get details of a job
 //      boinc_retire_batch(): retire a batch; delete output files
@@ -53,10 +53,22 @@ function req_to_xml($req, $op) {
         <command_line>$job->command_line</command_line>
 ";
         foreach ($job->input_files as $file) {
-            $x .= "        <input_file>
-            <source>$file->source</source>
-        </input_file>
-";
+            $x .= "        <input_file>\n";
+            $x .= "            <mode>$file->mode</mode>\n";
+            switch ($file->mode) {
+            case "remote":
+                $x .= "             <source>$file->source</source>\n";
+                break;
+            case "local":
+                $x .= "             <path>$file->path</path>\n";
+                break;
+            case "inline":
+                break;
+            case "semilocal":
+                $x .= "             <url>$file->url</url>\n";
+                break;
+            }
+            $x .= "        </input_file>\n";
         }
         $x .= "    </job>
 ";
@@ -80,11 +92,30 @@ function validate_request($req) {
     return null;
 }
 
-function do_http_op($project, $xml) {
-    $ch = curl_init("$project/submit_rpc_handler.php");
+function do_http_op($req, $xml, $op) {
+    $ch = curl_init("$req->project/submit_rpc_handler.php");
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, "request=$xml");
+
+    // see if we need to send any files
+    //
+    $nfiles = 0;
+    $post = array();
+    $post["request"] = $xml;
+    $cwd = getcwd();
+    if ($op == "submit_batch) {
+        foreach ($req->jobs as $job) {
+            foreach ($job->input_files as $file) {
+                if ($file->mode == "inline") {
+                    $path = realpath("$cwd/$file->path");
+                    $post["file$nfiles"] = $path;
+                    $nfiles++;
+                }
+            }
+        }
+    }
+    //curl_setopt($ch, CURLOPT_POSTFIELDS, "request=$xml");
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
     $reply = curl_exec($ch);
     if (!$reply) return array(null, "HTTP error");
     $r = simplexml_load_string($reply);
@@ -96,7 +127,7 @@ function do_batch_op($req, $op) {
     $retval = validate_request($req);
     if ($retval) return array(null, $retval);
     $xml = req_to_xml($req, $op);
-    return do_http_op($req->project, $xml);
+    return do_http_op($req, $xml, $op);
 }
 
 function batch_xml_to_object($batch) {
@@ -149,7 +180,7 @@ function boinc_query_batches($req) {
     <authenticator>$req->authenticator</authenticator>
 </query_batches>
 ";
-    list($reply, $errmsg) = do_http_op($req->project, $req_xml);
+    list($reply, $errmsg) = do_http_op($req, $req_xml);
     if ($errmsg) return array(null, $errmsg);
     $batches = array();
     foreach ($reply->batch as $batch) {
@@ -165,7 +196,7 @@ function boinc_query_batch($req) {
     <batch_id>$req->batch_id</batch_id>
 </query_batch>
 ";
-    list($reply, $errmsg) = do_http_op($req->project, $req_xml);
+    list($reply, $errmsg) = do_http_op($req, $req_xml, "");
     if ($errmsg) return array(null, $errmsg);
     $jobs = array();
     foreach ($reply->job as $job) {
@@ -185,7 +216,7 @@ function boinc_query_job($req) {
     <job_id>$req->job_id</job_id>
 </query_job>
 ";
-    list($reply, $errmsg) = do_http_op($req->project, $req_xml);
+    list($reply, $errmsg) = do_http_op($req, $req_xml, "");
     if ($errmsg) return array(null, $errmsg);
     $instances = array();
     foreach ($reply->instance as $instance) {
@@ -212,7 +243,7 @@ function boinc_abort_batch($req) {
     <batch_id>$req->batch_id</batch_id>
 </abort_batch>
 ";
-    list($reply, $errmsg) = do_http_op($req->project, $req_xml);
+    list($reply, $errmsg) = do_http_op($req, $req_xml, "");
     if ($errmsg) return $errmsg;
     $name = $reply->getName();
     if ($name == 'error') {
@@ -240,7 +271,7 @@ function boinc_retire_batch($req) {
     <batch_id>$req->batch_id</batch_id>
 </retire_batch>
 ";
-    list($reply, $errmsg) = do_http_op($req->project, $req_xml);
+    list($reply, $errmsg) = do_http_op($req, $req_xml, "");
     if ($errmsg) return $errmsg;
     $name = $reply->getName();
     if ($name == 'error') {
@@ -255,6 +286,7 @@ $req->project = "http://isaac.ssl.berkeley.edu/test/";
 $req->authenticator = "x";
 if (0) {
     $req->app_name = "uppercase";
+    $req->batch_name = "batch_name";
     $req->jobs = array();
 
     $f->source = "http://isaac.ssl.berkeley.edu/index.php";

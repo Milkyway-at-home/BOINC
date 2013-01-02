@@ -76,13 +76,16 @@ int get_connected_state() {
 const float ALPHA = (SECONDS_PER_DAY*10);
 //const float ALPHA = 60;   // for testing
 
-TIME_STATS::TIME_STATS() {
+void CLIENT_TIME_STATS::init() {
     last_update = 0;
     first = true;
     on_frac = 1;
     connected_frac = 1;
     active_frac = 1;
     gpu_active_frac = 1;
+    cpu_and_network_available_frac = 1;
+    client_start_time = gstate.now;
+    previous_uptime = 0;
     previous_connected_state = CONNECTED_STATE_UNINITIALIZED;
     inactive_start = 0;
     trim_stats_log();
@@ -91,7 +94,7 @@ TIME_STATS::TIME_STATS() {
 
 // if log file is over a meg, discard everything older than a year
 //
-void TIME_STATS::trim_stats_log() {
+void CLIENT_TIME_STATS::trim_stats_log() {
 #ifndef SIM
     double size;
     char buf[256];
@@ -136,7 +139,7 @@ void send_log_after(const char* filename, double t, MIOFILE& mf) {
 
 // copy the log file after a given time
 //
-void TIME_STATS::get_log_after(double t, MIOFILE& mf) {
+void CLIENT_TIME_STATS::get_log_after(double t, MIOFILE& mf) {
     if (time_stats_log) {
         fclose(time_stats_log);     // win: can't open twice
     }
@@ -149,7 +152,7 @@ void TIME_STATS::get_log_after(double t, MIOFILE& mf) {
 // so these get written to disk only when other activities
 // cause this to happen.  Maybe should change this.
 //
-void TIME_STATS::update(int suspend_reason, int _gpu_suspend_reason) {
+void CLIENT_TIME_STATS::update(int suspend_reason, int _gpu_suspend_reason) {
     double dt, w1, w2;
 
     bool is_active = !(suspend_reason & ~SUSPEND_REASON_CPU_THROTTLE);
@@ -162,6 +165,7 @@ void TIME_STATS::update(int suspend_reason, int _gpu_suspend_reason) {
         connected_frac = 1;
         active_frac = 1;
         gpu_active_frac = 1;
+        cpu_and_network_available_frac = 1;
         first = false;
         last_update = gstate.now;
         log_append("power_on", gstate.now);
@@ -204,7 +208,9 @@ void TIME_STATS::update(int suspend_reason, int _gpu_suspend_reason) {
             sprintf(buf, "platform %s", gstate.get_primary_platform());
             log_append(buf, gstate.now);
 #endif
-            sprintf(buf, "version %d.%d.%d", BOINC_MAJOR_VERSION, BOINC_MINOR_VERSION, BOINC_RELEASE);
+            sprintf(buf, "version %d.%d.%d",
+                BOINC_MAJOR_VERSION, BOINC_MINOR_VERSION, BOINC_RELEASE
+            );
             log_append(buf, gstate.now);
             log_append("power_on", gstate.now);
         } else if (dt > 100) {
@@ -216,6 +222,7 @@ void TIME_STATS::update(int suspend_reason, int _gpu_suspend_reason) {
             }
         } else {
             on_frac = w1 + w2*on_frac;
+            cpu_and_network_available_frac *= w2;
             if (connected_frac < 0) connected_frac = 0;
             switch (connected_state) {
             case CONNECTED_STATE_NOT_CONNECTED:
@@ -224,9 +231,15 @@ void TIME_STATS::update(int suspend_reason, int _gpu_suspend_reason) {
             case CONNECTED_STATE_CONNECTED:
                 connected_frac *= w2;
                 connected_frac += w1;
+                if (!gstate.network_suspended && !gstate.tasks_suspended) {
+                    cpu_and_network_available_frac += w1;
+                }
                 break;
             case CONNECTED_STATE_UNKNOWN:
                 connected_frac = -1;
+                if (!gstate.network_suspended && !gstate.tasks_suspended) {
+                    cpu_and_network_available_frac += w1;
+                }
             }
             if (connected_state != previous_connected_state) {
                 log_append_net(connected_state);
@@ -255,8 +268,9 @@ void TIME_STATS::update(int suspend_reason, int _gpu_suspend_reason) {
         last_update = gstate.now;
         if (log_flags.time_debug) {
             msg_printf(0, MSG_INFO,
-                "[time] dt %f w2 %f on %f; active %f; gpu_active %f; conn %f",
-                dt, w2, on_frac, active_frac, gpu_active_frac, connected_frac
+                "[time] dt %f w2 %f on %f; active %f; gpu_active %f; conn %f, cpu_and_net_avail %f",
+                dt, w2, on_frac, active_frac, gpu_active_frac, connected_frac,
+                cpu_and_network_available_frac
             );
         }
     }
@@ -264,19 +278,29 @@ void TIME_STATS::update(int suspend_reason, int _gpu_suspend_reason) {
 
 // Write XML based time statistics
 //
-int TIME_STATS::write(MIOFILE& out, bool to_server) {
+int CLIENT_TIME_STATS::write(MIOFILE& out, bool to_remote) {
     out.printf(
         "<time_stats>\n"
         "    <on_frac>%f</on_frac>\n"
         "    <connected_frac>%f</connected_frac>\n"
+        "    <cpu_and_network_available_frac>%f</cpu_and_network_available_frac>\n"
         "    <active_frac>%f</active_frac>\n"
-        "    <gpu_active_frac>%f</gpu_active_frac>\n",
+        "    <gpu_active_frac>%f</gpu_active_frac>\n"
+        "    <client_start_time>%f</client_start_time>\n"
+        "    <previous_uptime>%f</previous_uptime>\n",
         on_frac,
         connected_frac,
+        cpu_and_network_available_frac,
         active_frac,
-        gpu_active_frac
+        gpu_active_frac,
+        client_start_time,
+        gstate.now - client_start_time
     );
-    if (!to_server) {
+    if (to_remote) {
+        out.printf(
+            "    <now>%f</now>\n", gstate.now
+        );
+    } else {
         out.printf(
             "    <last_update>%f</last_update>\n",
             last_update
@@ -288,7 +312,7 @@ int TIME_STATS::write(MIOFILE& out, bool to_server) {
 
 // Parse XML based time statistics, usually from client_state.xml
 //
-int TIME_STATS::parse(XML_PARSER& xp) {
+int CLIENT_TIME_STATS::parse(XML_PARSER& xp) {
     double x;
 #ifdef SIM
     double on_lambda = 3600, connected_lambda = 3600;
@@ -306,12 +330,12 @@ int TIME_STATS::parse(XML_PARSER& xp) {
             return 0;
         }
 #ifdef SIM
-        else if (xp.parse_double("on_lambda", on_lambda)) continue;
-        else if (xp.parse_double("connected_lambda", connected_lambda)) continue;
-        else if (xp.parse_double("active_lambda", active_lambda)) continue;
-        else if (xp.parse_double("gpu_active_lambda", gpu_active_lambda)) continue;
+        if (xp.parse_double("on_lambda", on_lambda)) continue;
+        if (xp.parse_double("connected_lambda", connected_lambda)) continue;
+        if (xp.parse_double("active_lambda", active_lambda)) continue;
+        if (xp.parse_double("gpu_active_lambda", gpu_active_lambda)) continue;
 #endif
-        else if (xp.parse_double("last_update", x)) {
+        if (xp.parse_double("last_update", x)) {
             if (x < 0 || x > gstate.now) {
 #ifndef SIM
                 msg_printf(0, MSG_INTERNAL_ERROR,
@@ -322,7 +346,8 @@ int TIME_STATS::parse(XML_PARSER& xp) {
                 last_update = x;
             }
             continue;
-        } else if (xp.parse_double("on_frac", x)) {
+        }
+        if (xp.parse_double("on_frac", x)) {
             if (x <= 0 || x > 1) {
                 msg_printf(0, MSG_INTERNAL_ERROR,
                     "bad value %f of time stats on_frac; ignoring", x
@@ -331,11 +356,23 @@ int TIME_STATS::parse(XML_PARSER& xp) {
                 on_frac = x;
             }
             continue;
-        } else if (xp.parse_double("connected_frac", x)) {
+        }
+        if (xp.parse_double("connected_frac", x)) {
             // -1 means undefined; skip check
             connected_frac = x;
             continue;
-        } else if (xp.parse_double("active_frac", x)) {
+        }
+        if (xp.parse_double("cpu_and_network_available_frac", x)) {
+            if (x <= 0 || x > 1) {
+                msg_printf(0, MSG_INTERNAL_ERROR,
+                    "bad value %f of time stats cpu_and_network_available_frac; ignoring", x
+                );
+            } else {
+                cpu_and_network_available_frac = x;
+            }
+            continue;
+        }
+        if (xp.parse_double("active_frac", x)) {
             if (x <= 0 || x > 1) {
                 msg_printf(0, MSG_INTERNAL_ERROR,
                     "bad value %f of time stats active_frac; ignoring", x
@@ -344,7 +381,8 @@ int TIME_STATS::parse(XML_PARSER& xp) {
                 active_frac = x;
             }
             continue;
-        } else if (xp.parse_double("gpu_active_frac", x)) {
+        }
+        if (xp.parse_double("gpu_active_frac", x)) {
             if (x <= 0 || x > 1) {
                 msg_printf(0, MSG_INTERNAL_ERROR,
                     "bad value %f of time stats gpu_active_frac; ignoring", x
@@ -353,39 +391,40 @@ int TIME_STATS::parse(XML_PARSER& xp) {
                 gpu_active_frac = x;
             }
             continue;
-        } else {
-            if (log_flags.unparsed_xml) {
-                msg_printf(0, MSG_INFO,
-                    "[unparsed_xml] TIME_STATS::parse(): unrecognized: %s\n",
-                    xp.parsed_tag
-                );
-            }
+        }
+        if (xp.parse_double("client_start_time", x)) continue;
+        if (xp.parse_double("previous_uptime", previous_uptime)) continue;
+        if (log_flags.unparsed_xml) {
+            msg_printf(0, MSG_INFO,
+                "[unparsed_xml] TIME_STATS::parse(): unrecognized: %s\n",
+                xp.parsed_tag
+            );
         }
     }
     return ERR_XML_PARSE;
 }
 
-void TIME_STATS::start() {
+void CLIENT_TIME_STATS::start() {
     time_stats_log = fopen(TIME_STATS_LOG, "a");
     if (time_stats_log) {
         setbuf(time_stats_log, 0);
     }
 }
 
-void TIME_STATS::quit() {
+void CLIENT_TIME_STATS::quit() {
     log_append("power_off", gstate.now);
 }
 
 #ifdef SIM
-void TIME_STATS::log_append(const char* , double ) {}
+void CLIENT_TIME_STATS::log_append(const char* , double ) {}
 #else
-void TIME_STATS::log_append(const char* msg, double t) {
+void CLIENT_TIME_STATS::log_append(const char* msg, double t) {
     if (!time_stats_log) return;
     fprintf(time_stats_log, "%f %s\n", t, msg);
 }
 #endif
 
-void TIME_STATS::log_append_net(int new_state) {
+void CLIENT_TIME_STATS::log_append_net(int new_state) {
     switch(new_state) {
     case CONNECTED_STATE_NOT_CONNECTED:
         log_append("net_not_connected", gstate.now);

@@ -50,6 +50,12 @@
 
 #include "sched_msgs.h"
 
+using std::string;
+
+#define LOCK_FILES
+    // comment this out to not lock files
+    // this may avoid filesystem hangs
+
 #define ERR_TRANSIENT   true
 #define ERR_PERMANENT   false
 
@@ -101,7 +107,7 @@ int return_success(const char* text) {
     return 0;
 }
 
-#define BLOCK_SIZE  16382
+#define BLOCK_SIZE  (256*1024)
 double bytes_left=-1;
 
 // read from socket, write to file
@@ -110,69 +116,13 @@ double bytes_left=-1;
 int copy_socket_to_file(FILE* in, char* path, double offset, double nbytes) {
     unsigned char buf[BLOCK_SIZE];
     struct stat sbuf;
-    int pid;
-
-    // open file.  Use raw IO not buffered IO so that we can use reliable
-    // posix file locking.
-    // Advisory file locking is not guaranteed reliable when
-    // used with stream buffered IO.
-    //
-    int fd = open(path,
-        O_WRONLY|O_CREAT,
-        S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH
-    );
-    if (fd<0) {
-        return return_error(ERR_TRANSIENT,
-            "can't open file %s: %s\n", path, strerror(errno)
-        );
-    }
-
-    // Put an advisory lock on the file.
-    // This will prevent OTHER instances of file_upload_handler
-    // from being able to write to the file.
-    //
-    pid = mylockf(fd);
-    if (pid>0) {
-        close(fd);
-        return return_error(ERR_TRANSIENT,
-            "can't lock file %s: %s locked by PID=%d\n",
-            path, strerror(errno), pid
-        );
-    } else if (pid < 0) {
-        close(fd);
-        return return_error(ERR_TRANSIENT, "can't lock file %s\n", path);
-    }
-
-    // check that file length corresponds to offset
-    // TODO: use a 64-bit variant
-    //
-    if (stat(path, &sbuf)) {
-        close(fd);
-        return return_error(ERR_TRANSIENT,
-            "can't stat file %s: %s\n", path, strerror(errno)
-        );
-    }
-    if (sbuf.st_size < offset) {
-        close(fd);
-        return return_error(ERR_TRANSIENT,
-            "length of file %s %d bytes < offset %.0f bytes",
-            path, (int)sbuf.st_size, offset
-        );
-    }
-    if (offset) lseek(fd, offset, SEEK_SET);
-    if (sbuf.st_size > offset) {
-        log_messages.printf(MSG_CRITICAL,
-            "file %s length on disk %d bytes; host upload starting at %.0f bytes.\n",
-             this_filename, (int)sbuf.st_size, offset
-        );
-    }
+    int pid, fd=0;
 
     // caller guarantees that nbytes > offset
     //
     bytes_left = nbytes - offset;
 
     while (bytes_left > 0) {
-
         int n, m, to_write;
 
         m = bytes_left<(double)BLOCK_SIZE ? (int)bytes_left : BLOCK_SIZE;
@@ -180,6 +130,68 @@ int copy_socket_to_file(FILE* in, char* path, double offset, double nbytes) {
         // try to get m bytes from socket (n>=0 is number actually returned)
         //
         n = fread(buf, 1, m, in);
+
+        // delay opening the file until we've done the first socket read
+        // to avoid filesystem lockups (WCG, possible paranoia)
+        //
+        if (!fd) {
+            // Use raw IO not buffered IO so that we can use reliable
+            // posix file locking.
+            // Advisory file locking is not guaranteed reliable when
+            // used with stream buffered IO.
+            //
+            fd = open(path,
+                O_WRONLY|O_CREAT,
+                S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH
+            );
+            if (fd<0) {
+                return return_error(ERR_TRANSIENT,
+                    "can't open file %s: %s\n", path, strerror(errno)
+                );
+            }
+
+#ifdef LOCK_FILES
+            // Put an advisory lock on the file.
+            // This will prevent OTHER instances of file_upload_handler
+            // from being able to write to the file.
+            //
+            pid = mylockf(fd);
+            if (pid>0) {
+                close(fd);
+                return return_error(ERR_TRANSIENT,
+                    "can't lock file %s: %s locked by PID=%d\n",
+                    path, strerror(errno), pid
+                );
+            } else if (pid < 0) {
+                close(fd);
+                return return_error(ERR_TRANSIENT, "can't lock file %s\n", path);
+            }
+#endif
+
+            // check that file length corresponds to offset
+            // TODO: use a 64-bit variant
+            //
+            if (stat(path, &sbuf)) {
+                close(fd);
+                return return_error(ERR_TRANSIENT,
+                    "can't stat file %s: %s\n", path, strerror(errno)
+                );
+            }
+            if (sbuf.st_size < offset) {
+                close(fd);
+                return return_error(ERR_TRANSIENT,
+                    "length of file %s %d bytes < offset %.0f bytes",
+                    path, (int)sbuf.st_size, offset
+                );
+            }
+            if (offset) lseek(fd, offset, SEEK_SET);
+            if (sbuf.st_size > offset) {
+                log_messages.printf(MSG_CRITICAL,
+                    "file %s length on disk %d bytes; host upload starting at %.0f bytes.\n",
+                     this_filename, (int)sbuf.st_size, offset
+                );
+            }
+        }
 
         // try to write n bytes to file
         //
@@ -245,7 +257,7 @@ void copy_socket_to_null(FILE* in) {
 // ALWAYS generates an HTML reply
 //
 int handle_file_upload(FILE* in, R_RSA_PUBLIC_KEY& key) {
-    char buf[256], path[512], signed_xml[1024];
+    char buf[256], path[MAXPATHLEN], signed_xml[1024];
     char name[256], stemp[256];
     double max_nbytes=-1;
     char xml_signature[1024];
@@ -304,21 +316,17 @@ int handle_file_upload(FILE* in, R_RSA_PUBLIC_KEY& key) {
             "<name>%s</name><max_nbytes>%.0f</max_nbytes>",
             name, max_nbytes
         );
-        retval = verify_string(
+        retval = check_string_signature(
             signed_xml, xml_signature, key, is_valid
         );
         if (retval || !is_valid) {
             log_messages.printf(MSG_CRITICAL,
-                "verify_string() [%s] [%s] retval %d, is_valid = %d\n",
+                "check_string_signature() [%s] [%s] retval %d, is_valid = %d\n",
                 signed_xml, xml_signature,
                 retval, is_valid
             );
-            log_messages.printf(MSG_NORMAL,
-                "signed xml: %s\n", signed_xml
-            );
-            log_messages.printf(MSG_NORMAL,
-                "signature: %s\n", xml_signature
-            );
+            log_messages.printf(MSG_NORMAL, "signed xml: %s\n", signed_xml);
+            log_messages.printf(MSG_NORMAL, "signature: %s\n", xml_signature);
             return return_error(ERR_PERMANENT, "invalid signature");
         }
     }
@@ -407,7 +415,7 @@ bool volume_full(char* path) {
 //
 int handle_get_file_size(char* file_name) {
     struct stat sbuf;
-    char path[512], buf[256];
+    char path[MAXPATHLEN], buf[256];
     int retval, pid, fd;
 
     // TODO: check to ensure path doesn't point somewhere bad
@@ -452,7 +460,7 @@ int handle_get_file_size(char* file_name) {
         return return_error(ERR_TRANSIENT, "can't open file");
     }
 
-    if ((pid=mylockf(fd))) {
+    if ((pid = mylockf(fd))) {
         // file locked by another file_upload_handler: try again later
         //
         close(fd);
@@ -614,13 +622,13 @@ void usage(char *name) {
 int main(int argc, char *argv[]) {
     int retval;
     R_RSA_PUBLIC_KEY key;
-    char log_path[256];
+    char log_path[MAXPATHLEN];
 #ifdef _USING_FCGI_
     unsigned int counter=0;
 #endif
 
     for(int c = 1; c < argc; c++) {
-        std::string option(argv[c]);
+        string option(argv[c]);
         if(option == "-v" || option == "--version") {
             printf("%s\n", SVN_VERSION);
             exit(0);
@@ -670,10 +678,14 @@ int main(int argc, char *argv[]) {
     log_messages.pid = getpid();
     log_messages.set_debug_level(config.fuh_debug_level);
 
+#ifndef _USING_FCGI_
     if (boinc_file_exists(config.project_path("stop_upload"))) {
-        return_error(ERR_TRANSIENT, "Maintenance underway: file uploads are temporarily disabled.");
+        return_error(ERR_TRANSIENT,
+            "File uploads are temporarily disabled."
+        );
         exit(1);
     }
+#endif
 
     if (!config.ignore_upload_certificates) {
         retval = get_key(key);
@@ -687,6 +699,12 @@ int main(int argc, char *argv[]) {
     while(FCGI_Accept() >= 0) {
         counter++;
         //fprintf(stderr, "file_upload_handler (FCGI): counter: %d\n", counter);
+        if (boinc_file_exists(config.project_path("stop_upload"))) {
+            return_error(ERR_TRANSIENT,
+                "File uploads are temporarily disabled."
+            );
+            continue;
+        }
         log_messages.set_indent_level(0);
 #endif
         handle_request(stdin, key);

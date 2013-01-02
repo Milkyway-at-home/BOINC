@@ -1,5 +1,5 @@
 <?php {
-    // $Id$
+    // $Id: test_uc.inc 1510 2003-06-17 01:36:47Z quarl $
 
     include_once("test.inc");
 

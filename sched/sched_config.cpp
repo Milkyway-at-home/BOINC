@@ -90,6 +90,8 @@ int SCHED_CONFIG::parse(FILE* f) {
     fuh_debug_level = MSG_NORMAL;
     strcpy(httpd_user, "apache");
     max_ncpus = MAX_NCPUS;
+    scheduler_log_buffer = 32768;
+    version_select_random_factor = .1;
 
     if (!xp.parse_start("boinc")) return ERR_XML_PARSE;
     if (!xp.parse_start("config")) return ERR_XML_PARSE;
@@ -139,21 +141,12 @@ int SCHED_CONFIG::parse(FILE* f) {
         if (xp.parse_bool("non_cpu_intensive", non_cpu_intensive)) continue;
         if (xp.parse_bool("verify_files_on_app_start", verify_files_on_app_start)) continue;
         if (xp.parse_int("homogeneous_redundancy", homogeneous_redundancy)) continue;
+        if (xp.parse_bool("hr_allocate_slots", hr_allocate_slots)) continue;
         if (xp.parse_bool("msg_to_host", msg_to_host)) continue;
         if (xp.parse_bool("ignore_upload_certificates", ignore_upload_certificates)) continue;
         if (xp.parse_bool("dont_generate_upload_certificates", dont_generate_upload_certificates)) continue;
         if (xp.parse_int("uldl_dir_fanout", uldl_dir_fanout)) continue;
         if (xp.parse_bool("cache_md5_info", cache_md5_info)) continue;
-        if (xp.parse_double("fp_benchmark_weight", fp_benchmark_weight)) {
-            if (fp_benchmark_weight < 0 || fp_benchmark_weight > 1) {
-                fprintf(stderr,
-                    "CONFIG FILE ERROR: fp_benchmark_weight outside of 0..1"
-                );
-            } else {
-                use_benchmark_weights = true;
-            }
-            continue;
-        }
         if (xp.parse_int("fuh_debug_level", fuh_debug_level)) continue;
         if (xp.parse_int("reliable_priority_on_over", reliable_priority_on_over)) continue;
         if (xp.parse_int("reliable_priority_on_over_except_error", reliable_priority_on_over_except_error)) continue;
@@ -172,6 +165,8 @@ int SCHED_CONFIG::parse(FILE* f) {
         if (xp.parse_int("shmem_work_items", shmem_work_items)) continue;
         if (xp.parse_int("feeder_query_size", feeder_query_size)) continue;
         if (xp.parse_str("httpd_user", httpd_user, sizeof(httpd_user))) continue;
+        if (xp.parse_bool("enable_vda", enable_vda)) continue;
+        if (xp.parse_double("vda_host_timeout", vda_host_timeout)) continue;
         if (xp.parse_bool("enable_assignment", enable_assignment)) continue;
         if (xp.parse_bool("enable_assignment_multi", enable_assignment_multi)) continue;
         if (xp.parse_bool("job_size_matching", job_size_matching)) continue;
@@ -195,6 +190,10 @@ int SCHED_CONFIG::parse(FILE* f) {
             } else {
                 ban_os->push_back(re);
             }
+            continue;
+        }
+        if (xp.parse_int("dont_search_host_for_user", retval)) {
+            dont_search_host_for_userid.push_back(retval);
             continue;
         }
         if (xp.parse_int("daily_result_quota", daily_result_quota)) continue;
@@ -240,6 +239,7 @@ int SCHED_CONFIG::parse(FILE* f) {
             max_jobs_in_progress.project_limits.gpu.per_proc = true;
             continue;
         }
+        if (xp.parse_int("max_results_accepted", max_results_accepted)) continue;
         if (xp.parse_int("max_wus_to_send", max_wus_to_send)) continue;
         if (xp.parse_int("min_core_client_version", min_core_client_version)) {
             if (min_core_client_version && min_core_client_version < 10000) {
@@ -284,6 +284,7 @@ int SCHED_CONFIG::parse(FILE* f) {
         if (xp.parse_bool("request_time_stats_log", request_time_stats_log)) continue;
         if (xp.parse_bool("resend_lost_results", resend_lost_results)) continue;
         if (xp.parse_int("sched_debug_level", sched_debug_level)) continue;
+        if (xp.parse_int("scheduler_log_buffer", scheduler_log_buffer)) continue;
         if (xp.parse_str("sched_lockfile_dir", sched_lockfile_dir, sizeof(sched_lockfile_dir))) continue;
         if (xp.parse_bool("send_result_abort", send_result_abort)) continue;
         if (xp.parse_str("symstore", symstore, sizeof(symstore))) continue;
@@ -291,10 +292,12 @@ int SCHED_CONFIG::parse(FILE* f) {
         if (xp.parse_bool("user_filter", user_filter)) continue;
         if (xp.parse_bool("workload_sim", workload_sim)) continue;
         if (xp.parse_bool("prefer_primary_platform", prefer_primary_platform)) continue;
+        if (xp.parse_double("version_select_random_factor", version_select_random_factor)) continue;
 
         //////////// SCHEDULER LOG FLAGS /////////
 
         if (xp.parse_bool("debug_array", debug_array)) continue;
+        if (xp.parse_bool("debug_array_detail", debug_array_detail)) continue;
         if (xp.parse_bool("debug_assignment", debug_assignment)) continue;
         if (xp.parse_bool("debug_credit", debug_credit)) continue;
         if (xp.parse_bool("debug_edf_sim_detail", debug_edf_sim_detail)) continue;
@@ -302,6 +305,7 @@ int SCHED_CONFIG::parse(FILE* f) {
         if (xp.parse_bool("debug_fcgi", debug_fcgi)) continue;
         if (xp.parse_bool("debug_handle_results", debug_handle_results)) continue;
         if (xp.parse_bool("debug_locality", debug_locality)) continue;
+        if (xp.parse_bool("debug_locality_lite", debug_locality_lite)) continue;
         if (xp.parse_bool("debug_prefs", debug_prefs)) continue;
         if (xp.parse_bool("debug_quota", debug_quota)) continue;
         if (xp.parse_bool("debug_request_details", debug_request_details)) continue;
@@ -309,7 +313,10 @@ int SCHED_CONFIG::parse(FILE* f) {
         if (xp.parse_bool("debug_resend", debug_resend)) continue;
         if (xp.parse_bool("debug_send", debug_send)) continue;
         if (xp.parse_bool("debug_user_messages", debug_user_messages)) continue;
+        if (xp.parse_bool("debug_vda", debug_vda)) continue;
         if (xp.parse_bool("debug_version_select", debug_version_select)) continue;
+
+        if (xp.parse_str("debug_req_reply_dir", debug_req_reply_dir, sizeof(debug_req_reply_dir))) continue;
 
         // don't complain about unparsed XML;
         // there are lots of tags the scheduler doesn't know about
@@ -320,7 +327,7 @@ int SCHED_CONFIG::parse(FILE* f) {
 }
 
 int SCHED_CONFIG::parse_file(const char* dir) {
-    char path[256], path_aux[256];
+    char path[MAXPATHLEN], path_aux[MAXPATHLEN];
     int retval;
 
     if (dir && strlen(dir)) {
@@ -362,9 +369,9 @@ int SCHED_CONFIG::download_path(const char* filename, char* path) {
 static bool is_project_dir(const char* dir) {
     char buf[1024];
     sprintf(buf, "%s/%s", dir, CONFIG_FILE);
-    if (!is_file(buf)) return false;
+    if (!is_file_follow_symlinks(buf)) return false;
     sprintf(buf, "%s/cgi-bin", dir);
-    if (!is_dir(buf)) return false;
+    if (!is_dir_follow_symlinks(buf)) return false;
     return true;
 }
 
@@ -377,7 +384,7 @@ static bool is_project_dir(const char* dir) {
 //      specified by a format string + args
 //
 const char *SCHED_CONFIG::project_path(const char *fmt, ...) {
-    static char path[1024];
+    static char path[MAXPATHLEN];
     va_list ap;
 
     if (!strlen(project_dir)) {

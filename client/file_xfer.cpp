@@ -23,14 +23,16 @@
 #include "config.h"
 #endif
 
-#include "util.h"
+#include "error_numbers.h"
 #include "file_names.h"
-#include "client_state.h"
 #include "filesys.h"
+#include "parse.h"
+#include "util.h"
+
+#include "client_state.h"
 #include "client_msgs.h"
 #include "file_xfer.h"
-#include "parse.h"
-#include "error_numbers.h"
+#include "project.h"
 
 using std::vector;
 
@@ -68,7 +70,7 @@ int FILE_XFER::init_download(FILE_INFO& file_info) {
     const char* url = fip->download_urls.get_current_url(file_info);
     if (!url) return ERR_INVALID_URL;
     return HTTP_OP::init_get(
-        file_info.project, url, pathname, false, (int)starting_size
+        file_info.project, url, pathname, false, starting_size, file_info.nbytes
     );
 }
 
@@ -83,7 +85,7 @@ int FILE_XFER::init_upload(FILE_INFO& file_info) {
     fip = &file_info;
     get_pathname(fip, pathname, sizeof(pathname));
     if (!boinc_file_exists(pathname)) {
-        return ERR_FILE_NOT_FOUND;
+        return ERR_NOT_FOUND;
     }
 
     is_upload = true;

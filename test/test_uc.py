@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-## $Id$
+## $Id: test_uc.py 5506 2005-02-23 19:44:59Z boincadm $
 
 # This tests whether the most basic mechanisms are working
 # Also whether stderr output is reported correctly

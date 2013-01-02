@@ -58,14 +58,17 @@
 #include "file_names.h"
 #include "parse.h"
 #include "shmem.h"
-#include "str_util.h"
 #include "str_replace.h"
+#include "str_util.h"
 #include "util.h"
 
-#include "client_state.h"
+#include "async_file.h"
 #include "client_msgs.h"
+#include "client_state.h"
 #include "procinfo.h"
+#include "result.h"
 #include "sandbox.h"
+
 #include "app.h"
 
 using std::max;
@@ -77,6 +80,11 @@ int gpu_suspend_reason;
 double non_boinc_cpu_usage;
 
 ACTIVE_TASK::~ACTIVE_TASK() {
+#ifndef SIM
+    if (async_copy) {
+        remove_async_copy(async_copy);
+    }
+#endif
 }
 
 ACTIVE_TASK::ACTIVE_TASK() {
@@ -122,6 +130,8 @@ ACTIVE_TASK::ACTIVE_TASK() {
     last_deadline_miss_time = 0;
     strcpy(web_graphics_url, "");
     strcpy(remote_desktop_addr, "");
+    async_copy = NULL;
+    finish_file_time = 0;
 }
 
 // preempt this task;
@@ -178,7 +188,9 @@ int ACTIVE_TASK::preempt(int preempt_type) {
     return 0;
 }
 
-// called when a process has exited or we've killed it
+#ifndef SIM
+
+// called when a process has exited
 //
 void ACTIVE_TASK::cleanup_task() {
 #ifdef _WIN32
@@ -222,11 +234,11 @@ void ACTIVE_TASK::cleanup_task() {
 #endif
 
     if (config.exit_after_finish) {
+        gstate.write_state_file();
         exit(0);
     }
 }
 
-#ifndef SIM
 int ACTIVE_TASK::init(RESULT* rp) {
     result = rp;
     wup = rp->wup;
@@ -291,16 +303,19 @@ void ACTIVE_TASK_SET::get_memory_usage() {
     int retval;
     static bool first = true;
     static double last_cpu_time;
+    double diff=0;
 
-    double diff = gstate.now - last_mem_time;
-    if (diff < 0 || diff > MEMORY_USAGE_PERIOD + 10) {
-        // user has changed system clock,
-        // or there has been a long system sleep
-        //
-        last_mem_time = gstate.now;
-        return;
+    if (!first) {
+        diff = gstate.now - last_mem_time;
+        if (diff < 0 || diff > MEMORY_USAGE_PERIOD + 10) {
+            // user has changed system clock,
+            // or there has been a long system sleep
+            //
+            last_mem_time = gstate.now;
+            return;
+        }
+        if (diff < MEMORY_USAGE_PERIOD) return;
     }
-    if (diff < MEMORY_USAGE_PERIOD) return;
 
     last_mem_time = gstate.now;
     PROC_MAP pm;
@@ -336,18 +351,20 @@ void ACTIVE_TASK_SET::get_memory_usage() {
         procinfo_app(pi, v, pm, atp->app_version->graphics_exec_file);
         pi.working_set_size_smoothed = .5*(pi.working_set_size_smoothed + pi.working_set_size);
 
-        int pf = pi.page_fault_count - last_page_fault_count;
-        pi.page_fault_rate = pf/diff;
-        if (log_flags.mem_usage_debug) {
-            msg_printf(atp->result->project, MSG_INFO,
-                "[mem_usage] %s: WS %.2fMB, smoothed %.2fMB, page %.2fMB, %.2f page faults/sec, user CPU %.3f, kernel CPU %.3f",
-                atp->result->name,
-                pi.working_set_size/MEGA,
-                pi.working_set_size_smoothed/MEGA,
-                pi.swap_size/MEGA,
-                pi.page_fault_rate,
-                pi.user_time, pi.kernel_time
-            );
+        if (!first) {
+            int pf = pi.page_fault_count - last_page_fault_count;
+            pi.page_fault_rate = pf/diff;
+            if (log_flags.mem_usage_debug) {
+                msg_printf(atp->result->project, MSG_INFO,
+                    "[mem_usage] %s: WS %.2fMB, smoothed %.2fMB, page %.2fMB, %.2f page faults/sec, user CPU %.3f, kernel CPU %.3f",
+                    atp->result->name,
+                    pi.working_set_size/MEGA,
+                    pi.working_set_size_smoothed/MEGA,
+                    pi.swap_size/MEGA,
+                    pi.page_fault_rate,
+                    pi.user_time, pi.kernel_time
+                );
+            }
         }
     }
 
@@ -382,9 +399,7 @@ void ACTIVE_TASK_SET::get_memory_usage() {
         );
     }
     double new_cpu_time = pi.user_time + pi.kernel_time;
-    if (first) {
-        first = false;
-    } else {
+    if (!first) {
         non_boinc_cpu_usage = (new_cpu_time - last_cpu_time)/(diff*gstate.host_info.p_ncpus);
         // processes might have exited in the last 10 sec,
         // causing this to be negative.
@@ -396,6 +411,7 @@ void ACTIVE_TASK_SET::get_memory_usage() {
         }
     }
     last_cpu_time = new_cpu_time;
+    first = false;
 }
 
 #endif
@@ -404,7 +420,7 @@ void ACTIVE_TASK_SET::get_memory_usage() {
 // Move it from slot dir to project dir
 //
 int ACTIVE_TASK::move_trickle_file() {
-    char project_dir[256], new_path[1024], old_path[1024];
+    char project_dir[MAXPATHLEN], new_path[MAXPATHLEN], old_path[MAXPATHLEN];
     int retval;
 
     get_project_dir(result->project, project_dir, sizeof(project_dir));
@@ -431,7 +447,7 @@ int ACTIVE_TASK::current_disk_usage(double& size) {
     unsigned int i;
     int retval;
     FILE_INFO* fip;
-    char path[1024];
+    char path[MAXPATHLEN];
 
     retval = dir_size(slot_dir, size);
     if (retval) return retval;
@@ -455,7 +471,7 @@ bool ACTIVE_TASK_SET::is_slot_in_use(int slot) {
 }
 
 bool ACTIVE_TASK_SET::is_slot_dir_in_use(char* dir) {
-    char path[1024];
+    char path[MAXPATHLEN];
     unsigned int i;
     for (i=0; i<active_tasks.size(); i++) {
         get_slot_dir(active_tasks[i]->slot, path, sizeof(path));
@@ -470,7 +486,7 @@ bool ACTIVE_TASK_SET::is_slot_dir_in_use(char* dir) {
 void ACTIVE_TASK::get_free_slot(RESULT* rp) {
 #ifndef SIM
     int j, retval;
-    char path[1024];
+    char path[MAXPATHLEN];
 
     for (j=0; ; j++) {
         if (gstate.active_tasks.is_slot_in_use(j)) continue;
@@ -781,39 +797,44 @@ void MSG_QUEUE::init(char* n) {
 void MSG_QUEUE::msg_queue_send(const char* msg, MSG_CHANNEL& channel) {
     if ((msgs.size()==0) && channel.send_msg(msg)) {
         if (log_flags.app_msg_send) {
-            msg_printf(NULL, MSG_INFO, "[app_msg_send] sent %s to %s", msg, name);
+            msg_printf(NULL, MSG_INFO,
+                "[app_msg_send] sent %s to %s", msg, name
+            );
         }
         last_block = 0;
         return;
     }
     if (log_flags.app_msg_send) {
-        msg_printf(NULL, MSG_INFO, "[app_msg_send] deferred %s to %s", msg, name);
+        msg_printf(NULL, MSG_INFO,
+            "[app_msg_send] deferred %s to %s", msg, name
+        );
     }
-    msgs.push_back(std::string(msg));
+    msgs.push_back(string(msg));
     if (!last_block) last_block = gstate.now;
 }
 
 void MSG_QUEUE::msg_queue_poll(MSG_CHANNEL& channel) {
-    if (msgs.size() > 0) {
+    if (msgs.empty()) return;
+    if (log_flags.app_msg_send) {
+        msg_printf(NULL, MSG_INFO,
+            "[app_msg_send] poll: %d msgs queued for %s:",
+            (int)msgs.size(), name
+        );
+    }
+    if (channel.send_msg(msgs[0].c_str())) {
         if (log_flags.app_msg_send) {
             msg_printf(NULL, MSG_INFO,
-                "[app_msg_send] poll: %d msgs queued for %s:",
-                (int)msgs.size(), name
+                "[app_msg_send] poll: delayed sent %s", msgs[0].c_str()
             );
         }
-        if (channel.send_msg(msgs[0].c_str())) {
-            if (log_flags.app_msg_send) {
-                msg_printf(NULL, MSG_INFO, "[app_msg_send] poll: delayed sent %s", (msgs[0].c_str()));
-            }
-            msgs.erase(msgs.begin());
-            last_block = 0;
-        }
-        for (unsigned int i=0; i<msgs.size(); i++) {
-            if (log_flags.app_msg_send) {
-                msg_printf(NULL, MSG_INFO,
-                    "[app_msg_send] poll: deferred: %s", (msgs[0].c_str())
-                );
-            }
+        msgs.erase(msgs.begin());
+        last_block = 0;
+    }
+    for (unsigned int i=0; i<msgs.size(); i++) {
+        if (log_flags.app_msg_send) {
+            msg_printf(NULL, MSG_INFO,
+                "[app_msg_send] poll: deferred: %s", msgs[0].c_str()
+            );
         }
     }
 }
@@ -821,23 +842,21 @@ void MSG_QUEUE::msg_queue_poll(MSG_CHANNEL& channel) {
 // if the last message in the buffer is "msg", remove it and return 1
 //
 int MSG_QUEUE::msg_queue_purge(const char* msg) {
-    int count = (int)msgs.size();
-    if (!count) return 0;
-    vector<string>::iterator iter = msgs.begin();
-    for (int i=0; i<count-1; i++) {
-        iter++;
-    }
+    if (msgs.empty()) return 0;
+    string last_msg = msgs.back();
     if (log_flags.app_msg_send) {
         msg_printf(NULL, MSG_INFO,
             "[app_msg_send] purge: wanted %s last msg is %s in %s",
-            msg, iter->c_str(), name
+            msg, last_msg.c_str(), name
         );
     }
-    if (!strcmp(msg, iter->c_str())) {
+    if (!strcmp(msg, last_msg.c_str())) {
         if (log_flags.app_msg_send) {
-            msg_printf(NULL, MSG_INFO, "[app_msg_send] purged %s from %s", msg, name);
+            msg_printf(NULL, MSG_INFO,
+                "[app_msg_send] purged %s from %s", msg, name
+            );
         }
-        iter = msgs.erase(iter);
+        msgs.pop_back();
         return 1;
     }
     return 0;
@@ -874,7 +893,7 @@ void ACTIVE_TASK_SET::report_overdue() {
 //
 int ACTIVE_TASK::handle_upload_files() {
     std::string filename;
-    char buf[256], path[1024];
+    char buf[MAXPATHLEN], path[MAXPATHLEN];
     int retval;
 
     DirScanner dirscan(slot_dir);
@@ -930,7 +949,7 @@ void ACTIVE_TASK_SET::network_available() {
 }
 
 void ACTIVE_TASK::upload_notify_app(const FILE_INFO* fip, const FILE_REF* frp) {
-    char path[256];
+    char path[MAXPATHLEN];
     sprintf(path, "%s/%s%s", slot_dir, UPLOAD_FILE_STATUS_PREFIX, frp->open_name);
     FILE* f = boinc_fopen(path, "w");
     if (!f) return;
@@ -979,6 +998,7 @@ static const char* task_state_name(int val) {
     case PROCESS_ABORTED: return "ABORTED";
     case PROCESS_COULDNT_START: return "COULDNT_START";
     case PROCESS_QUIT_PENDING: return "QUIT_PENDING";
+    case PROCESS_COPY_PENDING: return "COPY_PENDING";
     }
     return "Unknown";
 }

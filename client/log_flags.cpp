@@ -36,10 +36,13 @@
 #include "parse.h"
 #include "str_util.h"
 
-#include "file_names.h"
 #include "client_state.h"
 #include "client_msgs.h"
 #include "cs_proxy.h"
+#include "file_names.h"
+#include "project.h"
+#include "result.h"
+#include "sandbox.h"
 
 using std::string;
 
@@ -70,6 +73,7 @@ void LOG_FLAGS::show() {
 
     show_flag(buf, app_msg_receive, "app_msg_receive");
     show_flag(buf, app_msg_send, "app_msg_send");
+    show_flag(buf, async_file_debug, "async_file_debug");
     show_flag(buf, benchmark_debug, "benchmark_debug");
     show_flag(buf, checkpoint_debug, "checkpoint_debug");
     show_flag(buf, coproc_debug, "coproc_debug");
@@ -93,7 +97,6 @@ void LOG_FLAGS::show() {
     show_flag(buf, slot_debug, "slot_debug");
     show_flag(buf, state_debug, "state_debug");
     show_flag(buf, statefile_debug, "statefile_debug");
-    show_flag(buf, std_debug, "std_debug");
     show_flag(buf, task_debug, "task_debug");
     show_flag(buf, time_debug, "time_debug");
     show_flag(buf, unparsed_xml, "unparsed_xml");
@@ -105,9 +108,11 @@ void LOG_FLAGS::show() {
     }
 }
 
-static void show_gpu_ignore(vector<int>& devs, const char* name) {
+static void show_gpu_ignore(vector<int>& devs, int rt) {
     for (unsigned int i=0; i<devs.size(); i++) {
-        msg_printf(NULL, MSG_INFO, "Config: ignoring %s GPU %d", name, devs[i]);
+        msg_printf(NULL, MSG_INFO,
+            "Config: ignoring %s %d", proc_type_name(rt), devs[i]
+        );
     }
 }
 
@@ -183,14 +188,12 @@ void CONFIG::show() {
     if (use_all_gpus) {
         msg_printf(NULL, MSG_INFO, "Config: use all coprocessors");
     }
-    if (zero_debts) {
-        msg_printf(NULL, MSG_INFO, "Config: zero long-term debts on startup");
-    }
     if (fetch_minimal_work) {
         msg_printf(NULL, MSG_INFO, "Config: fetch minimal work");
     }
-    show_gpu_ignore(ignore_nvidia_dev, GPU_TYPE_NVIDIA);
-    show_gpu_ignore(ignore_ati_dev, GPU_TYPE_ATI);
+    for (int j=1; j<NPROC_TYPES; j++) {
+        show_gpu_ignore(ignore_gpu_instance[j], j);
+    }
     for (i=0; i<exclude_gpus.size(); i++) {
         show_exclude_gpu(exclude_gpus[i]);
     }
@@ -214,18 +217,31 @@ void CONFIG::show() {
     FILE* f = fopen(REMOTEHOST_FILE_NAME, "r");
     if (f) {
         msg_printf(NULL, MSG_INFO,
-            "Config: GUI RPC allowed from:"
+            "Config: GUI RPCs allowed from:"
         );
         char buf[256];
         while (fgets(buf, 256, f)) {
             strip_whitespace(buf);
             if (!(buf[0] =='#' || buf[0] == ';') && strlen(buf) > 0 ) {
                 msg_printf(NULL, MSG_INFO,
-                    "Config:   %s", buf
+                    "    %s", buf
                 );
             }
         }
         fclose(f);
+    }
+    if (vbox_window) {
+        msg_printf(NULL, MSG_INFO,
+            "Config: open console window for VirtualBox applications"
+        );
+        if (g_use_sandbox) {
+            msg_printf(NULL, MSG_INFO,
+                "    NOTE: the client is running in protected mode,"
+            );
+            msg_printf(NULL, MSG_INFO,
+                "    so VirtualBox console windows cannot be opened."
+            );
+        }
     }
 }
 
@@ -233,7 +249,7 @@ void CONFIG::show() {
 // KEEP IN SYNCH WITH CONFIG::parse_options()!!
 
 int CONFIG::parse_options_client(XML_PARSER& xp) {
-    char path[256];
+    char path[MAXPATHLEN];
     string s;
     int n, retval;
 
@@ -245,8 +261,9 @@ int CONFIG::parse_options_client(XML_PARSER& xp) {
     alt_platforms.clear();
     exclusive_apps.clear();
     exclusive_gpu_apps.clear();
-    ignore_nvidia_dev.clear();
-    ignore_ati_dev.clear();
+    for (int i=1; i<NPROC_TYPES; i++) {
+        ignore_gpu_instance[i].clear();
+    }
 
     while (!xp.get_tag()) {
         if (!xp.is_tag) {
@@ -343,11 +360,15 @@ int CONFIG::parse_options_client(XML_PARSER& xp) {
         if (xp.parse_int("http_transfer_timeout", http_transfer_timeout)) continue;
         if (xp.parse_int("http_transfer_timeout_bps", http_transfer_timeout_bps)) continue;
         if (xp.parse_int("ignore_cuda_dev", n)||xp.parse_int("ignore_nvidia_dev", n)) {
-            ignore_nvidia_dev.push_back(n);
+            ignore_gpu_instance[PROC_TYPE_NVIDIA_GPU].push_back(n);
             continue;
         }
         if (xp.parse_int("ignore_ati_dev", n)) {
-            ignore_ati_dev.push_back(n);
+            ignore_gpu_instance[PROC_TYPE_AMD_GPU].push_back(n);
+            continue;
+        }
+        if (xp.parse_int("ignore_intel_dev", n)) {
+            ignore_gpu_instance[PROC_TYPE_INTEL_GPU].push_back(n);
             continue;
         }
         if (xp.parse_int("max_file_xfers", max_file_xfers)) continue;
@@ -367,7 +388,7 @@ int CONFIG::parse_options_client(XML_PARSER& xp) {
         if (xp.parse_bool("os_random_only", os_random_only)) continue;
 #ifndef SIM
         if (xp.match_tag("proxy_info")) {
-            retval = config_proxy_info.parse_config(xp);
+            retval = proxy_info.parse_config(xp);
             if (retval) {
                 msg_printf_notice(NULL, false, NULL,
                     "Can't parse <proxy_info> element in cc_config.xml"
@@ -393,7 +414,7 @@ int CONFIG::parse_options_client(XML_PARSER& xp) {
         if (xp.parse_bool("use_all_gpus", use_all_gpus)) continue;
         if (xp.parse_bool("use_certs", use_certs)) continue;
         if (xp.parse_bool("use_certs_only", use_certs_only)) continue;
-        if (xp.parse_bool("zero_debts", zero_debts)) continue;
+        if (xp.parse_bool("vbox_window", vbox_window)) continue;
 
         msg_printf_notice(NULL, false,
             "http://boinc.berkeley.edu/manager_links.php?target=notice&controlid=config",
@@ -471,6 +492,9 @@ int CONFIG::parse(FILE* f) {
     return parse(xp, log_flags);
 }
 
+// read config file, e.g. cc_config.xml
+// Called on startup and in response to GUI RPC requesting reread
+//
 int read_config_file(bool init, const char* fname) {
     if (!init) {
         msg_printf(NULL, MSG_INFO, "Re-reading %s", fname);
@@ -489,9 +513,10 @@ int read_config_file(bool init, const char* fname) {
         config.max_stdout_file_size, config.max_stderr_file_size
     );
 #endif
+    config_proxy_info = config.proxy_info;
+
     if (init) {
         coprocs = config.config_coprocs;
-        config_proxy_info = config.proxy_info;
         if (strlen(config.data_dir)) {
 #ifdef _WIN32
             _chdir(config.data_dir);
@@ -499,6 +524,8 @@ int read_config_file(bool init, const char* fname) {
             chdir(config.data_dir);
 #endif
         }
+    } else {
+        select_proxy_info();        // in case added or removed proxy info
     }
     return 0;
 }
@@ -518,6 +545,7 @@ void process_gpu_exclusions() {
         for (int k=1; k<coprocs.n_rsc; k++) {
             int n=0;
             COPROC& cp = coprocs.coprocs[k];
+            p->rsc_pwf[k].non_excluded_instances = (1<<cp.count)-1;  // all 1's
             for (j=0; j<config.exclude_gpus.size(); j++) {
                 EXCLUDE_GPU& eg = config.exclude_gpus[j];
                 if (strcmp(eg.url.c_str(), p->master_url)) continue;
@@ -526,14 +554,16 @@ void process_gpu_exclusions() {
                 if (eg.device_num >= 0) {
                     // exclusion may refer to nonexistent GPU
                     //
-                    if (cp.device_num_exists(eg.device_num)) {
+                    int ind = cp.device_num_index(eg.device_num);
+                    if (ind >= 0) {
                         n++;
+                        p->rsc_pwf[k].non_excluded_instances &= ~(1<<ind);
                     }
                 } else {
                     n = cp.count;
                 }
             }
-            p->ncoprocs_excluded[k] = n;
+            p->rsc_pwf[k].ncoprocs_excluded = n;
         }
     }
 
@@ -566,6 +596,7 @@ void process_gpu_exclusions() {
 }
 
 bool gpu_excluded(APP* app, COPROC& cp, int ind) {
+    if (config.no_gpus) return true;
     PROJECT* p = app->project;
     for (unsigned int i=0; i<config.exclude_gpus.size(); i++) {
         EXCLUDE_GPU& eg = config.exclude_gpus[i];

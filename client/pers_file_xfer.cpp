@@ -32,11 +32,12 @@
 #include "str_util.h"
 #include "filesys.h"
 
-#include "log_flags.h"
-#include "file_names.h"
 #include "client_state.h"
 #include "client_types.h"
 #include "client_msgs.h"
+#include "file_names.h"
+#include "log_flags.h"
+#include "project.h"
 
 using std::vector;
 
@@ -90,19 +91,14 @@ int PERS_FILE_XFER::create_xfer() {
     FILE_XFER *file_xfer;
     int retval;
 
-    // Decide whether to start a new file transfer
-    //
-    if (!gstate.start_new_file_xfer(*this)) {
-        return ERR_IDLE_PERIOD;
-    }
-
     // if download, see if file already exists and is valid
     //
     if (!is_upload) {
         char pathname[256];
         get_pathname(fip, pathname, sizeof(pathname));
 
-        if (!fip->verify_file(true, false)) {
+        retval = fip->verify_file(true, false, true);
+        if (!retval) {
             retval = fip->set_permissions();
             fip->status = FILE_PRESENT;
             pers_xfer_done = true;
@@ -115,12 +111,21 @@ int PERS_FILE_XFER::create_xfer() {
             }
 
             return 0;
+        } else if (retval == ERR_IN_PROGRESS) {
+            pers_xfer_done = true;
+            return ERR_IN_PROGRESS;
         } else {
             // Mark file as not present but don't delete it.
-            // It might partly downloaded.
+            // It might be partly downloaded.
             //
             fip->status = FILE_NOT_PRESENT;
         }
+    }
+
+    // Decide whether to start a new file transfer
+    //
+    if (!gstate.start_new_file_xfer(*this)) {
+        return ERR_IDLE_PERIOD;
     }
 
     URL_LIST& ul = fip->get_url_list(is_upload);
@@ -141,7 +146,7 @@ int PERS_FILE_XFER::create_xfer() {
         }
 
         fxp->file_xfer_retval = retval;
-        if (retval == ERR_FILE_NOT_FOUND) {
+        if (retval == ERR_HTTP_PERMANENT) {
             permanent_failure(retval);
         } else {
             transient_failure(retval);
@@ -162,6 +167,9 @@ int PERS_FILE_XFER::create_xfer() {
             ul.get_current_url(*fip)
         );
     }
+    if (is_upload) {
+        fip->project->last_upload_start = gstate.now;
+    }
     return 0;
 }
 
@@ -170,10 +178,9 @@ int PERS_FILE_XFER::create_xfer() {
 // If it has finished or failed:
 //      handle the success or failure
 //      remove the FILE_XFER from gstate.file_xfers and delete it
+// Return true if it finished
 //
 bool PERS_FILE_XFER::poll() {
-    int retval;
-
     if (pers_xfer_done) {
         return false;
     }
@@ -199,8 +206,8 @@ bool PERS_FILE_XFER::poll() {
             return false;
         }
         last_time = gstate.now;
-        retval = create_xfer();
-        return (retval == 0);
+        create_xfer();
+        return false;
     }
 
     // copy bytes_xferred for use in GUI
@@ -250,8 +257,7 @@ bool PERS_FILE_XFER::poll() {
             permanent_failure(fxp->file_xfer_retval);
             break;
         case ERR_NOT_FOUND:
-        case ERR_FILE_NOT_FOUND:
-        case HTTP_STATUS_NOT_FOUND:     // won't happen - converted in http_curl.C
+        case ERR_HTTP_PERMANENT:
             if (is_upload) {
                 // if we get a "not found" on an upload,
                 // the project must not have a file_upload_handler.

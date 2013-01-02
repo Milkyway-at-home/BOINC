@@ -17,6 +17,7 @@ define("PROFILE_PATH", "../user_profile/");
 define("PROFILE_URL", "user_profile/");
 define("LANGUAGE_FILE", "languages.txt");
 define("STYLESHEET", "white.css");
+//define("STYLESHEET2", "xxx.css");
 define("FORUM_QA_MERGED_MODE", false); // Set to true to merge Message boards and Q&A section
 define("COPYRIGHT_HOLDER", "REPLACE WITH COPYRIGHT HOLDER");
 define("SYS_ADMIN_EMAIL", "admin@$master_url");
@@ -45,7 +46,7 @@ function project_footer($show_return, $show_date, $prefix) {
     if ($show_return) {
         echo "<a href=".$prefix."index.php>".tra("Main page")."</a> &middot; <a href=".$prefix."home.php>".tra("Your account")."</a> &middot; <a href=".$prefix."forum_index.php>".tra("Message boards")."</a><br>\n";
     }
-    echo "<br><br>".tra("Copyright")." &copy; ".date("Y ").COPYRIGHT_HOLDER."</center>\n";
+    echo "<br><br>".tra("Copyright")." &copy; ".gmdate("Y ").COPYRIGHT_HOLDER."</center>\n";
     if ($show_date) {
         $t = time_str(time());
         echo "<span class=\"note\">".tra("Generated")." $t</span>\n";

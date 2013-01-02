@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-# $Id$
+# $Id: grep_logs 4120 2004-08-27 22:31:02Z boincadm $
 # greplogs - grep logs for a string.
 
 use strict;

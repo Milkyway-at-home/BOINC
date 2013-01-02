@@ -31,27 +31,28 @@
 #include <sys/stat.h>
 #include <cerrno>
 #include <unistd.h>
+#include <fcntl.h>
 #if HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
 #endif
 #endif
 
+#include "base64.h"
 #include "error_numbers.h"
 #include "filesys.h"
-#include "client_msgs.h"
-#include "log_flags.h"
 #include "str_util.h"
 #include "str_replace.h"
 #include "url.h"
 #include "util.h"
 
-#include "network.h"
-#include "file_names.h"
 #include "client_msgs.h"
-#include "base64.h"
 #include "client_state.h"
 #include "cs_proxy.h"
+#include "file_names.h"
+#include "log_flags.h"
+#include "network.h"
 #include "net_stats.h"
+#include "project.h"
 
 #include "http_curl.h"
 
@@ -273,7 +274,8 @@ HTTP_OP::~HTTP_OP() {
 // output goes to the given file, starting at given offset
 //
 int HTTP_OP::init_get(
-    PROJECT* p, const char* url, const char* out, bool del_old_file, double off
+    PROJECT* p, const char* url, const char* out, bool del_old_file,
+    double off, double size
 ) {
     if (del_old_file) {
         unlink(out);
@@ -291,7 +293,7 @@ int HTTP_OP::init_get(
     if (log_flags.http_debug) {
         msg_printf(project, MSG_INFO, "[http] HTTP_OP::init_get(): %s", url);
     }
-    return HTTP_OP::libcurl_exec(url, NULL, out, off, false);
+    return HTTP_OP::libcurl_exec(url, NULL, out, off, size, false);
 }
 
 // Initialize HTTP POST operation where
@@ -319,7 +321,7 @@ int HTTP_OP::init_post(
     if (log_flags.http_debug) {
         msg_printf(project, MSG_INFO, "[http] HTTP_OP::init_post(): %s", url);
     }
-    return HTTP_OP::libcurl_exec(url, in, out, 0.0, true);
+    return HTTP_OP::libcurl_exec(url, in, out, 0, 0, true);
 }
 
 // Initialize an HTTP POST operation,
@@ -351,7 +353,7 @@ int HTTP_OP::init_post2(
     content_length += (int)strlen(req1);
     http_op_type = HTTP_OP_POST2;
     http_op_state = HTTP_STATE_CONNECTING;
-    return HTTP_OP::libcurl_exec(url, in, NULL, offset, true);
+    return HTTP_OP::libcurl_exec(url, in, NULL, offset, 0, true);
 }
 
 // is URL in proxy exception list?
@@ -387,10 +389,24 @@ bool HTTP_OP::no_proxy_for_url(const char* url) {
     return false;
 }
 
+#ifndef _WIN32
+static int set_cloexec(void*, curl_socket_t fd, curlsocktype purpose) {
+    if (purpose != CURLSOCKTYPE_IPCXN) return 0;
+    fcntl(fd, F_SETFD, FD_CLOEXEC);
+    return 0;
+}
+#endif
+
 // the following will do an HTTP GET or POST using libcurl
 //
 int HTTP_OP::libcurl_exec(
-    const char* url, const char* in, const char* out, double offset, bool bPost
+    const char* url, const char* in, const char* out, double offset,
+#ifdef _WIN32
+    double size,
+#else
+    double,
+#endif
+    bool is_post
 ) {
     CURLMcode curlMErr;
     char strTmp[128];
@@ -419,7 +435,7 @@ int HTTP_OP::libcurl_exec(
         if (log_flags.http_debug) {
             msg_printf(project, MSG_INFO, "Couldn't create curlEasy handle");
         }
-        return ERR_HTTP_ERROR; // returns 0 (CURLM_OK) on successful handle creation
+        return ERR_HTTP_TRANSIENT; // returns 0 (CURLM_OK) on successful handle creation
     }
 
     // the following seems to be a no-op
@@ -520,10 +536,17 @@ int HTTP_OP::libcurl_exec(
     // bypass any signal handlers that curl may want to install
     //
     curl_easy_setopt(curlEasy, CURLOPT_NOSIGNAL, 1L);
+
     // bypass progress meter
     //
     curl_easy_setopt(curlEasy, CURLOPT_NOPROGRESS, 1L);
 
+#ifndef _WIN32
+    // arrange for a function to get called between socket() and connect()
+    // so that we can mark the socket as close-on-exec
+    //
+    curl_easy_setopt(curlEasy, CURLOPT_SOCKOPTFUNCTION, set_cloexec);
+#endif
     // setup timeouts
     //
     curl_easy_setopt(curlEasy, CURLOPT_TIMEOUT, 0L);
@@ -547,10 +570,16 @@ int HTTP_OP::libcurl_exec(
     // use gzip at the application level.
     // So, detect this and don't accept any encoding in that case
     //
-    if (!out || !ends_with(std::string(out), std::string(".gz"))) {
-        // Per: http://curl.haxx.se/dev/readme-encoding.html
-        // NULL disables, empty string accepts all.
-        curl_easy_setopt(curlEasy, CURLOPT_ENCODING, NULL);
+    // Per: http://curl.haxx.se/dev/readme-encoding.html
+    // NULL disables, empty string accepts all.
+    if (out) {
+        if (ends_with(out, ".gzt")) {
+            curl_easy_setopt(curlEasy, CURLOPT_ENCODING, NULL);
+        } else if (!ends_with(out, ".gz")) {
+            curl_easy_setopt(curlEasy, CURLOPT_ENCODING, "");
+        }
+    } else {
+        curl_easy_setopt(curlEasy, CURLOPT_ENCODING, "");
     }
 
     // setup any proxy they may need
@@ -564,7 +593,7 @@ int HTTP_OP::libcurl_exec(
 
     // set the file offset for resumable downloads
     //
-    if (!bPost && offset>0.0f) {
+    if (!is_post && offset>0.0f) {
         file_offset = offset;
         sprintf(strTmp, "Range: bytes=%.0f-", offset);
         pcurlList = curl_slist_append(pcurlList, strTmp);
@@ -573,9 +602,16 @@ int HTTP_OP::libcurl_exec(
     // set up an output file for the reply
     //
     if (strlen(outfile)) {
-        if (file_offset>0.0) {
+        if (file_offset > 0) {
             fileOut = boinc_fopen(outfile, "ab+");
         } else {
+#ifdef _WIN32
+            // on Win, pre-allocate big files to avoid fragmentation
+            //
+            if (size > 1e6) {
+                boinc_allocate_file(outfile, size);
+            }
+#endif
             fileOut = boinc_fopen(outfile, "wb+");
         }
         if (!fileOut) {
@@ -596,7 +632,7 @@ int HTTP_OP::libcurl_exec(
         curl_easy_setopt(curlEasy, CURLOPT_WRITEDATA, this);
     }
 
-    if (bPost) {
+    if (is_post) {
         want_upload = true;
         want_download = false;
         if (infile && strlen(infile)>0) {
@@ -708,7 +744,7 @@ int HTTP_OP::libcurl_exec(
         msg_printf(0, MSG_INTERNAL_ERROR,
             "Couldn't add curlEasy handle to curlMulti"
         );
-        return ERR_HTTP_ERROR;
+        return ERR_HTTP_TRANSIENT;
         // returns 0 (CURLM_OK) on successful handle creation
     }
 
@@ -959,26 +995,20 @@ void HTTP_OP::handle_messages(CURLMsg *pcurlMsg) {
     CurlResult = pcurlMsg->data.result;
 
     if (CurlResult == CURLE_OK) {
-        if ((response/100)*100 == HTTP_STATUS_OK) {
+        switch ((response/100)*100) {
+        case HTTP_STATUS_OK:
             http_op_retval = 0;
-        } else if ((response/100)*100 == HTTP_STATUS_CONTINUE) {
+            break;
+        case HTTP_STATUS_CONTINUE:
             return;
-        } else {
-            // Got a response from server but its not OK or CONTINUE,
-            // so save response with error message to display later.
-            //
-            if (response >= 400) {
-                strcpy(error_msg, boincerror(response));
-            } else {
-                sprintf(error_msg, "HTTP error %ld", response);
-            }
-            switch (response) {
-            case HTTP_STATUS_NOT_FOUND:
-                http_op_retval = ERR_FILE_NOT_FOUND;
-                break;
-            default:
-                http_op_retval = ERR_HTTP_ERROR;
-            }
+        case HTTP_STATUS_INTERNAL_SERVER_ERROR:
+            http_op_retval = ERR_HTTP_TRANSIENT;
+            strcpy(error_msg, boincerror(response));
+            break;
+        default:
+            http_op_retval = ERR_HTTP_PERMANENT;
+            strcpy(error_msg, boincerror(response));
+            break;
         }
         net_status.http_op_succeeded();
     } else {
@@ -992,7 +1022,7 @@ void HTTP_OP::handle_messages(CURLMsg *pcurlMsg) {
             http_op_retval = ERR_CONNECT;
             break;
         default:
-            http_op_retval = ERR_HTTP_ERROR;
+            http_op_retval = ERR_HTTP_TRANSIENT;
         }
 
         // trigger a check for whether we're connected,

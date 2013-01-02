@@ -5,6 +5,7 @@
 #include "diagnostics_win.h"
 #include "str_util.h"
 #include "str_replace.h"
+
 #include "procinfo.h"
 
 using std::vector;
@@ -30,7 +31,7 @@ static int get_process_information(PVOID* ppBuffer, PULONG pcbBuffer) {
         cbBuffer = *pcbBuffer;
 
         *ppBuffer = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, *pcbBuffer);
-        if (ppBuffer == NULL) {
+        if (*ppBuffer == NULL) {
             return ERR_MALLOC;
         }
 

@@ -96,8 +96,9 @@ public:
     int insert_batch(std::string&);
     int update();
     int update_field(const char*, const char* where_clause=NULL);
-    int update_fields_noid(char* set_clause, char* where_clause);
+    int update_fields_noid(const char* set_clause, const char* where_clause);
     int delete_from_db();
+    int delete_from_db_multi(const char* where_clause);
     int get_field_ints(const char*, int, int*);
     int get_field_str(const char*, char*, int);
     int lookup_id(int id);

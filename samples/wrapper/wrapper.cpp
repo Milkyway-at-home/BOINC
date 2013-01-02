@@ -28,6 +28,9 @@
 // See http://boinc.berkeley.edu/trac/wiki/WrapperApp for details
 // Contributor: Andrew J. Younge (ajy4490@umiacs.umd.edu)
 
+#ifndef _WIN32
+#include "config.h"
+#endif
 #include <stdio.h>
 #include <vector>
 #include <string>
@@ -35,13 +38,22 @@
 #include "boinc_win.h"
 #include "win_util.h"
 #else
+#ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
 #include <unistd.h>
 #endif
 
 #include "boinc_api.h"
+#include "boinc_zip.h"
 #include "diagnostics.h"
 #include "error_numbers.h"
 #include "filesys.h"
@@ -51,6 +63,14 @@
 #include "str_util.h"
 #include "str_replace.h"
 #include "util.h"
+
+#include "regexp.h"
+
+inline void debug_msg(const char* x) {
+#if 0
+    fprintf(stderr, "%s\n", x);
+#endif
+}
 
 #define JOB_FILENAME "job.xml"
 #define CHECKPOINT_FILENAME "wrapper_checkpoint.txt"
@@ -85,12 +105,13 @@ struct TASK {
     bool multi_process;
 
     // dynamic stuff follows
+    double current_cpu_time;
+        // most recently measure CPU time of this task
     double final_cpu_time;
+        // final CPU time of this task
     double starting_cpu;
-        // how much CPU time was used by tasks before this in the job file
+        // how much CPU time was used by tasks before this one
     bool suspended;
-    double wall_cpu_time;
-        // for estimating CPU time on Win98/ME and Mac
 #ifdef _WIN32
     HANDLE pid_handle;
     DWORD pid;
@@ -126,10 +147,19 @@ struct TASK {
         if (fraction_done_filename.size() == 0) return 0;
         FILE* f = fopen(fraction_done_filename.c_str(), "r");
         if (!f) return 0;
-        double frac;
-        int n = fscanf(f, "%lf", &frac);
+
+        // read the last line of the file
+        //
+        fseek(f, -32, SEEK_END);
+        double temp, frac = 0;
+        while (!feof(f)) {
+            char buf[256];
+            char* p = fgets(buf, 256, f);
+            if (p == NULL) break;
+            int n = sscanf(buf, "%lf", &temp);
+            if (n == 1) frac = temp;
+        }
         fclose(f);
-        if (n != 1) return 0;
         if (frac < 0) return 0;
         if (frac > 1) return 1;
         return frac;
@@ -175,6 +205,9 @@ struct TASK {
 
 vector<TASK> tasks;
 vector<TASK> daemons;
+vector<string> unzip_filenames;
+string zip_filename;
+vector<regexp*> zip_patterns;
 APP_INIT_DATA aid;
 
 // replace s1 with s2
@@ -202,10 +235,112 @@ void macro_substitute(char* buf) {
     str_replace_all(buf, "$NTHREADS", nt);
 }
 
+// make a list of files in the slot directory,
+// and write to "initial_file_list"
+//
+void get_initial_file_list() {
+    char fname[256];
+    vector<string> initial_files;
+    DIRREF d = dir_open(".");
+    while (!dir_scan(fname, d, sizeof(fname))) {
+        initial_files.push_back(fname);
+    }
+    dir_close(d);
+    FILE* f = fopen("initial_file_list_temp", "w");
+    for (unsigned int i=0; i<initial_files.size(); i++) {
+        fprintf(f, "%s\n", initial_files[i].c_str());
+    }
+    fclose(f);
+    int retval = boinc_rename("initial_file_list_temp", "initial_file_list");
+    if (retval) {
+        fprintf(stderr, "boinc_rename() error: %d\n", retval);
+        exit(1);
+    }
+}
+
+void read_initial_file_list(vector<string>& files) {
+    char buf[256];
+    FILE* f = fopen("initial_file_list", "r");
+    if (!f) return;
+    while (fgets(buf, sizeof(buf), f)) {
+        strip_whitespace(buf);
+        files.push_back(string(buf));
+    }
+    fclose(f);
+}
+
+// if any zipped input files are present, unzip and remove them
+//
+void do_unzip_inputs() {
+    for (unsigned int i=0; i<unzip_filenames.size(); i++) {
+        string zipfilename = unzip_filenames[i];
+        if (boinc_file_exists(zipfilename.c_str())) {
+            int retval = boinc_zip(UNZIP_IT, zipfilename, NULL);
+            if (retval) {
+                fprintf(stderr, "boinc_unzip() error: %d\n", retval);
+                exit(1);
+            }
+            retval = boinc_delete_file(zipfilename.c_str());
+            if (retval) {
+                fprintf(stderr, "boinc_delete_file() error: %d\n", retval);
+            }
+        }
+    }
+}
+
+bool in_vector(string s, vector<string>& v) {
+    for (unsigned int i=0; i<v.size(); i++) {
+        if (s == v[i]) return true;
+    }
+    return false;
+}
+
+// get the list of output files to zip
+//
+void get_zip_inputs(ZipFileList &files) {
+    vector<string> initial_files;
+    char fname[256];
+
+    read_initial_file_list(initial_files);
+    DIRREF d = dir_open(".");
+    while (!dir_scan(fname, d, sizeof(fname))) {
+        string filename = string(fname);
+        if (in_vector(filename, initial_files)) continue;
+        for (unsigned int i=0; i<zip_patterns.size(); i++) {
+            regmatch match;
+            if (re_exec_w(zip_patterns[i], fname, 1, &match) == 1) {
+                files.push_back(filename);
+                break;
+            }
+        }
+    }
+}
+
+// if the zipped output file is not present,
+// create the zip in a temp file, then rename it
+//
+void do_zip_outputs() {
+    if (zip_filename.empty()) return;
+    if (boinc_file_exists(zip_filename.c_str())) return;
+    ZipFileList infiles;
+    get_zip_inputs(infiles);
+    int retval = boinc_zip(ZIP_IT, string("temp.zip"), &infiles);
+    if (retval) {
+        fprintf(stderr, "boinc_zip() failed: %d\n", retval);
+        exit(1);
+    }
+    retval = boinc_rename("temp.zip", zip_filename.c_str());
+    if (retval) {
+        fprintf(stderr, "failed to rename temp.zip: %d\n", retval);
+        exit(1);
+    }
+}
+
 int TASK::parse(XML_PARSER& xp) {
     char buf[8192];
 
     weight = 1;
+    current_cpu_time = 0;
     final_cpu_time = 0;
     stat_first = true;
     pid = 0;
@@ -252,6 +387,51 @@ int TASK::parse(XML_PARSER& xp) {
     return ERR_XML_PARSE;
 }
 
+int parse_unzip_input(XML_PARSER& xp) {
+    char buf2[256];
+    string s;
+    while (!xp.get_tag()) {
+        if (xp.match_tag("/unzip_input")) {
+            return 0;
+        }
+        if (xp.parse_string("zipfilename", s)) {
+            unzip_filenames.push_back(s);
+        }
+        fprintf(stderr,
+            "%s unexpected tag in job.xml: %s\n",
+            boinc_msg_prefix(buf2, sizeof(buf2)), xp.parsed_tag
+        );
+    }
+    return ERR_XML_PARSE;
+}
+
+int parse_zip_output(XML_PARSER& xp) {
+    char buf[256];
+    while (!xp.get_tag()) {
+        if (xp.match_tag("/zip_output")) {
+            return 0;
+        }
+        if (xp.parse_string("zipfilename", zip_filename)) {
+            continue;
+        }
+        if (xp.parse_str("filename", buf, sizeof(buf))) {
+            regexp* rp;
+            int retval = re_comp_w(&rp, buf);
+            if (retval) {
+                fprintf(stderr, "re_comp_w() failed: %d\n", retval);
+                exit(1);
+            }
+            zip_patterns.push_back(rp);
+            continue;
+        }
+        fprintf(stderr,
+            "%s unexpected tag in job.xml: %s\n",
+            boinc_msg_prefix(buf, sizeof(buf)), xp.parsed_tag
+        );
+    }
+    return ERR_XML_PARSE;
+}
+
 int parse_job_file() {
     MIOFILE mf;
     char buf[256], buf2[256];
@@ -292,12 +472,19 @@ int parse_job_file() {
                 }
             }
             continue;
-        } else {
-            fprintf(stderr,
-                "%s unexpected tag in job.xml: %s\n",
-                boinc_msg_prefix(buf2, sizeof(buf2)), xp.parsed_tag
-            );
         }
+        if (xp.match_tag("unzip_input")) {
+            parse_unzip_input(xp);
+            continue;
+        }
+        if (xp.match_tag("zip_output")) {
+            parse_zip_output(xp);
+            continue;
+        }
+        fprintf(stderr,
+            "%s unexpected tag in job.xml: %s\n",
+            boinc_msg_prefix(buf2, sizeof(buf2)), xp.parsed_tag
+        );
     }
     fclose(f);
     return ERR_XML_PARSE;
@@ -346,7 +533,7 @@ HANDLE win_fopen(const char* path, const char* mode) {
         return CreateFile(
             path,
             GENERIC_WRITE,
-            FILE_SHARE_WRITE,
+            FILE_SHARE_READ|FILE_SHARE_WRITE,
             &sa,
             OPEN_ALWAYS,
             0, 0
@@ -355,7 +542,7 @@ HANDLE win_fopen(const char* path, const char* mode) {
         HANDLE hAppend = CreateFile(
             path,
             GENERIC_WRITE,
-            FILE_SHARE_WRITE,
+            FILE_SHARE_READ|FILE_SHARE_WRITE,
             &sa,
             OPEN_ALWAYS,
             0, 0
@@ -391,6 +578,11 @@ int TASK::run(int argct, char** argvt) {
         sprintf(app_path, "%s%s", aid.project_dir, p);
     } else {
         boinc_resolve_filename(buf, app_path, sizeof(app_path));
+    }
+
+    if (!boinc_file_exists(app_path)) {
+        fprintf(stderr, "application %s missing\n", app_path);
+        exit(1);
     }
 
     // Optionally append wrapper's command-line arguments
@@ -559,19 +751,20 @@ int TASK::run(int argct, char** argvt) {
         exit(ERR_EXEC);
     }  // pid = 0 i.e. child proc of the fork
 #endif
-    wall_cpu_time = 0;
     suspended = false;
     return 0;
 }
 
 bool TASK::poll(int& status) {
-    if (!suspended) wall_cpu_time += POLL_PERIOD;
 #ifdef _WIN32
     unsigned long exit_code;
     if (GetExitCodeProcess(pid_handle, &exit_code)) {
         if (exit_code != STILL_ACTIVE) {
             status = exit_code;
             final_cpu_time = cpu_time();
+            if (final_cpu_time < current_cpu_time) {
+                final_cpu_time = current_cpu_time;
+            }
             return true;
         }
     }
@@ -581,7 +774,11 @@ bool TASK::poll(int& status) {
 
     wpid = wait4(pid, &status, WNOHANG, &ru);
     if (wpid) {
+        getrusage(RUSAGE_CHILDREN, &ru);
         final_cpu_time = (float)ru.ru_utime.tv_sec + ((float)ru.ru_utime.tv_usec)/1e+6;
+        if (final_cpu_time < current_cpu_time) {
+            final_cpu_time = current_cpu_time;
+        }
         return true;
     }
 #endif
@@ -601,7 +798,7 @@ void TASK::kill() {
 
 void TASK::stop() {
     if (multi_process) {
-        suspend_or_resume_descendants(0, false);
+        suspend_or_resume_descendants(false);
     } else {
         suspend_or_resume_process(pid, false);
     }
@@ -610,38 +807,49 @@ void TASK::stop() {
 
 void TASK::resume() {
     if (multi_process) {
-        suspend_or_resume_descendants(0, true);
+        suspend_or_resume_descendants(true);
     } else {
         suspend_or_resume_process(pid, true);
     }
     suspended = false;
 }
 
+// Get the CPU time of the app while it's running.
+// This totals the CPU time of all the descendant processes,
+// so it shouldn't be called too frequently.
+//
 double TASK::cpu_time() {
-    return process_tree_cpu_time(pid);
+    current_cpu_time = process_tree_cpu_time(pid);
+    return current_cpu_time;
 }
 
 void poll_boinc_messages(TASK& task) {
     BOINC_STATUS status;
     boinc_get_status(&status);
+    //fprintf(stderr, "wrapper: polling\n");
     if (status.no_heartbeat) {
+        debug_msg("wrapper: kill");
         task.kill();
         exit(0);
     }
     if (status.quit_request) {
+        debug_msg("wrapper: quit");
         task.kill();
         exit(0);
     }
     if (status.abort_request) {
+        debug_msg("wrapper: abort");
         task.kill();
         exit(0);
     }
     if (status.suspended) {
         if (!task.suspended) {
+            debug_msg("wrapper: suspend");
             task.stop();
         }
     } else {
         if (task.suspended) {
+            debug_msg("wrapper: resume");
             task.resume();
         }
     }
@@ -660,19 +868,20 @@ void write_checkpoint(int ntasks_completed, double cpu) {
     boinc_checkpoint_completed();
 }
 
-void read_checkpoint(int& ntasks_completed, double& cpu) {
+int read_checkpoint(int& ntasks_completed, double& cpu) {
     int nt;
     double c;
 
     ntasks_completed = 0;
     cpu = 0;
     FILE* f = fopen(CHECKPOINT_FILENAME, "r");
-    if (!f) return;
+    if (!f) return ERR_FOPEN;
     int n = fscanf(f, "%d %lf", &nt, &c);
     fclose(f);
-    if (n != 2) return;
+    if (n != 2) return 0;
     ntasks_completed = nt;
     cpu = c;
+    return 0;
 }
 
 int main(int argc, char** argv) {
@@ -681,7 +890,11 @@ int main(int argc, char** argv) {
     unsigned int i;
     double total_weight=0, weight_completed=0;
     double checkpoint_cpu_time;
-        // overall CPU time at last checkpoint
+        // total CPU time at last checkpoint
+
+#ifdef _WIN32
+    SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
+#endif
 
     for (int j=1; j<argc; j++) {
         if (!strcmp(argv[j], "--nthreads")) {
@@ -705,7 +918,18 @@ int main(int argc, char** argv) {
         boinc_finish(retval);
     }
 
-    read_checkpoint(ntasks_completed, checkpoint_cpu_time);
+    do_unzip_inputs();
+
+    retval = read_checkpoint(ntasks_completed, checkpoint_cpu_time);
+    if (retval && !zip_filename.empty()) {
+        // this is the first time we've run.
+        // If we're going to zip output files,
+        // make a list of files present at this point
+        // so we can exclude them.
+        //
+        write_checkpoint(0, 0);
+        get_initial_file_list();
+    }
     if (ntasks_completed > (int)tasks.size()) {
         fprintf(stderr,
             "Checkpoint file: ntasks_completed too large: %d > %d\n",
@@ -785,6 +1009,7 @@ int main(int argc, char** argv) {
         weight_completed += task.weight;
     }
     kill_daemons();
+    do_zip_outputs();
     boinc_finish(0);
 }
 

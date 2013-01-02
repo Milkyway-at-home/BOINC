@@ -33,15 +33,17 @@
 #include "shmem.h"
 #endif
 
-#include "filesys.h"
 #include "error_numbers.h"
+#include "filesys.h"
 #include "str_util.h"
 #include "str_replace.h"
 #include "url.h"
 #include "util.h"
+
 #include "client_msgs.h"
-#include "sandbox.h"
 #include "client_state.h"
+#include "project.h"
+#include "sandbox.h"
 
 #include "file_names.h"
 
@@ -228,7 +230,7 @@ int make_slot_dir(int slot) {
 // delete unused stuff in the slots/ directory
 //
 void delete_old_slot_dirs() {
-    char filename[1024], path[1024];
+    char filename[1024], path[MAXPATHLEN];
     DIRREF dirp;
     int retval;
 
@@ -241,7 +243,7 @@ void delete_old_slot_dirs() {
         snprintf(path, sizeof(path), "%s/%s", SLOTS_DIR, filename);
         if (is_dir(path)) {
 #ifndef _WIN32
-            char init_data_path[1024];
+            char init_data_path[MAXPATHLEN];
             SHMEM_SEG_NAME shmem_seg_name;
 
             // If BOINC crashes or exits suddenly (e.g., due to

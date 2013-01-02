@@ -19,6 +19,7 @@
 #define _COMMON_DEFS_
 
 #include "miofile.h"
+#include "parse.h"
 
 // #defines or enums that are shared by more than one BOINC component
 // (e.g. client, server, Manager, etc.)
@@ -51,6 +52,7 @@
 #define HTTP_STATUS_PARTIAL_CONTENT         206
 #define HTTP_STATUS_MOVED_PERM              301
 #define HTTP_STATUS_MOVED_TEMP              302
+#define HTTP_STATUS_CLIENT_ERROR            400
 #define HTTP_STATUS_NOT_FOUND               404
 #define HTTP_STATUS_PROXY_AUTH_REQ          407
 #define HTTP_STATUS_RANGE_REQUEST_ERROR     416
@@ -103,10 +105,11 @@ enum SUSPEND_REASON {
     SUSPEND_REASON_EXCLUSIVE_APP_RUNNING = 512,
     SUSPEND_REASON_CPU_USAGE = 1024,
     SUSPEND_REASON_NETWORK_QUOTA_EXCEEDED = 2048,
-    SUSPEND_REASON_OS = 4096
+    SUSPEND_REASON_OS = 4096,
+    SUSPEND_REASON_WIFI_STATE = 8192
 };
 
-// Values of RESULT::state
+// Values of RESULT::state in client.
 // THESE MUST BE IN NUMERICAL ORDER
 // (because of the > comparison in RESULT::computing_done())
 //
@@ -127,6 +130,16 @@ enum SUSPEND_REASON {
 #define RESULT_UPLOAD_FAILED        7
     // some output file permanent failure
 
+// Values of FILE_INFO::status.
+// If the status is neither of these two,
+// it's an error code indicating an unrecoverable error
+// in the transfer of the file,
+// or that the file was too big and was deleted.
+//
+#define FILE_NOT_PRESENT    0
+#define FILE_PRESENT        1
+#define FILE_VERIFY_PENDING 2
+
 // values of ACTIVE_TASK::task_state
 //
 #define PROCESS_UNINITIALIZED   0
@@ -139,6 +152,8 @@ enum SUSPEND_REASON {
     // process exceeded limits; send "abort" message, waiting to exit
 #define PROCESS_QUIT_PENDING    8
     // we've sent it a "quit" message, waiting to exit
+#define PROCESS_COPY_PENDING    10
+    // waiting for async file copies to finish
 
 // states in which the process has exited
 #define PROCESS_EXITED          2
@@ -165,6 +180,36 @@ enum SUSPEND_REASON {
 #define RPC_REASON_INIT             6
 #define RPC_REASON_PROJECT_REQ      7
 
+struct TIME_STATS {
+// we maintain an exponentially weighted average of these quantities:
+    double now;
+        // the client's time of day
+    double on_frac;
+        // the fraction of total time this host runs the client
+    double connected_frac;
+        // of the time this host runs the client,
+        // the fraction it is connected to the Internet,
+        // or -1 if not known
+    double cpu_and_network_available_frac;
+        // of the time this host runs the client,
+        // the fraction it is connected to the Internet
+        // AND network usage is allowed (by prefs and user toggle)
+        // AND CPU usage is allowed
+    double active_frac;
+        // of the time this host runs the client,
+        // the fraction it is enabled to use CPU
+        // (as determined by preferences, manual suspend/resume, etc.)
+    double gpu_active_frac;
+        // same, GPU
+    double client_start_time;
+    double previous_uptime;
+        // duration of previous session
+
+    void write(MIOFILE&);
+    int parse(XML_PARSER&);
+    void print();
+};
+
 struct VERSION_INFO {
     int major;
     int minor;
@@ -187,6 +232,5 @@ struct VERSION_INFO {
 #else
 #define DEFAULT_SS_EXECUTABLE       "boincscr"
 #endif
-
 
 #endif

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# $Id$
+# $Id: set-version 4769 2004-12-06 22:13:42Z davea $
 
 # Change boinc version number in configure.ac and generate files.
 

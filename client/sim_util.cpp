@@ -38,13 +38,15 @@
 #include <math.h>
 
 #include "error_numbers.h"
+#include "filesys.h"
+#include "str_replace.h"
 #include "str_util.h"
 #include "util.h"
-#include "str_replace.h"
-#include "log_flags.h"
-#include "filesys.h"
+
 #include "client_msgs.h"
 #include "client_state.h"
+#include "log_flags.h"
+#include "result.h"
 #include "sim.h"
 
 //////////////// FUNCTIONS MODIFIED OR STUBBED OUT /////////////
@@ -100,6 +102,7 @@ void show_message(PROJ_AM *p, char* msg, int priority, bool, const char*) {
 
 APP_CLIENT_SHM::APP_CLIENT_SHM() {}
 GRAPHICS_MSG::GRAPHICS_MSG() {}
+int FILE_INFO::verify_file(bool, bool, bool) {return 0;}
 
 
 //////////////// FUNCTIONS WE NEED TO IMPLEMENT /////////////

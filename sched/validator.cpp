@@ -16,6 +16,17 @@
 // along with BOINC.  If not, see <http://www.gnu.org/licenses/>.
 
 // validator - check and validate results, and grant credit
+//
+// Must be linked with two functions
+// check_set(): find a canonical result from a set of results
+// check_pair(): compare a result with a canonical result
+//
+// We recommend that you use the versions of these in validate_util2.cpp,
+// in which case you have to supply 3 simpler functions
+// init_result()
+// compare_results()
+// cleanup_result()
+
 //  --app appname
 //  [-d N] [--debug_level N]    log verbosity (1=least, 4=most)
 //  [--one_pass_N_WU N]         Validate only N WU in one pass, then exit
@@ -82,7 +93,8 @@ int wu_id_modulus=0;
 int wu_id_remainder=0;
 int one_pass_N_WU=0;
 bool one_pass = false;
-double max_granted_credit = 0;
+double max_granted_credit = 200 * 1000 * 365;
+    // limit credit to 1 TeraFLOP-year
 bool update_credited_job = false;
 bool credit_from_wu = false;
 bool credit_from_runtime = false;
@@ -102,7 +114,9 @@ bool is_unreplicated(WORKUNIT& wu) {
 // - udpdate turnaround stats
 // - insert credited_job record if needed
 //
-int is_valid(DB_HOST& host, RESULT& result, WORKUNIT& wu, DB_HOST_APP_VERSION& hav) {
+int is_valid(
+    DB_HOST& host, RESULT& result, WORKUNIT& wu, DB_HOST_APP_VERSION& hav
+) {
     DB_CREDITED_JOB credited_job;
     int retval;
 
@@ -247,6 +261,10 @@ int handle_wu(
                 generalized_app_version_id(result.app_version_id, result.appid)
             );
             if (retval) {
+                log_messages.printf(MSG_CRITICAL,
+                    "[RESULT#%d %s] hav_lookup returned %d\n",
+                    result.id, result.name, retval
+                );
                 hav.host_id = 0;
             }
             DB_HOST_APP_VERSION hav_orig = hav;
@@ -359,7 +377,7 @@ int handle_wu(
             retval = check_set(results, wu, canonicalid, dummy, retry);
             if (retval) {
                 log_messages.printf(MSG_CRITICAL,
-                    "[WU#%d %s] check_set() error: %s, exiting\n",
+                    "[WU#%d %s] check_set() error: %s\n",
                     wu.id, wu.name, boincerror(retval)
                 );
                 return retval;
@@ -601,7 +619,7 @@ leave:
     retval = validator.update_workunit(wu);
     if (retval) {
         log_messages.printf(MSG_CRITICAL,
-            "[WU#%d %s] update_workunit() failed: %s; exiting\n",
+            "[WU#%d %s] update_workunit() failed: %s\n",
             wu.id, wu.name, boincerror(retval)
         );
         return retval;
@@ -669,14 +687,14 @@ int main_loop() {
             signal(SIGUSR2, simulator_signal_handler);
             pause();
 #else
-            sleep(sleep_interval);
+            daemon_sleep(sleep_interval);
 #endif
         }
     }
     return 0;
 }
 
-// For use by project-supplied routines check_set() and check_match()
+// For use by project-supplied routines check_set() and check_pair()
 //
 int debug_level=0;
 
@@ -700,9 +718,14 @@ int main(int argc, char** argv) {
       "  -h | --help             Show this\n"
       "  -v | --version          Show version information\n";
 
-    if ((argc > 1) && (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help"))) {
+    if (argc > 1) {
+      if (is_arg(argv[1], "h") || is_arg(argv[1], "help")) {
         printf (usage, argv[0] );
         exit(0);
+      } else if (is_arg(argv[1], "v") || is_arg(argv[1], "version")) {
+        printf("%s\n", SVN_VERSION);
+        exit(0);
+      }
     }
 
     check_stop_daemons();
@@ -735,9 +758,6 @@ int main(int argc, char** argv) {
             max_runtime = atof(argv[++i]);
         } else if (is_arg(argv[i], "no_credit")) {
             no_credit = true;
-        } else if (is_arg(argv[i], "v") || is_arg(argv[i], "version")) {
-            printf("%s\n", SVN_VERSION);
-            exit(0);
         } else {
             fprintf(stderr,
                 "Invalid option '%s'\nTry `%s --help` for more information\n",

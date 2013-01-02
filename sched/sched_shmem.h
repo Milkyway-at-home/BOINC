@@ -26,6 +26,7 @@
 
 #include "boinc_db.h"
 #include "sched_util.h"
+#include "sched_types.h"
 #include "hr_info.h"
 
 // the following must be at least as large as DB tables
@@ -88,9 +89,9 @@ struct SCHED_SHMEM {
     int max_app_versions;
     int max_assignments;
     int max_wu_results;
-    bool have_cpu_apps;
-    bool have_cuda_apps;
-    bool have_ati_apps;
+    bool locality_sched_lite;   // some app uses locality sched Lite
+    bool have_nci_app;
+    bool have_apps_for_proc_type[NPROC_TYPES];
     PERF_INFO perf_info;
     PLATFORM platforms[MAX_PLATFORMS];
     APP apps[MAX_APPS];
@@ -115,6 +116,13 @@ struct SCHED_SHMEM {
     APP_VERSION* lookup_app_version_platform_plan_class(
         int platform, char* plan_class
     );
+    double total_expavg_credit() {
+        double x = 0;
+        for (int i=0; i<napp_versions; i++) {
+            x += app_versions[i].expavg_credit;
+        }
+        return x;
+    }
     PLATFORM* lookup_platform_id(int);
     PLATFORM* lookup_platform(char*);
 };

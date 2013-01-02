@@ -36,6 +36,14 @@ if (!defined('SECURE_URL_BASE')) {
     define('SECURE_URL_BASE', URL_BASE);
 }
 
+// define TIMEZONE in project.inc
+//
+if (defined('TIMEZONE')) {
+    date_default_timezone_set(TIMEZONE);
+} else {
+    date_default_timezone_set('UTC');
+}
+
 $generating_xml = false;
 $caching = false;
 $did_page_head = false;
@@ -74,7 +82,7 @@ $g_logged_in_user = null;
 $got_logged_in_user = false;
 
 function get_logged_in_user($must_be_logged_in=true) {
-    global $g_logged_in_user, $got_logged_in_user;;
+    global $g_logged_in_user, $got_logged_in_user;
     if ($got_logged_in_user) return $g_logged_in_user;
 
     check_web_stopped();
@@ -99,6 +107,7 @@ function get_logged_in_user($must_be_logged_in=true) {
         Header("Location: login_form.php?next_url=$next_url");
         exit;
     }
+    $got_logged_in_user = true;
     return $g_logged_in_user;
 }
 
@@ -110,7 +119,7 @@ function show_login_info($prefix="") {
     ";
     if ($user) {
         $url_tokens = url_tokens($user->authenticator);
-        echo "$user->name | <a href=".$prefix."logout.php?$url_tokens>".tra("log out")."</a>";
+        echo "<nobr>$user->name &middot; <a href=".$prefix."logout.php?$url_tokens>".tra("log out")."</a></nobr>";
     } else {
         echo "<a href=".$prefix."login_form.php>".tra("log in")."</a>";
     }
@@ -137,6 +146,12 @@ function page_head(
     $stylesheet = URL_BASE.STYLESHEET;
     $rssname = PROJECT . " RSS 2.0";
     $rsslink = URL_BASE."rss_main.php";
+    if (defined('STYLESHEET2')) {
+        $stylesheet2 = URL_BASE.STYLESHEET2;
+    } else {
+        $stylesheet2 = null;
+    }
+
 
     header("Content-type: text/html; charset=utf-8");
     if (!$caching) {
@@ -159,6 +174,11 @@ function page_head(
     }
     echo "<link rel=stylesheet type=\"text/css\" href=\"".URL_BASE."main.css\" media=\"all\">
         <link rel=stylesheet type=\"text/css\" href=\"$stylesheet\">
+    ";
+    if ($stylesheet2) {
+        echo "<link rel=stylesheet type=\"text/css\" href=\"$stylesheet2\">\n";
+    }
+    echo "
         <link rel=alternate type=\"application/rss+xml\" title=\"$rssname\" href=\"$rsslink\">
         </head>
     ";
@@ -264,7 +284,7 @@ function date_str($x) {
 
 function time_str($x) {
     if ($x == 0) return "---";
-    return gmdate('j M Y | G:i:s', $x) . " UTC";
+    return gmdate('j M Y, G:i:s', $x) . " UTC";
 }
 
 function local_time_str($x) {
@@ -536,7 +556,7 @@ function close_output_buffer($filename) {
 }
 
 function html_info() {
-    return "<br><a href=\"bbcode.php\"><span class=\"smalltext\">".tra("Use BBCode tags to format your text")."</span></a>\n";
+    return "<br><a href=bbcode.php target=new><span class=smalltext>".tra("Use BBCode tags to format your text")."</span></a>\n";
 }
 
 // strip slashes if magic quotes in effect
@@ -823,11 +843,7 @@ function sanitize_local_url($x) {
 // strip HTML tags
 //
 function sanitize_tags($x) {
-    if (function_exists('filter_var')) {
-        return filter_var($x, FILTER_SANITIZE_STRING);
-    } else {
-        return strip_tags($x);
-    }
+    return strip_tags($x);
 }
 
 function sanitize_numeric($x) {
@@ -852,6 +868,21 @@ function flops_to_credit($f) {
 
 function credit_to_gflop_hours($c) {
     return $c/(200/24);
+}
+function do_download($path,$name="") {
+    if (strcmp($name,"") == 0) {
+        $name=basename($path);
+    }
+    header('Content-Description: File Transfer');
+    header('Content-Type: application/octet-stream');
+    header('Content-Disposition: attachment; filename='.$name);
+    header('Content-Transfer-Encoding: binary');
+    header('Expires: 0');
+    header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+    header('Pragma: public');
+    header('Content-Length: ' . filesize($path));
+    flush();
+    readfile($path);
 }
 
 $cvs_version_tracker[]="\$Id$";  //Generated automatically - do not edit

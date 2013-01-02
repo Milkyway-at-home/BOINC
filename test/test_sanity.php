@@ -1,6 +1,6 @@
 #!/usr/local/bin/php -q
 <?php {
-    // $Id$
+    // $Id: test_sanity.php 1357 2003-06-11 22:11:32Z quarl $
 
     // tests makes sure that testing framework is sane
 

@@ -34,12 +34,13 @@
 #include "stackwalker_win.h"
 #endif
 
-#include "version.h"
 #include "diagnostics.h"
-#include "diagnostics_win.h"
 #include "error_numbers.h"
 #include "str_util.h"
 #include "util.h"
+#include "version.h"
+
+#include "diagnostics_win.h"
 
 // NtQuerySystemInformation
 typedef NTSTATUS (WINAPI *tNTQSI)(
@@ -329,8 +330,8 @@ int diagnostics_get_process_information(PVOID* ppBuffer, PULONG pcbBuffer) {
 
     do {
         *ppBuffer = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, *pcbBuffer);
-        if (ppBuffer == NULL) {
-            retval = ERROR_NOT_ENOUGH_MEMORY;
+        if (*ppBuffer == NULL) {
+            return ERROR_NOT_ENOUGH_MEMORY;
         }
 
         Status = pNTQSI(
@@ -1630,17 +1631,27 @@ int diagnostics_dump_exception_record(PEXCEPTION_POINTERS pExPtrs) {
             break;
         case EXCEPTION_ACCESS_VIOLATION:
             strcpy(status, "Access Violation");
+            strcpy(substatus, "");
             if (pExPtrs->ExceptionRecord->NumberParameters == 2) {
                 switch(pExPtrs->ExceptionRecord->ExceptionInformation[0]) {
                 case 0: // read attempt
-                    sprintf(substatus, "read attempt to address 0x%8.8X", pExPtrs->ExceptionRecord->ExceptionInformation[1]);
+                    sprintf(substatus,
+                        "read attempt to address 0x%8.8X",
+                        pExPtrs->ExceptionRecord->ExceptionInformation[1]
+                    );
                     break;
                 case 1: // write attempt
-                    sprintf(substatus, "write attempt to address 0x%8.8X", pExPtrs->ExceptionRecord->ExceptionInformation[1]);
+                    sprintf(substatus,
+                        "write attempt to address 0x%8.8X",
+                        pExPtrs->ExceptionRecord->ExceptionInformation[1]
+                    );
                     break;
                 }
             }
-            fprintf(stderr, "Reason: %s (0x%x) at address 0x%p %s\n\n", status, exception_code, exception_address, substatus);
+            fprintf(stderr,
+                "Reason: %s (0x%x) at address 0x%p %s\n\n",
+                status, exception_code, exception_address, substatus
+            );
             break;
         case EXCEPTION_DATATYPE_MISALIGNMENT:
             diagnostics_dump_generic_exception("Data Type Misalignment", exception_code, exception_address);

@@ -16,15 +16,13 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with BOINC.  If not, see <http://www.gnu.org/licenses/>.
 
-// Use this file you can post a reply to a thread.
+// Post a reply to a thread.
 // Both input (form) and action take place here.
 
 require_once('../inc/forum_email.inc');
 require_once('../inc/forum.inc');
 require_once('../inc/bbcode_html.inc');
 require_once('../inc/akismet.inc');
-
-check_get_args(array("thread", "sort", "filter", "post", "nowrap", "no_quote", "tnow", "ttok"));
 
 $logged_in_user = get_logged_in_user(true);
 BoincForumPrefs::lookup($logged_in_user);
@@ -38,7 +36,6 @@ $filter = get_str('filter', true);
 $content = post_str('content', true);
 $preview = post_str("preview", true);
 $parent_post_id = get_int('post', true);
-$nowrap = get_str("nowrap",true);
 
 $parent_post = null;
 if ($parent_post_id) {
@@ -76,11 +73,15 @@ if ($content && (!$preview)){
         $warning = tra("Your post has been flagged as spam by the Akismet anti-spam system. Please modify your text and try again.");
         $preview = tra("Preview");
     } else {
-        create_post(
+        $post_id = create_post(
             $content, $parent_post_id, $logged_in_user, $forum,
             $thread, $add_signature
         );
-        header('Location: forum_thread.php?id='.$thread->id);
+        if ($post_id) {
+            header("Location: forum_thread.php?id=$thread->id&postid=$post_id");
+        } else {
+            error_page("Can't create post.");
+        }
     }
 }
 
@@ -112,10 +113,19 @@ if ($preview == tra("Preview")) {
     ;
 }
 
-start_forum_table(array(tra("Author"), tra("Message")));
-
+start_table();
 show_message_row($thread, $parent_post);
-show_posts($thread, $forum, $sort_style, $filter, $logged_in_user, $nowrap, true);
+end_table();
+if ($parent_post) {
+    start_forum_table(array(tra("Author"), tra("Message")));
+    show_post(
+        $parent_post, $thread, $forum, $logged_in_user, 0, 0, false, false
+    );
+    end_table();
+} else {
+    show_posts($thread, $forum, 0, 0, CREATE_TIME_NEW, 0, $logged_in_user);
+}
+
 end_table();
 
 page_tail();
@@ -142,7 +152,9 @@ function show_message_row($thread, $parent_post) {
     if ($preview) {
         $x2 .= htmlspecialchars($content);
     } else if (!$no_quote) {
-        if ($parent_post) $x2 .= quote_text(htmlspecialchars($parent_post->content))."\n";
+        if ($parent_post) {
+            $x2 .= quote_text(htmlspecialchars($parent_post->content))."\n";
+        }
     }
     if (!$logged_in_user->prefs->no_signature_by_default) {
         $enable_signature="checked=\"true\"";

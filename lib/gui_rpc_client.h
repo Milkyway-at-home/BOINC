@@ -25,6 +25,7 @@
 #include <string>
 #include <vector>
 #include <sys/socket.h>
+#include <sys/param.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
@@ -32,13 +33,14 @@
 #include <locale.h>
 #endif
 
-#include "miofile.h"
-#include "prefs.h"
-#include "hostinfo.h"
-#include "common_defs.h"
-#include "notice.h"
-#include "network.h"
 #include "cc_config.h"
+#include "common_defs.h"
+#include "filesys.h"
+#include "hostinfo.h"
+#include "miofile.h"
+#include "network.h"
+#include "notice.h"
+#include "prefs.h"
 
 struct GUI_URL {
     std::string name;
@@ -62,8 +64,7 @@ struct DAILY_STATS {
 };
 
 
-class PROJECT_LIST_ENTRY {
-public:
+struct PROJECT_LIST_ENTRY {
     std::string name;
     std::string url;
     std::string general_area;
@@ -81,8 +82,7 @@ public:
     void clear();
 };
 
-class AM_LIST_ENTRY {
-public:
+struct AM_LIST_ENTRY {
     std::string name;
     std::string url;
     std::string description;
@@ -95,8 +95,7 @@ public:
     void clear();
 };
 
-class ALL_PROJECTS_LIST {
-public:
+struct ALL_PROJECTS_LIST {
     std::vector<PROJECT_LIST_ENTRY*> projects;
     std::vector<AM_LIST_ENTRY*> account_managers;
 
@@ -107,8 +106,18 @@ public:
     void shuffle();
 };
 
-class PROJECT {
-public:
+struct RSC_DESC {
+    double backoff_time;
+    double backoff_interval;
+    bool no_rsc_ams;
+    bool no_rsc_apps;
+    bool no_rsc_pref;
+    bool no_rsc_config;
+
+    void clear();
+};
+
+struct PROJECT {
     char master_url[256];
     double resource_share;
     std::string project_name;
@@ -128,14 +137,13 @@ public:
     double download_backoff;
     double upload_backoff;
 
+    RSC_DESC rsc_desc_cpu;
+    RSC_DESC rsc_desc_nvidia;
+    RSC_DESC rsc_desc_ati;
+    RSC_DESC rsc_desc_intel_gpu;
+
     double sched_priority;
 
-    double cpu_backoff_time;
-    double cpu_backoff_interval;
-    double cuda_backoff_time;
-    double cuda_backoff_interval;
-    double ati_backoff_time;
-    double ati_backoff_interval;
     double duration_correction_factor;
 
     bool anonymous_platform;
@@ -156,9 +164,6 @@ public:
     double last_rpc_time;
         // when the last successful scheduler RPC finished
     std::vector<DAILY_STATS> statistics; // credit data over the last x days
-    bool no_cpu_pref;
-    bool no_cuda_pref;
-    bool no_ati_pref;
     char venue[256];
 
     // NOTE: if you add any data items above,
@@ -177,8 +182,7 @@ public:
     bool flag_for_delete;
 };
 
-class APP {
-public:
+struct APP {
     char name[256];
     char user_friendly_name[256];
     PROJECT* project;
@@ -191,14 +195,15 @@ public:
     void clear();
 };
 
-class APP_VERSION {
-public:
+struct APP_VERSION {
     char app_name[256];
     int version_num;
     char platform[64];
     char plan_class[64];
     double avg_ncpus;
-    double ncudas;
+    int gpu_type;
+        // PROC_TYPE_xx
+    double gpu_usage;
     double natis;
     double gpu_ram;
     double flops;
@@ -214,8 +219,7 @@ public:
     void clear();
 };
 
-class WORKUNIT {
-public:
+struct WORKUNIT {
     char name[256];
     char app_name[256];
     int version_num;    // backwards compat
@@ -234,8 +238,7 @@ public:
     void clear();
 };
 
-class RESULT {
-public:
+struct RESULT {
     char name[256];
     char wu_name[256];
     char project_url[256];
@@ -256,6 +259,7 @@ public:
     bool project_suspended_via_gui;
     bool coproc_missing;
     bool scheduler_wait;
+    char scheduler_wait_reason[256];
     bool network_wait;
 
     // the following defined if active
@@ -275,10 +279,10 @@ public:
     bool too_large;
     bool needs_shmem;
     bool edf_scheduled;
-    char graphics_exec_path[512];
+    char graphics_exec_path[MAXPATHLEN];
     char web_graphics_url[256];
     char remote_desktop_addr[256];
-    char slot_path[512];
+    char slot_path[MAXPATHLEN];
         // only present if graphics_exec_path is
     char resources[256];
 
@@ -295,8 +299,7 @@ public:
     void clear();
 };
 
-class FILE_TRANSFER {
-public:
+struct FILE_TRANSFER {
     std::string name;
     std::string project_url;
     std::string project_name;
@@ -327,8 +330,7 @@ public:
     void clear();
 };
 
-class MESSAGE {
-public:
+struct MESSAGE {
     std::string project;
     int priority;
     int seqno;
@@ -343,20 +345,22 @@ public:
     void clear();
 };
 
-class GR_PROXY_INFO {
-public:
+// should match up with PROXY_INFO in proxy_info.h
+//
+struct GR_PROXY_INFO {
     bool use_http_proxy;
-    bool use_socks_proxy;
     bool use_http_authentication;
-    int socks_version;
-    std::string socks_server_name;
     std::string http_server_name;
-    int socks_server_port;
     int http_server_port;
     std::string http_user_name;
     std::string http_user_passwd;
+
+    bool use_socks_proxy;
+    std::string socks_server_name;
+    int socks_server_port;
     std::string socks5_user_name;
     std::string socks5_user_passwd;
+
 	std::string noproxy_hosts;
 
     GR_PROXY_INFO();
@@ -367,8 +371,10 @@ public:
     void clear();
 };
 
-class CC_STATE {
-public:
+// Represents the entire client state.
+// Call get_state() infrequently.
+//
+struct CC_STATE {
     std::vector<PROJECT*> projects;
     std::vector<APP*> apps;
     std::vector<APP_VERSION*> app_versions;
@@ -377,11 +383,13 @@ public:
     std::vector<std::string> platforms;
         // platforms supported by client
     GLOBAL_PREFS global_prefs;  // working prefs, i.e. network + override
-    VERSION_INFO version_info;  // populated only if talking to pre-5.6 CC
+    VERSION_INFO version_info;  // populated only if talking to pre-5.6 client
     bool executing_as_daemon;   // true if client is running as a service / daemon
     HOST_INFO host_info;
-    bool have_nvidia;           // redundant; include for compat (set by <have_cuda/>)
-    bool have_ati;              // redundant; include for compat
+    TIME_STATS time_stats;
+    bool have_nvidia;           // deprecated; include for compat (set by <have_cuda/>)
+    bool have_ati;              // deprecated; include for compat
+    bool have_intel;
 
     CC_STATE();
     ~CC_STATE();
@@ -399,8 +407,7 @@ public:
     int parse(XML_PARSER&);
 };
 
-class PROJECTS {
-public:
+struct PROJECTS {
     std::vector<PROJECT*> projects;
 
     PROJECTS(){}
@@ -424,8 +431,7 @@ struct DISK_USAGE {
     void clear();
 };
 
-class RESULTS {
-public:
+struct RESULTS {
     std::vector<RESULT*> results;
 
     RESULTS(){}
@@ -435,8 +441,7 @@ public:
     void clear();
 };
 
-class FILE_TRANSFERS {
-public:
+struct FILE_TRANSFERS {
     std::vector<FILE_TRANSFER*> file_transfers;
 
     FILE_TRANSFERS();
@@ -446,8 +451,7 @@ public:
     void clear();
 };
 
-class MESSAGES {
-public:
+struct MESSAGES {
     std::vector<MESSAGE*> messages;
 
     MESSAGES();
@@ -457,9 +461,9 @@ public:
     void clear();
 };
 
-class NOTICES {
-public:
+struct NOTICES {
     bool complete;
+    bool received;
         // whether vector contains all notices, or just new ones
     std::vector<NOTICE*> notices;
 

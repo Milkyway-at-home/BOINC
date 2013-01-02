@@ -61,24 +61,30 @@ $xml = get_int("xml", true);
 // daemon status outputs: 1 (running) 0 (not running) or -1 (disabled)
 //
 function daemon_status($host, $pidname, $progname, $disabled) {
-    global $ssh_exe, $ps_exe, $project_host;
-    $path = "../../pid_$host/$pidname";
+    global $ssh_exe, $ps_exe, $project_host, $project_dir;
+    if ($disabled == 1) return -1;
+    $path = "$project_dir/pid_$host/$pidname";
+    if ($host != $project_host) {
+        $command = "$ssh_exe $host $project_dir/bin/pshelper $path";
+        $foo = exec($command);
+        $running = 1;
+        if ($foo) {
+            if (strstr($foo, "false")) $running = 0;
+        } else $running = 0;
+        return $running;
+    }
     $running = 0;
     if (is_file($path)) {
         $pid = file_get_contents($path);
         if ($pid) {
             $pid = trim($pid);
             $command = "$ps_exe ww $pid";
-            if ($host != $project_host) {
-                $command = "$ssh_exe $host " . $command;
-            }
             $foo = exec($command);
             if ($foo) {
                 if (strstr($foo, (string)$pid)) $running = 1;
             }
         }
     }
-    if ($disabled == 1) $running = -1;
     return $running;
 }
 
@@ -173,19 +179,19 @@ function get_mysql_user($clause) {
     return $count;
 }
 
-function get_cpu_time($appid) {
-    $count = unserialize(get_cached_data(3600, "get_cpu_time".$appid));
-    if ($count == false) {
+function get_runtime_info($appid) {
+    $info = unserialize(get_cached_data(3600, "get_runtime_info".$appid));
+    if ($info == false) {
         $result = mysql_query("
-        Select ceil(avg(cpu_time)/3600*100)/100 as cpu_time,
-                   ceil(min(cpu_time)/3600*100)/100 as min,
-                   ceil(max(cpu_time)/3600*100)/100 as max
-        from (SELECT cpu_time FROM `result` WHERE appid = $appid and validate_state =1 and received_time > (unix_timestamp()-(3600*24)) ORDER BY `received_time` DESC limit 100) t");
-        $count = mysql_fetch_object($result);
+        Select ceil(avg(elapsed_time)/3600*100)/100 as avg,
+                   ceil(min(elapsed_time)/3600*100)/100 as min,
+                   ceil(max(elapsed_time)/3600*100)/100 as max
+        from (SELECT elapsed_time FROM `result` WHERE appid = $appid and validate_state =1 and received_time > (unix_timestamp()-(3600*24)) ORDER BY `received_time` DESC limit 100) t");
+        $info = mysql_fetch_object($result);
         mysql_free_result($result);
-        set_cached_data(3600, serialize($count), "get_cpu_time".$appid);
+        set_cached_data(3600, serialize($info), "get_runtime_info".$appid);
     }
-    return $count;
+    return $info;
 }
 
 $config_xml = get_config();
@@ -206,6 +212,10 @@ if ($uldl_pid == "") {
 $uldl_host = parse_element($config_vars,"<uldl_host>");
 if ($uldl_host == "") {
     $uldl_host = $project_host;
+}
+$project_dir = parse_element($config_vars,"<project_dir>");
+if ($project_dir == "") {
+    $project_dir = "../..";
 }
 $ssh_exe = parse_element($config_vars,"<ssh_exe>");
 if ($ssh_exe == "") {
@@ -439,8 +449,8 @@ if ($retval) {
             <td>" . number_format(get_mysql_count("result where server_state = 4 and appid = $appid")) . "</td>
             <td>"
         ;
-        $count = get_cpu_time($appid);
-        echo number_format($count->cpu_time,2) . " (" . number_format($count->min,2) . " - " . number_format($count->max,2) . ")";
+        $info = get_runtime_info($appid);
+        echo number_format($info->avg,2) . " (" . number_format($info->min,2) . " - " . number_format($info->max,2) . ")";
         echo "</td>
             <td>" . number_format(get_mysql_user("and appid = $appid")) . "</td>
             </tr>"

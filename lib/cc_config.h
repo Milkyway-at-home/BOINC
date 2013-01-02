@@ -30,7 +30,7 @@
 #include "proxy_info.h"
 #include "coproc.h"
 
-class XML_PARSER;
+struct XML_PARSER;
 
 #define MAX_FILE_XFERS_PER_PROJECT      2
 #define MAX_FILE_XFERS                  8
@@ -54,6 +54,8 @@ struct LOG_FLAGS {
         // show shared-mem message from apps
     bool app_msg_send;
         // show shared-mem message to apps
+    bool async_file_debug;
+        // show asynchronous file operations (copy, MD5, decompress)
     bool benchmark_debug;
         // debug CPU benchmarks
     bool checkpoint_debug;
@@ -97,8 +99,8 @@ struct LOG_FLAGS {
         // also show actions of garbage collector
     bool statefile_debug;
         // show when and why state file is written
-    bool std_debug;
-        // changes to short-term debt
+    bool suspend_debug;
+        // details of processing and network suspend/resume
     bool task_debug;
         // task start and control details, and when apps checkpoint
     bool time_debug;
@@ -153,8 +155,7 @@ struct CONFIG {
     bool http_1_0;
     int http_transfer_timeout_bps;
     int http_transfer_timeout;
-    std::vector<int> ignore_ati_dev;
-    std::vector<int> ignore_nvidia_dev;
+    std::vector<int> ignore_gpu_instance[NPROC_TYPES];
     int max_file_xfers;
     int max_file_xfers_per_project;
     int max_stderr_file_size;
@@ -182,7 +183,7 @@ struct CONFIG {
     bool use_certs;
     bool use_certs_only;
         // overrides use_certs
-    bool zero_debts;
+    bool vbox_window;
 
     CONFIG();
     void defaults();

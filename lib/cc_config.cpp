@@ -15,6 +15,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with BOINC.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "cc_config.h"
+
 #ifdef _WIN32
 #include "boinc_win.h"
 #else
@@ -63,6 +65,7 @@ int LOG_FLAGS::parse(XML_PARSER& xp) {
 
         if (xp.parse_bool("app_msg_receive", app_msg_receive)) continue;
         if (xp.parse_bool("app_msg_send", app_msg_send)) continue;
+        if (xp.parse_bool("async_file_debug", async_file_debug)) continue;
         if (xp.parse_bool("benchmark_debug", benchmark_debug)) continue;
         if (xp.parse_bool("checkpoint_debug", checkpoint_debug)) continue;
         if (xp.parse_bool("coproc_debug", coproc_debug)) continue;
@@ -72,7 +75,6 @@ int LOG_FLAGS::parse(XML_PARSER& xp) {
         if (xp.parse_bool("dcf_debug", dcf_debug)) continue;
         if (xp.parse_bool("disk_usage_debug", disk_usage_debug)) continue;
         if (xp.parse_bool("priority_debug", priority_debug)) continue;
-        if (xp.parse_bool("std_debug", std_debug)) continue;
         if (xp.parse_bool("file_xfer_debug", file_xfer_debug)) continue;
         if (xp.parse_bool("gui_rpc_debug", gui_rpc_debug)) continue;
         if (xp.parse_bool("heartbeat_debug", heartbeat_debug)) continue;
@@ -89,6 +91,7 @@ int LOG_FLAGS::parse(XML_PARSER& xp) {
         if (xp.parse_bool("slot_debug", slot_debug)) continue;
         if (xp.parse_bool("state_debug", state_debug)) continue;
         if (xp.parse_bool("statefile_debug", statefile_debug)) continue;
+        if (xp.parse_bool("suspend_debug", suspend_debug)) continue;
         if (xp.parse_bool("task_debug", task_debug)) continue;
         if (xp.parse_bool("time_debug", time_debug)) continue;
         if (xp.parse_bool("trickle_debug", trickle_debug)) continue;
@@ -108,6 +111,7 @@ int LOG_FLAGS::write(MIOFILE& out) {
         "        <task>%d</task>\n"
         "        <app_msg_receive>%d</app_msg_receive>\n"
         "        <app_msg_send>%d</app_msg_send>\n"
+        "        <async_file_debug>%d</async_file_debug>\n"
         "        <benchmark_debug>%d</benchmark_debug>\n"
         "        <checkpoint_debug>%d</checkpoint_debug>\n"
         "        <coproc_debug>%d</coproc_debug>\n"
@@ -133,7 +137,7 @@ int LOG_FLAGS::write(MIOFILE& out) {
         "        <slot_debug>%d</slot_debug>\n"
         "        <state_debug>%d</state_debug>\n"
         "        <statefile_debug>%d</statefile_debug>\n"
-        "        <std_debug>%d</std_debug>\n"
+        "        <suspend_debug>%d</suspend_debug>\n"
         "        <task_debug>%d</task_debug>\n"
         "        <time_debug>%d</time_debug>\n"
         "        <trickle_debug>%d</trickle_debug>\n"
@@ -146,6 +150,7 @@ int LOG_FLAGS::write(MIOFILE& out) {
         task ? 1 : 0,
         app_msg_receive ? 1 : 0,
         app_msg_send ? 1 : 0,
+        async_file_debug ? 1 : 0,
         benchmark_debug ? 1 : 0,
         checkpoint_debug  ? 1 : 0,
         coproc_debug ? 1 : 0,
@@ -171,7 +176,7 @@ int LOG_FLAGS::write(MIOFILE& out) {
         slot_debug ? 1 : 0,
         state_debug ? 1 : 0,
         statefile_debug ? 1 : 0,
-        std_debug ? 1 : 0,
+        suspend_debug ? 1 : 0,
         task_debug ? 1 : 0,
         time_debug ? 1 : 0,
         trickle_debug ? 1 : 0,
@@ -211,8 +216,9 @@ void CONFIG::defaults() {
     http_1_0 = false;
     http_transfer_timeout = 300;
     http_transfer_timeout_bps = 10;
-    ignore_nvidia_dev.clear();
-    ignore_ati_dev.clear();
+    for (int i=1; i<NPROC_TYPES; i++) {
+        ignore_gpu_instance[i].clear();
+    }
     max_file_xfers = 8;
     max_file_xfers_per_project = 2;
     max_stderr_file_size = 0;
@@ -239,7 +245,7 @@ void CONFIG::defaults() {
     use_all_gpus = false;
     use_certs = false;
     use_certs_only = false;
-    zero_debts = false;
+    vbox_window = false;
 }
 
 int EXCLUDE_GPU::parse(XML_PARSER& xp) {
@@ -280,8 +286,9 @@ int CONFIG::parse_options(XML_PARSER& xp) {
     alt_platforms.clear();
     exclusive_apps.clear();
     exclusive_gpu_apps.clear();
-    ignore_nvidia_dev.clear();
-    ignore_ati_dev.clear();
+    for (int i=1; i<NPROC_TYPES; i++) {
+        ignore_gpu_instance[i].clear();
+    }
     exclude_gpus.clear();
 
     while (!xp.get_tag()) {
@@ -357,11 +364,15 @@ int CONFIG::parse_options(XML_PARSER& xp) {
         if (xp.parse_int("http_transfer_timeout", http_transfer_timeout)) continue;
         if (xp.parse_int("http_transfer_timeout_bps", http_transfer_timeout_bps)) continue;
         if (xp.parse_int("ignore_cuda_dev", n) || xp.parse_int("ignore_nvidia_dev", n)) {
-            ignore_nvidia_dev.push_back(n);
+            ignore_gpu_instance[PROC_TYPE_NVIDIA_GPU].push_back(n);
             continue;
         }
         if (xp.parse_int("ignore_ati_dev", n)) {
-            ignore_ati_dev.push_back(n);
+            ignore_gpu_instance[PROC_TYPE_AMD_GPU].push_back(n);
+            continue;
+        }
+        if (xp.parse_int("ignore_intel_gpu_dev", n)) {
+            ignore_gpu_instance[PROC_TYPE_INTEL_GPU].push_back(n);
             continue;
         }
         if (xp.parse_int("max_file_xfers", max_file_xfers)) continue;
@@ -402,7 +413,7 @@ int CONFIG::parse_options(XML_PARSER& xp) {
         if (xp.parse_bool("use_all_gpus", use_all_gpus)) continue;
         if (xp.parse_bool("use_certs", use_certs)) continue;
         if (xp.parse_bool("use_certs_only", use_certs_only)) continue;
-        if (xp.parse_bool("zero_debts", zero_debts)) continue;
+        if (xp.parse_bool("vbox_window", vbox_window)) continue;
 
         xp.skip_unexpected(true, "CONFIG::parse_options");
     }
@@ -533,17 +544,24 @@ int CONFIG::write(MIOFILE& out, LOG_FLAGS& log_flags) {
         http_transfer_timeout_bps
     );
         
-    for (i=0; i<ignore_nvidia_dev.size(); ++i) {
+    for (i=0; i<ignore_gpu_instance[PROC_TYPE_NVIDIA_GPU].size(); ++i) {
         out.printf(
             "        <ignore_nvidia_dev>%d</ignore_nvidia_dev>\n",
-            ignore_nvidia_dev[i]
+            ignore_gpu_instance[PROC_TYPE_NVIDIA_GPU][i]
         );
     }
 
-    for (i=0; i<ignore_ati_dev.size(); ++i) {
+    for (i=0; i<ignore_gpu_instance[PROC_TYPE_AMD_GPU].size(); ++i) {
         out.printf(
             "        <ignore_ati_dev>%d</ignore_ati_dev>\n",
-            ignore_ati_dev[i]
+            ignore_gpu_instance[PROC_TYPE_AMD_GPU][i]
+        );
+    }
+
+    for (i=0; i<ignore_gpu_instance[PROC_TYPE_INTEL_GPU].size(); ++i) {
+        out.printf(
+            "        <ignore_intel_gpu_dev>%d</ignore_intel_gpu_dev>\n",
+            ignore_gpu_instance[PROC_TYPE_INTEL_GPU][i]
         );
     }
         
@@ -590,7 +608,7 @@ int CONFIG::write(MIOFILE& out, LOG_FLAGS& log_flags) {
         "        <use_all_gpus>%d</use_all_gpus>\n"
         "        <use_certs>%d</use_certs>\n"
         "        <use_certs_only>%d</use_certs_only>\n"
-        "        <zero_debts>%d</zero_debts>\n",
+        "        <vbox_window>%d</vbox_window>\n",
         rec_half_life/86400,
         report_results_immediately,
         run_apps_manually,
@@ -604,7 +622,7 @@ int CONFIG::write(MIOFILE& out, LOG_FLAGS& log_flags) {
         use_all_gpus,
         use_certs,
         use_certs_only,
-        zero_debts
+        vbox_window
     );
 
     out.printf("    </options>\n</cc_config>\n");
