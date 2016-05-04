@@ -77,6 +77,7 @@ APP_INIT_DATA &APP_INIT_DATA::operator=(const APP_INIT_DATA& a) {
 }
 
 void APP_INIT_DATA::copy(const APP_INIT_DATA& a) {
+    mw_printf("this ran\n");
     strcpy(app_name, a.app_name);
     strcpy(symstore, a.symstore);
     strcpy(acct_mgr_url, a.acct_mgr_url);
