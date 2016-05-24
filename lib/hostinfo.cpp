@@ -44,15 +44,15 @@ HOST_INFO::HOST_INFO() {
 
 void HOST_INFO::clear_host_info() {
     timezone = 0;
-    safe_strcpy(domain_name, "");
-    safe_strcpy(serialnum, "");
-    safe_strcpy(ip_addr, "");
-    safe_strcpy(host_cpid, "");
+    strcpy(domain_name, "");
+    strcpy(serialnum, "");
+    strcpy(ip_addr, "");
+    strcpy(host_cpid, "");
 
     p_ncpus = 0;
-    safe_strcpy(p_vendor, "");
-    safe_strcpy(p_model, "");
-    safe_strcpy(p_features, "");
+    strcpy(p_vendor, "");
+    strcpy(p_model, "");
+    strcpy(p_features, "");
     p_fpops = 0;
     p_iops = 0;
     p_membw = 0;
@@ -66,10 +66,10 @@ void HOST_INFO::clear_host_info() {
     d_total = 0;
     d_free = 0;
 
-    safe_strcpy(os_name, "");
-    safe_strcpy(os_version, "");
+    strcpy(os_name, "");
+    strcpy(os_version, "");
 
-    safe_strcpy(virtualbox_version, "");
+    strcpy(virtualbox_version, "");
 }
 
 int HOST_INFO::parse(XML_PARSER& xp, bool benchmarks_only) {
