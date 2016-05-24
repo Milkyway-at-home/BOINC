@@ -56,7 +56,7 @@ using std::perror;
 #endif
 
 int COPROC_REQ::parse(XML_PARSER& xp) {
-    strcpy(type, "");
+    safe_strcpy(type, "");
     count = 0;
     while (!xp.get_tag()) {
         if (xp.match_tag("/coproc")) {
@@ -162,7 +162,7 @@ void OPENCL_DEVICE_PROP::write_xml(MIOFILE& f) {
 
 int COPROC::parse(XML_PARSER& xp) {
     char buf[256];
-    strcpy(type, "");
+    safe_strcpy(type, "");
     clear();
     for (int i=0; i<MAX_COPROC_INSTANCES; i++) {
         device_nums[i] = i;
@@ -310,7 +310,7 @@ void OPENCL_DEVICE_PROP::description(char* buf, const char* type) {
 void COPROCS::summary_string(char* buf, int len) {
     char buf2[1024];
 
-    strcpy(buf, "");
+    safe_strcpy(buf, "");
     if (nvidia.count) {
         int mem = (int)(nvidia.prop.totalGlobalMem/MEGA);
         sprintf(buf2, "[CUDA|%s|%d|%dMB|%d]",
@@ -339,7 +339,7 @@ int COPROCS::parse(XML_PARSER& xp) {
 
     clear();
     n_rsc = 1;
-    strcpy(coprocs[0].type, "CPU");
+    safe_strcpy(coprocs[0].type, "CPU");
     while (!xp.get_tag()) {
         if (xp.match_tag("/coprocs")) {
             return 0;
@@ -406,14 +406,14 @@ void COPROC_NVIDIA::description(char* buf) {
         sprintf(vers, "%d.%d", maj, min);
 #endif
     } else {
-        strcpy(vers, "unknown");
+        safe_strcpy(vers, "unknown");
     }
     if (cuda_version) {
         int maj = cuda_version/1000;
         int min = cuda_version%1000;
         sprintf(cuda_vers, "%d.%d", maj, min);
     } else {
-        strcpy(cuda_vers, "unknown");
+        safe_strcpy(cuda_vers, "unknown");
     }
     sprintf(buf, "%s (driver version %s, CUDA version %s, compute capability %d.%d, %.0fMB, %.0fMB available, %.0f GFLOPS peak)",
         prop.name, vers, cuda_vers, prop.major, prop.minor,
@@ -494,11 +494,11 @@ void COPROC_NVIDIA::write_xml(MIOFILE& f, bool scheduler_rpc) {
 
 void COPROC_NVIDIA::clear() {
     COPROC::clear();
-    strcpy(type, proc_type_name_xml(PROC_TYPE_NVIDIA_GPU));
+    safe_strcpy(type, proc_type_name_xml(PROC_TYPE_NVIDIA_GPU));
     estimated_delay = -1;   // mark as absent
     cuda_version = 0;
     display_driver_version = 0;
-    strcpy(prop.name, "");
+    safe_strcpy(prop.name, "");
     prop.totalGlobalMem = 0;
     prop.sharedMemPerBlock = 0;
     prop.regsPerBlock = 0;
@@ -649,7 +649,7 @@ void COPROC_NVIDIA::set_peak_flops() {
 void COPROC_NVIDIA::fake(
     int driver_version, double ram, double avail_ram, int n
 ) {
-   strcpy(type, proc_type_name_xml(PROC_TYPE_NVIDIA_GPU));
+   safe_strcpy(type, proc_type_name_xml(PROC_TYPE_NVIDIA_GPU));
    count = n;
    for (int i=0; i<count; i++) {
        device_nums[i] = i;
@@ -658,7 +658,7 @@ void COPROC_NVIDIA::fake(
    display_driver_version = driver_version;
    cuda_version = 2020;
    have_cuda = true;
-   strcpy(prop.name, "Fake NVIDIA GPU");
+   safe_strcpy(prop.name, "Fake NVIDIA GPU");
    memset(&prop, 0, sizeof(prop));
    prop.totalGlobalMem = ram;
    prop.sharedMemPerBlock = 100;
@@ -754,10 +754,10 @@ void COPROC_ATI::write_xml(MIOFILE& f, bool scheduler_rpc) {
 
 void COPROC_ATI::clear() {
     COPROC::clear();
-    strcpy(type, proc_type_name_xml(PROC_TYPE_AMD_GPU));
+    safe_strcpy(type, proc_type_name_xml(PROC_TYPE_AMD_GPU));
     estimated_delay = -1;
-    strcpy(name, "");
-    strcpy(version, "");
+    safe_strcpy(name, "");
+    safe_strcpy(version, "");
     atirt_detected = false;
     amdrt_detected = false;
     memset(&attribs, 0, sizeof(attribs));
@@ -891,9 +891,9 @@ void COPROC_ATI::set_peak_flops() {
 }
 
 void COPROC_ATI::fake(double ram, double avail_ram, int n) {
-    strcpy(type, proc_type_name_xml(PROC_TYPE_AMD_GPU));
-    strcpy(version, "1.4.3");
-    strcpy(name, "foobar");
+    safe_strcpy(type, proc_type_name_xml(PROC_TYPE_AMD_GPU));
+    safe_strcpy(version, "1.4.3");
+    safe_strcpy(name, "foobar");
     count = n;
     available_ram = avail_ram;
     have_cal = true;
@@ -944,10 +944,10 @@ void COPROC_INTEL::write_xml(MIOFILE& f, bool scheduler_rpc) {
 
 void COPROC_INTEL::clear() {
     COPROC::clear();
-    strcpy(type, proc_type_name_xml(PROC_TYPE_INTEL_GPU));
+    safe_strcpy(type, proc_type_name_xml(PROC_TYPE_INTEL_GPU));
     estimated_delay = -1;
-    strcpy(name, "");
-    strcpy(version, "");
+    safe_strcpy(name, "");
+    safe_strcpy(version, "");
 }
 
 int COPROC_INTEL::parse(XML_PARSER& xp) {
@@ -1001,9 +1001,9 @@ void COPROC_INTEL::set_peak_flops() {
 }
 
 void COPROC_INTEL::fake(double ram, double avail_ram, int n) {
-    strcpy(type, proc_type_name_xml(PROC_TYPE_INTEL_GPU));
-    strcpy(version, "1.4.3");
-    strcpy(name, "foobar");
+    safe_strcpy(type, proc_type_name_xml(PROC_TYPE_INTEL_GPU));
+    safe_strcpy(version, "1.4.3");
+    safe_strcpy(name, "foobar");
     count = n;
     available_ram = avail_ram;
     have_opencl = true;

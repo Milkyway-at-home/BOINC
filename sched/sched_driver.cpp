@@ -70,17 +70,17 @@ void read_hosts() {
     }
     while (fgets(buf, sizeof(buf), f)) {
         HOST_DESC hd;
-        strcpy(buf2, buf);
+        safe_strcpy(buf2, buf);
         char* p1 = strtok(buf2, "\t\n");
-        strcpy(hd.os_name, p1);
+        safe_strcpy(hd.os_name, p1);
         char* p2 = strtok(0, "\t\n");
-        strcpy(hd.p_vendor, p2);
+        safe_strcpy(hd.p_vendor, p2);
         char* p3 = strtok(0, "\t\n");
         if (!p3) {
             fprintf(stderr, "bad line: %s\n", buf);
             exit(1);
         }
-        strcpy(hd.p_model, p3);
+        safe_strcpy(hd.p_model, p3);
         host_descs.push_back(hd);
     }
     fclose(f);

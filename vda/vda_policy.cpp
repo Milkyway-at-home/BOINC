@@ -24,7 +24,7 @@ int POLICY::parse(const char* filename) {
     int n;
     char buf[256];
 
-    strcpy(description, "");
+    safe_strcpy(description, "");
 
     FILE* f = fopen(filename, "r");
     if (!f) {

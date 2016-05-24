@@ -104,13 +104,13 @@ void show_message(PROJ_AM *p, char* msg, int priority, bool is_html, const char*
         NOTICE n;
         n.description = buf;
         if (link) {
-            strcpy(n.link, link);
+            safe_strcpy(n.link, link);
         }
         if (p) {
-            strcpy(n.project_name, p->get_project_name());
+            safe_strcpy(n.project_name, p->get_project_name());
         }
         n.create_time = n.arrival_time = gstate.now;
-        strcpy(n.category, (priority==MSG_USER_ALERT)?"client":"scheduler");
+        safe_strcpy(n.category, (priority==MSG_USER_ALERT)?"client":"scheduler");
         notices.append(n);
     }
 
@@ -180,7 +180,7 @@ void MESSAGE_DESCS::insert(PROJ_AM* p, int priority, int now, char* message) {
             mdp->project_name, p->get_project_name(), sizeof(mdp->project_name)
         );
     } else {
-        strcpy(mdp->project_name, "");
+        safe_strcpy(mdp->project_name, "");
     }
     mdp->priority = (priority==MSG_SCHEDULER_ALERT)?MSG_USER_ALERT:priority;
     mdp->timestamp = now;
@@ -215,7 +215,7 @@ void MESSAGE_DESCS::write(int seqno, MIOFILE& fout, bool translatable) {
     fout.printf("<msgs>\n");
     for (i=j; i>=0; i--) {
         mdp = msgs[i];
-        strcpy(buf, mdp->message.c_str());
+        safe_strcpy(buf, mdp->message.c_str());
         if (!translatable) {
             strip_translation(buf);
         }

@@ -28,7 +28,7 @@
 *
 *              In this C version, the following C library functions are
 *              used:
-*              - strcpy, strcmp (inside the measurement loop)
+*              - safe_strcpy, strcmp (inside the measurement loop)
 *              - printf, scanf (outside the measurement loop)
 *
 */
@@ -104,9 +104,9 @@ int dhrystone(
   Ptr_Glob->Discr                       = Ident_1;
   Ptr_Glob->variant.var_1.Enum_Comp     = Ident_3;
   Ptr_Glob->variant.var_1.Int_Comp      = 40;
-  strcpy (Ptr_Glob->variant.var_1.Str_Comp,
+  safe_strcpy (Ptr_Glob->variant.var_1.Str_Comp,
           "DHRYSTONE PROGRAM, SOME STRING");
-  strcpy (Str_1_Loc, "DHRYSTONE PROGRAM, 1'ST STRING");
+  safe_strcpy (Str_1_Loc, "DHRYSTONE PROGRAM, 1'ST STRING");
 
   Arr_2_Glob [8][7] = 10;
 
@@ -128,7 +128,7 @@ int dhrystone(
             Proc_4(dd);
             Int_1_Loc = 2;
             Int_2_Loc = 3;
-            strcpy (Str_2_Loc, "DHRYSTONE PROGRAM, 2'ND STRING");
+            safe_strcpy (Str_2_Loc, "DHRYSTONE PROGRAM, 2'ND STRING");
             Enum_Loc = Ident_2;
             Bool_Glob = ! Func_2 (dd, Str_1_Loc, Str_2_Loc);
             while (Int_1_Loc < Int_2_Loc)  /* loop body executed once */
@@ -144,7 +144,7 @@ int dhrystone(
               if (Enum_Loc == Func_1 (dd, Ch_Index, 'C'))
                 {
                 Proc_6 (dd, Ident_1, &Enum_Loc);
-                strcpy (Str_2_Loc, "DHRYSTONE PROGRAM, 3'RD STRING");
+                safe_strcpy (Str_2_Loc, "DHRYSTONE PROGRAM, 3'RD STRING");
                 Int_2_Loc = Run_Index;
                 Int_Glob = Run_Index;
                 }

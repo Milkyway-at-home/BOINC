@@ -125,28 +125,28 @@ int boinc_zip(
     // just form an argc/argv to spoof the "main"
     // default options are to recurse into directories
     //if (options && strlen(options)) 
-    //      strcpy(av[1], options);
+    //      safe_strcpy(av[1], options);
 
     if (bZipType == ZIP_IT) {
-        strcpy(av[0], "zip");
+        safe_strcpy(av[0], "zip");
         // default zip options -- no dir names, no subdirs, highest compression, quiet mode
         if (strlen(av[1])==0) {
-            strcpy(av[1], "-j9q");
+            safe_strcpy(av[1], "-j9q");
         }
-        strcpy(av[2], szFileZip.c_str());
+        safe_strcpy(av[2], szFileZip.c_str());
 
         //sz 3 onward will be each vector
         int jj;
         for (jj=0; jj<nVecSize; jj++) {
-            strcpy(av[3+jj], pvectszFileIn->at(jj).c_str());
+            safe_strcpy(av[3+jj], pvectszFileIn->at(jj).c_str());
         }
     } else {
-        strcpy(av[0], "unzip");
+        safe_strcpy(av[0], "unzip");
         // default unzip options -- preserve subdirs, overwrite 
         if (strlen(av[1])==0) {
-            strcpy(av[1], "-oq");
+            safe_strcpy(av[1], "-oq");
         }
-        strcpy(av[2], szFileZip.c_str());
+        safe_strcpy(av[2], szFileZip.c_str());
 
         // if they passed in a directory unzip there
         if (carg == 4) {
@@ -279,7 +279,7 @@ bool boinc_filelist(
 
         // check no | were found at all
         if (iCtr == 0) {
-            strcpy(strPart[0], spattern.c_str());
+            safe_strcpy(strPart[0], spattern.c_str());
             iCtr++; // fake iCtr up 1 to get in the loop below
         }
 
