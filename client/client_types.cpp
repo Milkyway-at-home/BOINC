@@ -120,14 +120,14 @@ int parse_project_files(XML_PARSER& xp, vector<FILE_REF>& project_files) {
 }
 
 int APP::parse(XML_PARSER& xp) {
-    strcpy(name, "");
-    strcpy(user_friendly_name, "");
+    safe_strcpy(name, "");
+    safe_strcpy(user_friendly_name, "");
     project = NULL;
     non_cpu_intensive = false;
     while (!xp.get_tag()) {
         if (xp.match_tag("/app")) {
             if (!strlen(user_friendly_name)) {
-                strcpy(user_friendly_name, name);
+                safe_strcpy(user_friendly_name, name);
             }
             return 0;
         }
@@ -173,8 +173,8 @@ int APP::write(MIOFILE& out) {
 }
 
 FILE_INFO::FILE_INFO() {
-    strcpy(name, "");
-    strcpy(md5_cksum, "");
+    safe_strcpy(name, "");
+    safe_strcpy(md5_cksum, "");
     max_nbytes = 0;
     nbytes = 0;
     gzipped_nbytes = 0;
@@ -195,8 +195,8 @@ FILE_INFO::FILE_INFO() {
     project = NULL;
     download_urls.clear();
     upload_urls.clear();
-    strcpy(xml_signature, "");
-    strcpy(file_signature, "");
+    safe_strcpy(xml_signature, "");
+    safe_strcpy(file_signature, "");
     cert_sigs = 0;
     async_verify = NULL;
 }
@@ -231,7 +231,7 @@ int FILE_INFO::set_permissions(const char* path) {
     int retval;
     char pathname[1024];
     if (path) {
-        strcpy(pathname, path);
+        safe_strcpy(pathname, path);
     } else {
         get_pathname(this, pathname, sizeof(pathname));
     }
@@ -592,10 +592,10 @@ int FILE_INFO::merge_info(FILE_INFO& new_info) {
     // replace signatures
     //
     if (strlen(new_info.file_signature)) {
-        strcpy(file_signature, new_info.file_signature);
+        safe_strcpy(file_signature, new_info.file_signature);
     }
     if (strlen(new_info.xml_signature)) {
-        strcpy(xml_signature, new_info.xml_signature);
+        safe_strcpy(xml_signature, new_info.xml_signature);
     }
 
     // If the file is supposed to be executable and is PRESENT,
@@ -656,7 +656,7 @@ int FILE_INFO::gzip() {
     char inpath[MAXPATHLEN], outpath[MAXPATHLEN];
 
     get_pathname(this, inpath, sizeof(inpath));
-    strcpy(outpath, inpath);
+    safe_strcpy(outpath, inpath);
     strcat(outpath, ".gz");
     FILE* in = boinc_fopen(inpath, "rb");
     if (!in) return ERR_FOPEN;
@@ -687,11 +687,11 @@ int FILE_INFO::gunzip(char* md5_buf) {
 
     md5_init(&md5_state);
     get_pathname(this, outpath, sizeof(outpath));
-    strcpy(inpath, outpath);
+    safe_strcpy(inpath, outpath);
     strcat(inpath, ".gz");
-    strcpy(tmppath, outpath);
+    safe_strcpy(tmppath, outpath);
     char* p = strrchr(tmppath, '/');
-    strcpy(p+1, "decompress_temp");
+    safe_strcpy(p+1, "decompress_temp");
     FILE* out = boinc_fopen(tmppath, "wb");
     if (!out) return ERR_FOPEN;
     gzFile in = gzopen(inpath, "rb");
@@ -725,13 +725,13 @@ int APP_VERSION::parse(XML_PARSER& xp) {
     double dtemp;
     int rt;
 
-    strcpy(app_name, "");
-    strcpy(api_version, "");
+    safe_strcpy(app_name, "");
+    safe_strcpy(api_version, "");
     version_num = 0;
-    strcpy(platform, "");
-    strcpy(plan_class, "");
-    strcpy(cmdline, "");
-    strcpy(file_prefix, "");
+    safe_strcpy(platform, "");
+    safe_strcpy(plan_class, "");
+    safe_strcpy(cmdline, "");
+    safe_strcpy(file_prefix, "");
     avg_ncpus = 1;
     max_ncpus = 1;
     gpu_usage.rsc_type = 0;
@@ -741,7 +741,7 @@ int APP_VERSION::parse(XML_PARSER& xp) {
     project = NULL;
     flops = gstate.host_info.p_fpops;
     missing_coproc = false;
-    strcpy(missing_coproc_name, "");
+    safe_strcpy(missing_coproc_name, "");
     dont_throttle = false;
     needs_network = false;
 
@@ -756,7 +756,7 @@ int APP_VERSION::parse(XML_PARSER& xp) {
                         );
                         missing_coproc = true;
                         missing_coproc_usage = gpu_usage.usage;
-                        strcpy(missing_coproc_name, coprocs.coprocs[rt].type);
+                        safe_strcpy(missing_coproc_name, coprocs.coprocs[rt].type);
                     }
                 } else if (strstr(plan_class, "cuda")) {
                     if (!coprocs.coprocs[rt].have_cuda) {
@@ -765,7 +765,7 @@ int APP_VERSION::parse(XML_PARSER& xp) {
                         );
                         missing_coproc = true;
                         missing_coproc_usage = gpu_usage.usage;
-                        strcpy(missing_coproc_name, coprocs.coprocs[rt].type);
+                        safe_strcpy(missing_coproc_name, coprocs.coprocs[rt].type);
                     }
                 } else if (strstr(plan_class, "ati")) {
                     if (!coprocs.coprocs[rt].have_cal) {
@@ -774,7 +774,7 @@ int APP_VERSION::parse(XML_PARSER& xp) {
                         );
                         missing_coproc = true;
                         missing_coproc_usage = gpu_usage.usage;
-                        strcpy(missing_coproc_name, coprocs.coprocs[rt].type);
+                        safe_strcpy(missing_coproc_name, coprocs.coprocs[rt].type);
                     }
                 }
             }
@@ -816,7 +816,7 @@ int APP_VERSION::parse(XML_PARSER& xp) {
                     );
                     missing_coproc = true;
                     missing_coproc_usage = cp.count;
-                    strcpy(missing_coproc_name, cp.type);
+                    safe_strcpy(missing_coproc_name, cp.type);
                     continue;
                 }
                 gpu_usage.rsc_type = rt;
@@ -967,8 +967,8 @@ int APP_VERSION::api_major_version() {
 int FILE_REF::parse(XML_PARSER& xp) {
     bool temp;
 
-    strcpy(file_name, "");
-    strcpy(open_name, "");
+    safe_strcpy(file_name, "");
+    safe_strcpy(open_name, "");
     main_program = false;
     copy_file = false;
     optional = false;
@@ -1018,11 +1018,11 @@ int WORKUNIT::parse(XML_PARSER& xp) {
     FILE_REF file_ref;
     double dtemp;
 
-    strcpy(name, "");
-    strcpy(app_name, "");
+    safe_strcpy(name, "");
+    safe_strcpy(app_name, "");
     version_num = 0;
     command_line = "";
-    //strcpy(env_vars, "");
+    //safe_strcpy(env_vars, "");
     app = NULL;
     project = NULL;
     // Default these to very large values (1 week on a 1 cobblestone machine)

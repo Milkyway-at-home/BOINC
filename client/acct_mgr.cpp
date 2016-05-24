@@ -126,7 +126,7 @@ int ACCT_MGR_OP::do_rpc(
             fprintf(f,"   <gui_rpc_port>%d</gui_rpc_port>\n", GUI_RPC_PORT);
         }
         if (boinc_file_exists(GUI_RPC_PASSWD_FILE)) {
-            strcpy(password, "");
+            safe_strcpy(password, "");
             pwdf = fopen(GUI_RPC_PASSWD_FILE, "r");
             if (pwdf) {
                 if (fgets(password, 256, pwdf)) {
@@ -229,7 +229,7 @@ int AM_ACCOUNT::parse(XML_PARSER& xp) {
     suspend.init();
     abort_not_started.init();
     url = "";
-    strcpy(url_signature, "");
+    safe_strcpy(url_signature, "");
     authenticator = "";
     resource_share.init();
 
@@ -322,8 +322,8 @@ int ACCT_MGR_OP::parse(FILE* f) {
     error_str = "";
     error_num = 0;
     repeat_sec = 0;
-    strcpy(host_venue, "");
-    strcpy(ami.opaque, "");
+    safe_strcpy(host_venue, "");
+    safe_strcpy(ami.opaque, "");
     rss_feeds.clear();
     if (!xp.parse_start("acct_mgr_reply")) return ERR_XML_PARSE;
     while (!xp.get_tag()) {
@@ -488,12 +488,12 @@ void ACCT_MGR_OP::handle_reply(int http_op_retval) {
     }
 
     if (sig_ok) {
-        strcpy(gstate.acct_mgr_info.master_url, ami.master_url);
-        strcpy(gstate.acct_mgr_info.project_name, ami.project_name);
-        strcpy(gstate.acct_mgr_info.signing_key, ami.signing_key);
-        strcpy(gstate.acct_mgr_info.login_name, ami.login_name);
-        strcpy(gstate.acct_mgr_info.password_hash, ami.password_hash);
-        strcpy(gstate.acct_mgr_info.opaque, ami.opaque);
+        safe_strcpy(gstate.acct_mgr_info.master_url, ami.master_url);
+        safe_strcpy(gstate.acct_mgr_info.project_name, ami.project_name);
+        safe_strcpy(gstate.acct_mgr_info.signing_key, ami.signing_key);
+        safe_strcpy(gstate.acct_mgr_info.login_name, ami.login_name);
+        safe_strcpy(gstate.acct_mgr_info.password_hash, ami.password_hash);
+        safe_strcpy(gstate.acct_mgr_info.opaque, ami.opaque);
 
         // process projects
         //
@@ -526,7 +526,7 @@ void ACCT_MGR_OP::handle_reply(int http_op_retval) {
                             if (is_weak_auth(pp->authenticator)
                                 && is_weak_auth(acct.authenticator.c_str())
                             ) {
-                                strcpy(pp->authenticator, acct.authenticator.c_str());
+                                safe_strcpy(pp->authenticator, acct.authenticator.c_str());
                                 msg_printf(pp, MSG_INFO,
                                     "Received new authenticator from account manager"
                                 );
@@ -567,7 +567,7 @@ void ACCT_MGR_OP::handle_reply(int http_op_retval) {
                         if (pp->ams_resource_share >= 0) {
                             pp->ams_resource_share = -1;
                             PROJECT p2;
-                            strcpy(p2.master_url, pp->master_url);
+                            safe_strcpy(p2.master_url, pp->master_url);
                             retval = p2.parse_account_file();
                             if (!retval) {
                                 pp->resource_share = p2.resource_share;
@@ -632,7 +632,7 @@ void ACCT_MGR_OP::handle_reply(int http_op_retval) {
 
         bool read_prefs = false;
         if (strlen(host_venue) && strcmp(host_venue, gstate.main_host_venue)) {
-            strcpy(gstate.main_host_venue, host_venue);
+            safe_strcpy(gstate.main_host_venue, host_venue);
             read_prefs = true;
         }
 
@@ -659,7 +659,7 @@ void ACCT_MGR_OP::handle_reply(int http_op_retval) {
         }
     }
 
-    strcpy(gstate.acct_mgr_info.previous_host_cpid, gstate.host_info.host_cpid);
+    safe_strcpy(gstate.acct_mgr_info.previous_host_cpid, gstate.host_info.host_cpid);
     if (repeat_sec) {
         gstate.acct_mgr_info.next_rpc_time = gstate.now + repeat_sec;
     } else {
@@ -722,13 +722,13 @@ int ACCT_MGR_INFO::write_info() {
 }
 
 void ACCT_MGR_INFO::clear() {
-    strcpy(project_name, "");
-    strcpy(master_url, "");
-    strcpy(login_name, "");
-    strcpy(password_hash, "");
-    strcpy(signing_key, "");
-    strcpy(previous_host_cpid, "");
-    strcpy(opaque, "");
+    safe_strcpy(project_name, "");
+    safe_strcpy(master_url, "");
+    safe_strcpy(login_name, "");
+    safe_strcpy(password_hash, "");
+    safe_strcpy(signing_key, "");
+    safe_strcpy(previous_host_cpid, "");
+    safe_strcpy(opaque, "");
     next_rpc_time = 0;
     nfailures = 0;
     send_gui_rpc_info = false;

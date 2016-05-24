@@ -122,7 +122,7 @@ void parse_attr(const char* buf, const char* name, char* dest, int len) {
     const char* p;
     const char *q;
 
-    strcpy(dest, "");
+    safe_strcpy(dest, "");
     p = strstr(buf, name);
     if (!p) return;
     p = strchr(p, '"');
@@ -171,7 +171,7 @@ int dup_element_contents(FILE* in, const char* end_tag, char** pp) {
     while (fgets(line, 256, in)) {
         if (strstr(line, end_tag)) {
             *pp = (char*)malloc(nused+1);
-            strcpy(*pp, buf);
+            safe_strcpy(*pp, buf);
             free(buf);
             return 0;
         }
@@ -180,7 +180,7 @@ int dup_element_contents(FILE* in, const char* end_tag, char** pp) {
             bufsize *= 2;
             buf = (char*)realloc(buf, bufsize);
         }
-        strcpy(buf+nused, line);
+        safe_strcpy(buf+nused, line);
         nused += n;
     }
     free(buf);
@@ -215,7 +215,7 @@ int copy_element_contents(FILE* in, const char* end_tag, char* p, int len) {
     char buf[256];
     int n;
 
-    strcpy(p, "");
+    safe_strcpy(p, "");
     while (fgets(buf, 256, in)) {
         if (strstr(buf, end_tag)) {
             return 0;
@@ -252,7 +252,7 @@ void replace_element_contents(
     p += strlen(start);
     q = strstr(p, end);
     strlcpy(temp, q, sizeof(temp));
-    strcpy(p, replacement);
+    safe_strcpy(p, replacement);
     strcat(p, temp);
 }
 
@@ -276,8 +276,8 @@ bool str_replace(char* str, const char* substr, const char* replacement) {
     p = strstr(str, substr);
     if (!p) return false;
     int n = (int)strlen(substr);
-    strcpy(temp, p+n);
-    strcpy(p, replacement);
+    safe_strcpy(temp, p+n);
+    safe_strcpy(p, replacement);
     strcat(p, temp);
     return true;
 }
@@ -299,14 +299,14 @@ void extract_venue(const char* in, const char* venue_name, char* out) {
         // prefs contain the specified venue
         //
         p += strlen(buf);
-        strcpy(out, p);
+        safe_strcpy(out, p);
         wp = strstr(out, "</venue");
         if (wp) *wp = 0;
     } else {
         // prefs don't contain the specified venue
         //
         q = in;
-        strcpy(out, "");
+        safe_strcpy(out, "");
            while (1) {
                p = strstr(q, "<venue");
                if (!p) {
@@ -346,7 +346,7 @@ void non_ascii_escape(const char* in, char* out, int len) {
         x &= 0xff;   // just in case
         if (x>127) {
             sprintf(buf, "&#%d;", x);
-            strcpy(p, buf);
+            safe_strcpy(p, buf);
             p += strlen(buf);
         } else {
             *p++ = x;
@@ -370,14 +370,14 @@ void xml_escape(const char* in, char* out, int len) {
         int x = (int) *in;
         x &= 0xff;   // just in case
         if (x == '<') {
-            strcpy(p, "&lt;");
+            safe_strcpy(p, "&lt;");
             p += 4;
         } else if (x == '&') {
-            strcpy(p, "&amp;");
+            safe_strcpy(p, "&amp;");
             p += 5;
         } else if (x>127) {
             sprintf(buf, "&#%d;", x);
-            strcpy(p, buf);
+            safe_strcpy(p, buf);
             p += strlen(buf);
         } else if (x<32) {
             switch(x) {
@@ -385,7 +385,7 @@ void xml_escape(const char* in, char* out, int len) {
             case 10:
             case 13:
                 sprintf(buf, "&#%d;", x);
-                strcpy(p, buf);
+                safe_strcpy(p, buf);
                 p += strlen(buf);
                 break;
             }
@@ -402,7 +402,7 @@ void xml_escape(const char* in, char* out, int len) {
 void xml_unescape(string& in) {
     int n = (int)in.size()+1+16;      // +16 avoids valgrind warnings
     char* buf = (char*)malloc(n);
-    strcpy(buf, in.c_str());
+    safe_strcpy(buf, in.c_str());
     xml_unescape(buf);
     in = buf;
     free(buf);
@@ -537,10 +537,10 @@ bool XML_PARSER::parse_str(const char* start_tag, char* buf, int len) {
     //
     size_t n = strlen(parsed_tag);
     if (parsed_tag[n-1] == '/') {
-        strcpy(tag, parsed_tag);
+        safe_strcpy(tag, parsed_tag);
         tag[n-1] = 0;
         if (!strcmp(tag, start_tag)) {
-            strcpy(buf, "");
+            safe_strcpy(buf, "");
             return true;
         }
     }
@@ -550,7 +550,7 @@ bool XML_PARSER::parse_str(const char* start_tag, char* buf, int len) {
     if (strcmp(parsed_tag, start_tag)) return false;
 
     end_tag[0] = '/';
-    strcpy(end_tag+1, start_tag);
+    safe_strcpy(end_tag+1, start_tag);
 
     // get text after start tag
     //
@@ -563,7 +563,7 @@ bool XML_PARSER::parse_str(const char* start_tag, char* buf, int len) {
         if (strcmp(buf, end_tag)) {
             return false;
         } else {
-            strcpy(buf, "");
+            safe_strcpy(buf, "");
             return true;
         }
     }
@@ -596,7 +596,7 @@ bool XML_PARSER::parse_int(const char* start_tag, int& i) {
     if (strcmp(parsed_tag, start_tag)) return false;
 
     end_tag[0] = '/';
-    strcpy(end_tag+1, start_tag);
+    safe_strcpy(end_tag+1, start_tag);
 
     eof = get(buf, sizeof(buf), is_tag);
     if (eof) return false;
@@ -631,7 +631,7 @@ bool XML_PARSER::parse_double(const char* start_tag, double& x) {
     if (strcmp(parsed_tag, start_tag)) return false;
 
     end_tag[0] = '/';
-    strcpy(end_tag+1, start_tag);
+    safe_strcpy(end_tag+1, start_tag);
 
     eof = get(buf, sizeof(buf), is_tag);
     if (eof) return false;
@@ -666,7 +666,7 @@ bool XML_PARSER::parse_ulong(const char* start_tag, unsigned long& x) {
     if (strcmp(parsed_tag, start_tag)) return false;
 
     end_tag[0] = '/';
-    strcpy(end_tag+1, start_tag);
+    safe_strcpy(end_tag+1, start_tag);
 
     eof = get(buf, sizeof(buf), is_tag);
     if (eof) return false;
@@ -701,7 +701,7 @@ bool XML_PARSER::parse_ulonglong(const char* start_tag, unsigned long long& x) {
     if (strcmp(parsed_tag, start_tag)) return false;
 
     end_tag[0] = '/';
-    strcpy(end_tag+1, start_tag);
+    safe_strcpy(end_tag+1, start_tag);
 
     eof = get(buf, sizeof(buf), is_tag);
     if (eof) return false;
@@ -735,7 +735,7 @@ bool XML_PARSER::parse_bool(const char* start_tag, bool& b) {
 
     // handle the archaic form <tag/>, which means true
     //
-    strcpy(tag, start_tag);
+    safe_strcpy(tag, start_tag);
     strcat(tag, "/");
     if (!strcmp(parsed_tag, tag)) {
         b = true;
@@ -753,7 +753,7 @@ bool XML_PARSER::parse_bool(const char* start_tag, bool& b) {
     if (end != buf+strlen(buf)) return false;
 
     end_tag[0] = '/';
-    strcpy(end_tag+1, start_tag);
+    safe_strcpy(end_tag+1, start_tag);
     eof = get(tag, sizeof(tag), is_tag);
     if (eof) return false;
     if (!is_tag) return false;

@@ -33,7 +33,7 @@
 #include "app_ipc.h"
 #include "filesys.h"
 
-using std::strcpy;
+using std::safe_strcpy;
 
 int main(int /*argc*/, char** argv) {
     passwd          *pw;
@@ -46,8 +46,8 @@ int main(int /*argc*/, char** argv) {
     char            newlibs[256];
     char            *projectDirName;
 
-    strcpy(user_name, "boinc_project");
-    strcpy(group_name, "boinc_project");
+    safe_strcpy(user_name, "boinc_project");
+    safe_strcpy(group_name, "boinc_project");
 
 #if 0           // For debugging only
     char    current_dir[MAXPATHLEN];
@@ -64,9 +64,9 @@ int main(int /*argc*/, char** argv) {
 #if 0       // For debugging only
     // Allow debugging without running as user or group boinc_project
     pw = getpwuid(getuid());
-    if (pw) strcpy(user_name, pw->pw_name);
+    if (pw) safe_strcpy(user_name, pw->pw_name);
     grp = getgrgid(getgid());
-    if (grp) strcpy(group_name, grp->gr_gid);
+    if (grp) safe_strcpy(group_name, grp->gr_gid);
 
 #endif
 
@@ -106,7 +106,7 @@ int main(int /*argc*/, char** argv) {
         if (p) {
             sprintf(libpath, "%s:%s", newlibs, p);
         } else {
-            strcpy(libpath, newlibs);
+            safe_strcpy(libpath, newlibs);
         }
         setenv("LD_LIBRARY_PATH", libpath, 1);
 
@@ -117,7 +117,7 @@ int main(int /*argc*/, char** argv) {
         if (p) {
             sprintf(libpath, "%s:%s", newlibs, p);
         } else {
-            strcpy(libpath, newlibs);
+            safe_strcpy(libpath, newlibs);
         }
         setenv("DYLD_LIBRARY_PATH", libpath, 1);
 #endif

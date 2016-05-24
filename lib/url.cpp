@@ -62,18 +62,18 @@ void parse_url(const char* url, PARSED_URL& purl) {
 
     // parse user name and password
     //
-    strcpy(purl.user, "");
-    strcpy(purl.passwd, "");
+    safe_strcpy(purl.user, "");
+    safe_strcpy(purl.passwd, "");
     p = strchr(buf, '@');
     if (p) {
         *p = 0;
         q = strchr(buf, ':');
         if (q) {
             *q = 0;
-            strcpy(purl.user, buf);
-            strcpy(purl.passwd, q+1);
+            safe_strcpy(purl.user, buf);
+            safe_strcpy(purl.passwd, q+1);
         } else {
-            strcpy(purl.user, buf);
+            safe_strcpy(purl.user, buf);
         }
         buf = p+1;
     }
@@ -82,10 +82,10 @@ void parse_url(const char* url, PARSED_URL& purl) {
     //
     p = strchr(buf, '/');
     if (p) {
-        strcpy(purl.file, p+1);
+        safe_strcpy(purl.file, p+1);
         *p = 0;
     } else {
-        strcpy(purl.file, "");
+        safe_strcpy(purl.file, "");
     }
 
     // parse and strip off port if present
@@ -103,7 +103,7 @@ void parse_url(const char* url, PARSED_URL& purl) {
 
     // what remains is the host
     //
-    strcpy(purl.host, buf);
+    safe_strcpy(purl.host, buf);
 }
 
 static char x2c(char *what) {
@@ -129,7 +129,7 @@ void c2x(char *what) {
     buf[1] = d2+abase2;
     buf[2] = 0;
 
-    strcpy(what, buf);
+    safe_strcpy(what, buf);
 }
 
 void unescape_url(char *url) {
@@ -251,9 +251,9 @@ void canonicalize_master_url(char* url) {
     char *p = strstr(url, "://");
     if (p) {
         bSSL = (bool) (p == url + 5);
-        strcpy(buf, p+3);
+        safe_strcpy(buf, p+3);
     } else {
-        strcpy(buf, url);
+        safe_strcpy(buf, url);
     }
     while (1) {
         p = strstr(buf, "//");
@@ -269,7 +269,7 @@ void canonicalize_master_url(char* url) {
 
 void canonicalize_master_url(string& url) {
     char buf[1024];
-    strcpy(buf, url.c_str());
+    safe_strcpy(buf, url.c_str());
     canonicalize_master_url(buf);
     url = buf;
 }

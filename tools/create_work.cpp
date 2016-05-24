@@ -99,11 +99,11 @@ int main(int argc, const char** argv) {
     int assign_id = 0;
     int assign_type = ASSIGN_NONE;
 
-    strcpy(wu_template_file, "");
-    strcpy(result_template_file, "");
-    strcpy(app.name, "");
-    strcpy(db_passwd, "");
-    strcpy(additional_xml, "");
+    safe_strcpy(wu_template_file, "");
+    safe_strcpy(result_template_file, "");
+    safe_strcpy(app.name, "");
+    safe_strcpy(db_passwd, "");
+    safe_strcpy(additional_xml, "");
     const char* config_dir = 0;
     i = 1;
     ninfiles = 0;
@@ -126,18 +126,18 @@ int main(int argc, const char** argv) {
 
     while (i < argc) {
         if (arg(argv, i, "appname")) {
-            strcpy(app.name, argv[++i]);
+            safe_strcpy(app.name, argv[++i]);
         } else if (arg(argv, i, "d")) {
             int dl = atoi(argv[++i]);
             log_messages.set_debug_level(dl);
             if (dl ==4) g_print_queries = true;
         } else if (arg(argv, i, "wu_name")) {
             show_wu_name = false;
-            strcpy(wu.name, argv[++i]);
+            safe_strcpy(wu.name, argv[++i]);
         } else if (arg(argv, i, "wu_template")) {
-            strcpy(wu_template_file, argv[++i]);
+            safe_strcpy(wu_template_file, argv[++i]);
         } else if (arg(argv, i, "result_template")) {
-            strcpy(result_template_file, argv[++i]);
+            safe_strcpy(result_template_file, argv[++i]);
         } else if (arg(argv, i, "batch")) {
             wu.batch = atoi(argv[++i]);
         } else if (arg(argv, i, "config_dir")) {
@@ -171,7 +171,7 @@ int main(int argc, const char** argv) {
         } else if (arg(argv, i, "command_line")) {
             command_line= argv[++i];
         } else if (arg(argv, i, "additional_xml")) {
-            strcpy(additional_xml, argv[++i]);
+            safe_strcpy(additional_xml, argv[++i]);
         } else if (arg(argv, i, "wu_id")) {
             wu.id = atoi(argv[++i]);
         } else if (arg(argv, i, "broadcast")) {
@@ -233,11 +233,11 @@ int main(int argc, const char** argv) {
         fprintf(stderr, "Can't parse config file: %s\n", boincerror(retval));
         exit(1);
     } else {
-        strcpy(db_name, config.db_name);
-        strcpy(db_passwd, config.db_passwd);
-        strcpy(db_user, config.db_user);
-        strcpy(db_host, config.db_host);
-        strcpy(download_dir, config.download_dir);
+        safe_strcpy(db_name, config.db_name);
+        safe_strcpy(db_passwd, config.db_passwd);
+        safe_strcpy(db_user, config.db_user);
+        safe_strcpy(db_host, config.db_host);
+        safe_strcpy(download_dir, config.download_dir);
     }
 
     retval = boinc_db.open(db_name, db_host, db_user, db_passwd);
@@ -264,7 +264,7 @@ int main(int argc, const char** argv) {
 
     wu.appid = app.id;
 
-    strcpy(result_template_path, "./");
+    safe_strcpy(result_template_path, "./");
     strcat(result_template_path, result_template_file);
     retval = create_work(
         wu,

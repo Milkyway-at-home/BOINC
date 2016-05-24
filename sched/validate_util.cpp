@@ -72,7 +72,7 @@ int get_output_file_info(RESULT& result, OUTPUT_FILE_INFO& fi) {
             int retval = fi.parse(xp);
             if (retval) return retval;
             if (standalone) {
-                strcpy(path, fi.name.c_str());
+                safe_strcpy(path, fi.name.c_str());
             } else {
                 dir_hier_path(
                     fi.name.c_str(), config.upload_dir,
@@ -100,7 +100,7 @@ int get_output_file_infos(RESULT& result, vector<OUTPUT_FILE_INFO>& fis) {
             int retval =  fi.parse(xp);
             if (retval) return retval;
             if (standalone) {
-                strcpy(path, fi.name.c_str());
+                safe_strcpy(path, fi.name.c_str());
             } else {
                 dir_hier_path(
                     fi.name.c_str(), config.upload_dir,
@@ -137,8 +137,8 @@ struct FILE_REF {
     char file_name[256];
     char open_name[256];
     int parse(XML_PARSER& xp) {
-        strcpy(file_name, "");
-        strcpy(open_name, "");
+        safe_strcpy(file_name, "");
+        safe_strcpy(open_name, "");
         while (!xp.get_tag()) {
             if (!xp.is_tag) continue;
             if (xp.match_tag("/file_ref")) {
@@ -161,10 +161,10 @@ int get_logical_name(RESULT& result, string& path, string& name) {
     mf.init_buf_read(result.xml_doc_in);
     XML_PARSER xp(&mf);
 
-    strcpy(phys_name, path.c_str());
+    safe_strcpy(phys_name, path.c_str());
     char* p = strrchr(phys_name, '/');
     if (!p) return ERR_NOT_FOUND;
-    strcpy(phys_name, p+1);
+    safe_strcpy(phys_name, p+1);
 
     while (!xp.get_tag()) {
         if (!xp.is_tag) continue;

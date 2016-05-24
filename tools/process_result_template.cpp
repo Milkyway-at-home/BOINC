@@ -74,8 +74,8 @@ int add_signatures(char* xml, R_RSA_PRIVATE_KEY& key) {
             "<xml_signature>\n%s</xml_signature>\n", signature_hex
         );
         if (retval) return retval;
-        strcpy(buf2, q2);
-        strcpy(q1, buf);
+        safe_strcpy(buf2, q2);
+        safe_strcpy(q1, buf);
         strcat(q1, signature_xml);
         strcat(q1, buf2);
         p = q1;
@@ -98,7 +98,7 @@ int remove_signatures(char* xml) {
             return ERR_XML_PARSE;
         }
         q += strlen("</xml_signature>\n");
-        strcpy(p, q);
+        safe_strcpy(p, q);
     }
     return 0;
 }
@@ -130,17 +130,17 @@ int process_result_template(
             if (!endptr) return ERR_XML_PARSE;
             if (strchr(q, '>') != endptr+1) return ERR_XML_PARSE;
             *endptr = 0;
-            strcpy(buf, q);
-            strcpy(temp, endptr+2);
-            strcpy(p, base_filename);
+            safe_strcpy(buf, q);
+            safe_strcpy(temp, endptr+2);
+            safe_strcpy(p, base_filename);
             strcat(p, buf);
             strcat(p, temp);
             continue;
         }
         p = strstr(result_template, UPLOAD_URL_MACRO);
         if (p) {
-            strcpy(temp, p+strlen(UPLOAD_URL_MACRO));
-            strcpy(p, config_loc.upload_url);
+            safe_strcpy(temp, p+strlen(UPLOAD_URL_MACRO));
+            safe_strcpy(p, config_loc.upload_url);
             strcat(p, temp);
             continue;
         }
@@ -155,10 +155,10 @@ int process_result_template(
     //
     p = strstr(result_template, "<output_template>");
     if (p) {
-        strcpy(temp, result_template+strlen("<output_template>"));
+        safe_strcpy(temp, result_template+strlen("<output_template>"));
         q = strstr(temp, "</output_template>");
         if (q) *q = 0;
-        strcpy(result_template, temp);
+        safe_strcpy(result_template, temp);
     }
     strip_whitespace(result_template);
     return 0;

@@ -42,23 +42,23 @@ int main(void) {
     if (!f) return (EXIT_FAILURE);
 
 #ifdef __mips__
-    strcpy(p_model, "MIPS ");
+    safe_strcpy(p_model, "MIPS ");
     model_hack = true;
 #elif __alpha__
-    strcpy(p_vendor, "HP (DEC) ");
+    safe_strcpy(p_vendor, "HP (DEC) ");
     vendor_hack = true;
 #elif __hppa__
-    strcpy(p_vendor, "HP ");
+    safe_strcpy(p_vendor, "HP ");
     vendor_hack = true;
 #elif __ia64__
-    strcpy(p_model, "IA-64 ");
+    safe_strcpy(p_model, "IA-64 ");
     model_hack = true;
 #elif __arm__
-    strcpy(p_vendor, "ARM ");
+    safe_strcpy(p_vendor, "ARM ");
     vendor_hack = vendor_found = true;
 #endif
 
-    strcpy(features, "");
+    safe_strcpy(features, "");
     while (fgets(buf, 256, f)) {
         //strip_whitespace(buf);
         if (
@@ -106,7 +106,7 @@ int main(void) {
         char *coma = NULL;
             if ((coma = strrchr(buf, ','))) {   /* we have ", altivec supported" */
             *coma = '\0';    /* strip the unwanted line */
-                strcpy(features, "altivec");
+                safe_strcpy(features, "altivec");
                 features_found = true;
             }
 #endif
@@ -187,7 +187,7 @@ int main(void) {
             }
         }
     }
-    strcpy(model_buf, p_model);
+    safe_strcpy(model_buf, p_model);
     if (family>=0 || model>=0 || stepping>0) {
         strcat(model_buf, " [");
         if (family>=0) {

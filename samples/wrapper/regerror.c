@@ -64,7 +64,7 @@ void re_error(int errcode, const regexp* re, char* buffer, size_t bufsize)
     
     if(errcode >= 0)
     {
-        strcpy(convbuf, errors[0].msg);
+        safe_strcpy(convbuf, errors[0].msg);
     }
     else
     {
@@ -73,7 +73,7 @@ void re_error(int errcode, const regexp* re, char* buffer, size_t bufsize)
         {
             if(errors[i].err == errcode)
             {
-                strcpy(convbuf, errors[i].msg);
+                safe_strcpy(convbuf, errors[i].msg);
                 break;
             }
         }
